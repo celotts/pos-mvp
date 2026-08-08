@@ -16,7 +16,7 @@ async def create_specialty(
     db: AsyncSession, specialty: SpecialtyCreateSchema
 ) -> SpecialtyModel:
     db_specialty = SpecialtyModel(
-        nombre=specialty.nombre, descripcion=specialty.descripcion
+        name=specialty.name, description=specialty.description
     )
     db.add(db_specialty)
     await db.commit()

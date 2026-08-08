@@ -5,8 +5,8 @@ from core.db import Base
 
 
 class Specialty(Base):
-    __tablename__ = "especialidades"
+    __tablename__ = "specialties"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    nombre: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
-    descripcion: Mapped[str | None] = mapped_column(Text)
+    name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    description: Mapped[str | None] = mapped_column(Text)
