@@ -2,8 +2,8 @@
 FROM python:3.11.9-alpine3.20 AS builder
 
 # Evita que Python escriba archivos .pyc
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
@@ -24,8 +24,8 @@ RUN python -m venv /opt/venv && \
 FROM python:3.11.9-alpine3.20 AS runner
 
 # Evita que Python escriba archivos .pyc
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 # Añade el venv al PATH
 ENV PATH="/opt/venv/bin:$PATH"

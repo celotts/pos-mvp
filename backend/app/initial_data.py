@@ -4,10 +4,10 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core import base  # noqa: F401 - Importa todos los modelos para que Base los reconozca
-from core import crud_user
 from core.config import settings
-from core.db import async_session_maker, engine, Base
+from core.db import async_session_maker
 from models.role import Role
+from core import crud_user
 from schemas.user import UserCreate
 
 logging.basicConfig(level=logging.INFO)
