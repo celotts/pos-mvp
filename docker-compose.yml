@@ -42,9 +42,11 @@ services:
       - EMBEDDING_MODEL=nomic-embed-text:latest
       # Conexión asíncrona con PostgreSQL (asyncpg)
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pos-db:5432/${POSTGRES_DB}
-      # Credenciales para el primer superusuario (leídas desde el .env)
+      # Credenciales para el primer superusuario (FALTABAN AQUÍ)
       - FIRST_SUPERUSER_EMAIL=${FIRST_SUPERUSER_EMAIL}
       - FIRST_SUPERUSER_PASSWORD=${FIRST_SUPERUSER_PASSWORD}
+      # Seguridad y Bootstrap
+      - BOOTSTRAP_SECRET_KEY=${BOOTSTRAP_SECRET_KEY}
       - SECRET_KEY=${SECRET_KEY}
       - ACCESS_TOKEN_EXPIRE_SECONDS=${ACCESS_TOKEN_EXPIRE_SECONDS}
     depends_on:

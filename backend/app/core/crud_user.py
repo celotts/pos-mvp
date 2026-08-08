@@ -1,14 +1,15 @@
 import uuid
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from core.security import get_password_hash, verify_password
 from models.user import User as UserModel
 from schemas.user import (
     UserCreate as UserCreateSchema,
+)
+from schemas.user import (
     UserUpdate as UserUpdateSchema,
 )
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def get_user(db: AsyncSession, user_id: uuid.UUID) -> UserModel | None:
@@ -43,7 +44,7 @@ async def authenticate(
 
 
 async def create_user(db: AsyncSession, *, user_in: UserCreateSchema) -> UserModel:
-    hashed_password = get_password_hash(user_in.password)
+    hashed_password = get_password_hash(user_in.password.get_secret_value())
     db_user = UserModel(
         email=user_in.email,
         full_name=user_in.full_name,

@@ -1,20 +1,21 @@
 import logging
 import uuid
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from core import base  # noqa: F401 - Importa todos los modelos para que Base los reconozca
+from core import (
+    base,  # noqa: F401 - Importa todos los modelos para que Base los reconozca
+    crud_user,
+)
 from core.config import settings
 from core.db import async_session_maker
 from models.role import Role
-from core import crud_user
 from schemas.user import UserCreate
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ID del rol SUPER_ADMIN definido en init.sql
-SUPER_ADMIN_ROLE_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
+# ID del rol SUPER_ADMIN definido en V1__initial_schema.sql
+SUPER_ADMIN_ROLE_ID = uuid.UUID("00000000-0000-0000-0000-000000000002")
 
 
 async def init_db(db: AsyncSession) -> None:
@@ -25,7 +26,7 @@ async def init_db(db: AsyncSession) -> None:
     if not admin_role:
         logger.info("Creando rol de Administrador inicial...")
         admin_role = Role(
-            id=SUPER_ADMIN_ROLE_ID,
+            id=SUPER_ADMIN_ROLE_ID,  # Este es el SUPER_ADMIN
             name="ADMIN",
         )
         db.add(admin_role)

@@ -1,5 +1,6 @@
 import uuid
-from pydantic import BaseModel, EmailStr
+
+from pydantic import BaseModel, EmailStr, SecretStr
 
 
 class UserBase(BaseModel):
@@ -9,9 +10,18 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     email: EmailStr
-    password: str
+    password: SecretStr
     full_name: str
     role_id: uuid.UUID
+
+
+class UserBootstrapIn(BaseModel):
+    """Esquema para la entrada del endpoint de bootstrap."""
+
+    email: EmailStr
+    password: SecretStr
+    full_name: str
+    bootstrap_secret: SecretStr
 
 
 class UserUpdate(UserBase):
