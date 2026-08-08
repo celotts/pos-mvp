@@ -11,7 +11,6 @@ services:
     ports:
       - "5434:5432"
     volumes:
-      - pgvector_data:/var/lib/postgresql/data
       - ./script_data/V1__initial_schema.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
@@ -55,9 +54,6 @@ services:
       - pos_network
 
 
-
-volumes:
-  pgvector_data:
 
 networks: # Corregido para usar la red del proyecto
   pos_network:
