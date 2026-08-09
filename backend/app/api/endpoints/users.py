@@ -6,11 +6,16 @@ from core import crud_user
 from dependencies import get_current_user, get_db
 from fastapi import APIRouter, Depends, HTTPException, status
 from models.user import User as UserModel
+from modules import user_service
 from schemas.user import User, UserCreate, UserUpdate
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
+
+get_db_dependency = Depends(get_db)
+get_current_user_dependency = Depends(get_current_user)
+get_current_admin_user_dependency = Depends(get_current_admin_user)
 
 
 @router.get(
@@ -19,10 +24,10 @@ router = APIRouter()
     summary="Obtener una lista de usuarios",
 )
 async def read_users(
+    db: AsyncSession = get_db_dependency,
+    current_user: UserModel = get_current_user_dependency,
     skip: int = 0,
     limit: int = 100,
-    db: AsyncSession = Depends(get_db),
-    current_user: UserModel = Depends(get_current_user),
 ) -> ApiResponse[list[User]]:
     """Obtiene una lista de usuarios."""
     users = await crud_user.get_users(db, skip=skip, limit=limit)
@@ -38,11 +43,11 @@ async def read_users(
 async def create_user(
     *,
     user_in: UserCreate,
-    current_user: UserModel = Depends(get_current_admin_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: UserModel = get_current_admin_user_dependency,
+    db: AsyncSession = get_db_dependency,
 ) -> ApiResponse[User]:
     try:
-        user = await crud_user.create_user(db=db, user_in=user_in)
+        user = await user_service.create_user_with_logic(db=db, user_in=user_in)
     except IntegrityError:
         raise HTTPException(status_code=400, detail="El email ya está registrado.")
     return create_api_response(
@@ -59,11 +64,11 @@ async def create_user(
 )
 async def read_user_by_id(
     user_id: uuid.UUID,
-    current_user: UserModel = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = get_db_dependency,
+    current_user: UserModel = get_current_user_dependency,
 ) -> ApiResponse[User]:
     """Obtiene un usuario por su ID."""
-    user = await crud_user.get_user(db, user_id=user_id)
+    user = await user_service.get_user_by_id(db, user_id=user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
     return create_api_response(data=user)
@@ -78,14 +83,23 @@ async def update_user(
     *,
     user_id: uuid.UUID,
     user_in: UserUpdate,
-    current_user: UserModel = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: UserModel = get_current_user_dependency,
+    db: AsyncSession = get_db_dependency,
 ) -> ApiResponse[User]:
     """Actualiza un usuario."""
-    db_user = await crud_user.get_user(db, user_id=user_id)
+    # Regla de negocio: Un usuario solo puede modificarse a sí mismo,
+    # a menos que sea un administrador.
+    if current_user.id != user_id and (
+        not current_user.role or current_user.role.name != "ADMIN"
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permiso para actualizar este usuario.",
+        )
+    db_user = await user_service.get_user_by_id(db, user_id=user_id)
     if not db_user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
-    user = await crud_user.update_user(db=db, db_user=db_user, user_in=user_in)
+    user = await user_service.update_user(db=db, db_user=db_user, user_in=user_in)
     return create_api_response(data=user, message="Usuario actualizado con éxito.")
 
 
@@ -97,11 +111,11 @@ async def update_user(
 async def delete_user(
     *,
     user_id: uuid.UUID,
-    current_user: UserModel = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: UserModel = get_current_admin_user_dependency,
+    db: AsyncSession = get_db_dependency,
 ) -> ApiResponse[User]:
     """Elimina un usuario."""
-    user = await crud_user.remove_user(db=db, user_id=user_id)
+    user = await user_service.delete_user(db=db, user_id=user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
     return create_api_response(data=user, message="Usuario eliminado con éxito.")

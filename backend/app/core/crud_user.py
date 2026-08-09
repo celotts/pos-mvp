@@ -10,11 +10,16 @@ from schemas.user import (
 )
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 
 async def get_user(db: AsyncSession, user_id: uuid.UUID) -> UserModel | None:
     """Obtiene un usuario por su ID."""
-    result = await db.execute(select(UserModel).filter(UserModel.id == user_id))
+    result = await db.execute(
+        select(UserModel)
+        .options(selectinload(UserModel.role))
+        .filter(UserModel.id == user_id)
+    )
     return result.scalars().first()
 
 
@@ -28,7 +33,12 @@ async def get_users(
     db: AsyncSession, skip: int = 0, limit: int = 100
 ) -> list[UserModel]:
     """Obtiene una lista de usuarios con paginación."""
-    result = await db.execute(select(UserModel).offset(skip).limit(limit))
+    result = await db.execute(
+        select(UserModel)
+        .options(selectinload(UserModel.role))
+        .offset(skip)
+        .limit(limit)
+    )
     return result.scalars().all()
 
 
@@ -66,9 +76,14 @@ async def update_user(
 
     # Si se proporciona una nueva contraseña, hashearla
     if password := user_data.get("password"):
-        hashed_password = get_password_hash(password)
+        hashed_password = get_password_hash(password.get_secret_value())
         db_user.password = hashed_password
         del user_data["password"]
+
+    # Si se proporciona un role_id, actualizarlo
+    if "role_id" in user_data and user_data["role_id"] is not None:
+        db_user.role_id = user_data["role_id"]
+        del user_data["role_id"]
 
     for field, value in user_data.items():
         setattr(db_user, field, value)

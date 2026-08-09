@@ -30,7 +30,8 @@ class UserCreate(UserBootstrapIn):
 
 
 class UserUpdate(UserBase):
-    password: str | None = None
+    password: SecretStr | None = None
+    role_id: uuid.UUID | None = None
 
 
 class UserInDBBase(UserBase):

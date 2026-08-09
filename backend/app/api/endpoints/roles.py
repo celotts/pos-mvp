@@ -11,13 +11,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
+current_user_dependency = Depends(get_current_admin_user)
+db_dependency = Depends(get_db)
+
 
 @router.get("/", response_model=ApiResponse[list[Role]])
 async def read_roles(
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = db_dependency,
+    current_user: UserModel = current_user_dependency,
     skip: int = 0,
     limit: int = 100,
-    current_user: UserModel = Depends(get_current_admin_user),
 ) -> ApiResponse[list[Role]]:
     """
     Obtiene una lista de roles.
@@ -29,9 +32,9 @@ async def read_roles(
 @router.post("/", response_model=ApiResponse[Role], status_code=status.HTTP_201_CREATED)
 async def create_role(
     *,
-    db: AsyncSession = Depends(get_db),
     role_in: RoleCreate,
-    current_user: UserModel = Depends(get_current_admin_user),
+    db: AsyncSession = db_dependency,
+    current_user: UserModel = current_user_dependency,
 ) -> ApiResponse[Role]:
     """
     Crea un nuevo rol.
@@ -43,10 +46,10 @@ async def create_role(
 @router.put("/{role_id}", response_model=ApiResponse[Role])
 async def update_role(
     *,
-    db: AsyncSession = Depends(get_db),
     role_id: uuid.UUID,
     role_in: RoleUpdate,
-    current_user: UserModel = Depends(get_current_admin_user),
+    current_user: UserModel = current_user_dependency,
+    db: AsyncSession = db_dependency,
 ) -> ApiResponse[Role]:
     """
     Actualiza un rol.

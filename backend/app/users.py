@@ -1,114 +1,122 @@
 import uuid
-from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from api.deps_auth import get_current_admin_user
+from api.response_factory import ApiResponse, create_api_response
+from core import crud_user
+from dependencies import get_current_user, get_db
+from fastapi import APIRouter, Depends, HTTPException, status
+from models.user import User as UserModel
+from modules import user_service
+from schemas.user import User, UserCreate, UserUpdate
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api import dependencies
-from core import crud_user
-from models.user import User as UserModel
-from schemas.user import User, UserCreate, UserUpdate
-
 router = APIRouter()
+
+# Module-level dependency markers to avoid calling Depends() in arg defaults
+current_user_dep = Depends(get_current_user)
+current_admin_user_dep = Depends(get_current_admin_user)
+db_dep = Depends(get_db)
 
 
 @router.get(
     "/",
-    response_model=list[User],
+    response_model=ApiResponse[list[User]],
     summary="Obtener una lista de usuarios",
 )
 async def read_users(
-    db: AsyncSession = Depends(dependencies.get_db),
+    db: AsyncSession = db_dep,
+    current_user: UserModel = current_user_dep,
     skip: int = 0,
     limit: int = 100,
-    current_user: UserModel = Depends(dependencies.get_current_user),  # noqa: B008
-) -> Any:
+) -> ApiResponse[list[User]]:
     """Obtiene una lista de usuarios."""
     users = await crud_user.get_users(db, skip=skip, limit=limit)
-    return users
+    return create_api_response(data=users)
 
 
 @router.post(
     "/",
-    response_model=User,
-    status_code=201,
+    response_model=ApiResponse[User],
+    status_code=status.HTTP_201_CREATED,
     summary="Crear un nuevo usuario",
-    responses={
-        400: {"description": "El email ya está registrado en el sistema."},
-    },
 )
 async def create_user(
     *,
-    db: AsyncSession = Depends(dependencies.get_db),
     user_in: UserCreate,
-) -> User:
+    current_user: UserModel = current_admin_user_dep,
+    db: AsyncSession = db_dep,
+) -> ApiResponse[User]:
     try:
-        user = await crud_user.create_user(db=db, user_in=user_in)
+        user = await user_service.create_user_with_logic(db=db, user_in=user_in)
     except IntegrityError:
         raise HTTPException(status_code=400, detail="El email ya está registrado.")
-    return user
+    return create_api_response(
+        data=user,
+        status_code=status.HTTP_201_CREATED,
+        message="Usuario creado con éxito.",
+    )
 
 
 @router.get(
     "/{user_id}",
-    response_model=User,
+    response_model=ApiResponse[User],
     summary="Obtener un usuario por su ID",
-    responses={
-        404: {"description": "El usuario con el ID especificado no fue encontrado."}
-    },
 )
 async def read_user_by_id(
     user_id: uuid.UUID,
-    db: AsyncSession = Depends(dependencies.get_db),
-    current_user: UserModel = Depends(dependencies.get_current_user),  # noqa: B008
-) -> Any:
+    current_user: UserModel = current_user_dep,
+    db: AsyncSession = db_dep,
+) -> ApiResponse[User]:
     """Obtiene un usuario por su ID."""
-    user = await crud_user.get_user(db, user_id=user_id)
+    user = await user_service.get_user_by_id(db, user_id=user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
-    return user
+    return create_api_response(data=user)
 
 
 @router.put(
     "/{user_id}",
-    response_model=User,
+    response_model=ApiResponse[User],
     summary="Actualizar un usuario existente",
-    responses={
-        404: {"description": "El usuario con el ID especificado no fue encontrado."}
-    },
 )
 async def update_user(
     *,
-    db: AsyncSession = Depends(dependencies.get_db),
     user_id: uuid.UUID,
     user_in: UserUpdate,
-    current_user: UserModel = Depends(dependencies.get_current_user),  # noqa: B008
-) -> Any:
+    current_user: UserModel = current_user_dep,
+    db: AsyncSession = db_dep,
+) -> ApiResponse[User]:
     """Actualiza un usuario."""
-    db_user = await crud_user.get_user(db, user_id=user_id)
+    # Regla de negocio: Un usuario solo puede modificarse a sí mismo,
+    # a menos que sea un administrador.
+    if current_user.id != user_id and (
+        not current_user.role or current_user.role.name != "ADMIN"
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permiso para actualizar este usuario.",
+        )
+    db_user = await user_service.get_user_by_id(db, user_id=user_id)
     if not db_user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
-    user = await crud_user.update_user(db=db, db_user=db_user, user_in=user_in)
-    return user
+    user = await user_service.update_user(db=db, db_user=db_user, user_in=user_in)
+    return create_api_response(data=user, message="Usuario actualizado con éxito.")
 
 
 @router.delete(
     "/{user_id}",
-    response_model=User,
+    response_model=ApiResponse[User],
     summary="Eliminar un usuario",
-    responses={
-        404: {"description": "El usuario con el ID especificado no fue encontrado."}
-    },
 )
 async def delete_user(
     *,
-    db: AsyncSession = Depends(dependencies.get_db),
     user_id: uuid.UUID,
-    current_user: UserModel = Depends(dependencies.get_current_user),  # noqa: B008
-) -> Any:
+    current_user: UserModel = current_admin_user_dep,
+    db: AsyncSession = db_dep,
+) -> ApiResponse[User]:
     """Elimina un usuario."""
-    user = await crud_user.remove_user(db=db, user_id=user_id)
+    user = await user_service.delete_user(db=db, user_id=user_id)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
-    return user
+    return create_api_response(data=user, message="Usuario eliminado con éxito.")

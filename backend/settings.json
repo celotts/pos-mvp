@@ -8,5 +8,12 @@
     "editor.codeActionsOnSave": {
       "source.organizeImports": "always"
     }
+  },
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/*.pyc": true,
+    "**/*.pyo": true,
+    "**/*.pyd": true,
+    "**/__init__.py": true
   }
 }
