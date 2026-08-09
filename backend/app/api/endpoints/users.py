@@ -19,9 +19,9 @@ router = APIRouter()
     summary="Obtener una lista de usuarios",
 )
 async def read_users(
-    db: AsyncSession = Depends(get_db),  # noqa: B008
     skip: int = 0,
     limit: int = 100,
+    db: AsyncSession = Depends(get_db),
     current_user: UserModel = Depends(get_current_user),
 ) -> ApiResponse[list[User]]:
     """Obtiene una lista de usuarios."""
@@ -37,9 +37,9 @@ async def read_users(
 )
 async def create_user(
     *,
-    db: AsyncSession = Depends(get_db),  # noqa: B008
     user_in: UserCreate,
     current_user: UserModel = Depends(get_current_admin_user),
+    db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[User]:
     try:
         user = await crud_user.create_user(db=db, user_in=user_in)
@@ -59,8 +59,8 @@ async def create_user(
 )
 async def read_user_by_id(
     user_id: uuid.UUID,
-    db: AsyncSession = Depends(get_db),  # noqa: B008
     current_user: UserModel = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[User]:
     """Obtiene un usuario por su ID."""
     user = await crud_user.get_user(db, user_id=user_id)
@@ -76,10 +76,10 @@ async def read_user_by_id(
 )
 async def update_user(
     *,
-    db: AsyncSession = Depends(get_db),  # noqa: B008
     user_id: uuid.UUID,
     user_in: UserUpdate,
     current_user: UserModel = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[User]:
     """Actualiza un usuario."""
     db_user = await crud_user.get_user(db, user_id=user_id)
@@ -96,9 +96,9 @@ async def update_user(
 )
 async def delete_user(
     *,
-    db: AsyncSession = Depends(get_db),  # noqa: B008
     user_id: uuid.UUID,
     current_user: UserModel = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[User]:
     """Elimina un usuario."""
     user = await crud_user.remove_user(db=db, user_id=user_id)
