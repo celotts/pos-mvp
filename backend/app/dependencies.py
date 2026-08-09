@@ -1,39 +1,44 @@
 import uuid
 
+from core import crud_user
+from core.db import async_session_maker
+from core.security import decode_access_token
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import jwt
-from pydantic import ValidationError
+from models.user import User
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core import crud_user
-from core.config import settings
-from core.db import async_session_maker
-from core.security import ALGORITHM
-from models.user import User
-
+# Define el esquema de autenticación.
+# tokenUrl apunta al endpoint donde el cliente obtiene el token.
 reusable_oauth2 = OAuth2PasswordBearer(tokenUrl="/api/v1/login/access-token")
 
 
-async def get_db():
+async def get_db() -> AsyncSession:
+    """
+    Dependencia para obtener una sesión de base de datos.
+    Se asegura de que la sesión se cierre correctamente después de su uso.
+    """
     async with async_session_maker() as session:
         yield session
 
 
 async def get_current_user(
-    db: AsyncSession = Depends(get_db),
-    token: str = Depends(reusable_oauth2),
+    token: str = Depends(reusable_oauth2), db: AsyncSession = Depends(get_db)
 ) -> User:
-    try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = uuid.UUID(payload.get("sub"))
-    except (jwt.JWTError, ValidationError, AttributeError):
+    """
+    Dependencia para obtener el usuario actual a partir de un token JWT.
+    1. Decodifica el token.
+    2. Obtiene el ID del usuario del payload.
+    3. Busca al usuario en la base de datos.
+    4. Devuelve el usuario si es válido; de lo contrario, lanza una excepción.
+    """
+    user_id = decode_access_token(token)
+    user = await crud_user.get_user(db, user_id=uuid.UUID(user_id))
+    if not user:
+        # Si el token es válido pero el usuario no existe (p. ej. fue borrado),
+        # se considera un fallo de autenticación.
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="No se pudo validar las credenciales.",
-            headers={"WWW-Authenticate": "Bearer"},
+            detail="Token inválido: el usuario ya no existe.",
         )
-    user = await crud_user.get_user(db, user_id=user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
     return user

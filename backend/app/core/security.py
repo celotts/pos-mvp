@@ -1,9 +1,8 @@
 from datetime import datetime, timedelta, timezone
 
-from jose import jwt
-from passlib.context import CryptContext
-
 from core.config import settings
+from jose import JWTError, jwt
+from passlib.context import CryptContext
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -17,6 +16,26 @@ def create_access_token(subject: str | int) -> str:
     to_encode = {"exp": expire, "sub": str(subject)}
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+
+def decode_access_token(token: str) -> str:
+    """
+    Decodifica un token de acceso JWT y devuelve el ID del usuario (subject).
+
+    Lanza una excepción HTTPException si el token es inválido o ha expirado.
+    """
+    from fastapi import HTTPException, status
+
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="No se pudieron validar las credenciales",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
+        return payload.get("sub")
+    except (JWTError, AttributeError):
+        raise credentials_exception from None
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
