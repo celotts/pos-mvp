@@ -10,9 +10,7 @@ class Settings(BaseSettings):
     # Credenciales para el primer superusuario
     FIRST_SUPERUSER_EMAIL: EmailStr
     FIRST_SUPERUSER_PASSWORD: str
-
-    # Secreto para el endpoint de bootstrap
-    BOOTSTRAP_SECRET_KEY: str
+    FIRST_SUPERUSER_FULL_NAME: str
 
     # Clave secreta y tiempo de expiración del token en segundos
     SECRET_KEY: str

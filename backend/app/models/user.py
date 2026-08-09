@@ -4,11 +4,10 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String, ForeignKey, Boolean, func
+from core.db import Base
+from sqlalchemy import Boolean, ForeignKey, String, func
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from core.db import Base
 
 # Esto solo lo lee el IDE para el autocompletado y los tipos,
 # evitando importaciones circulares en ejecución.
@@ -38,7 +37,7 @@ class User(Base):
         PG_UUID(as_uuid=True), ForeignKey("roles.id"), nullable=False
     )
 
-    role: Mapped["Role"] = relationship(
+    role: Mapped[Role] = relationship(
         "Role", back_populates="users", foreign_keys=[role_id]
     )
 

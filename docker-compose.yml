@@ -36,6 +36,8 @@ services:
       - "host.containers.internal:host-gateway"
       - "host.docker.internal:host-gateway"
     environment:
+      - ENVIRONMENT=development
+
       # Conexión con Ollama en el Host (Linux / Podman / Docker)
       - OLLAMA_BASE_URL=http://host.containers.internal:11434
       - LLM_MODEL=llama3.2:latest
@@ -45,8 +47,8 @@ services:
       # Credenciales para el primer superusuario (FALTABAN AQUÍ)
       - FIRST_SUPERUSER_EMAIL=${FIRST_SUPERUSER_EMAIL}
       - FIRST_SUPERUSER_PASSWORD=${FIRST_SUPERUSER_PASSWORD}
+      - FIRST_SUPERUSER_FULL_NAME=${FIRST_SUPERUSER_FULL_NAME}
       # Seguridad y Bootstrap
-      - BOOTSTRAP_SECRET_KEY=${BOOTSTRAP_SECRET_KEY}
       - SECRET_KEY=${SECRET_KEY}
       - ACCESS_TOKEN_EXPIRE_SECONDS=${ACCESS_TOKEN_EXPIRE_SECONDS}
     depends_on:

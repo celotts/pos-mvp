@@ -1,0 +1,11 @@
+{
+  "base_url": "http://localhost:8002",
+  "data": {
+    "Develop": {
+      "base_url": "http://localhost:8002"
+    },
+    "Test": {
+      "base_url": "http://localhost:8003"
+    }
+  }
+}

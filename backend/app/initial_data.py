@@ -45,7 +45,7 @@ async def init_db(db: AsyncSession) -> None:
         user_in = UserCreate(
             email=settings.FIRST_SUPERUSER_EMAIL,
             password=settings.FIRST_SUPERUSER_PASSWORD,
-            full_name="Admin",
+            full_name=settings.FIRST_SUPERUSER_FULL_NAME,
             role_id=SUPER_ADMIN_ROLE_ID,
         )
         await crud_user.create_user(db, user_in=user_in)

@@ -8,20 +8,25 @@ class UserBase(BaseModel):
     full_name: str | None = None
 
 
-class UserCreate(UserBase):
-    email: EmailStr
-    password: SecretStr
-    full_name: str
-    role_id: uuid.UUID
-
-
-class UserBootstrapIn(BaseModel):
+class UserBootstrapIn(UserBase):
     """Esquema para la entrada del endpoint de bootstrap."""
 
     email: EmailStr
     password: SecretStr
     full_name: str
-    bootstrap_secret: SecretStr
+
+
+class UserLogin(BaseModel):
+    """Esquema para el login de usuario."""
+
+    email: EmailStr
+    password: SecretStr
+
+
+class UserCreate(UserBootstrapIn):
+    """Esquema para crear un usuario con un rol específico."""
+
+    role_id: uuid.UUID
 
 
 class UserUpdate(UserBase):
