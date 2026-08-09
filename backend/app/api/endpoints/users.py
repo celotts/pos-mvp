@@ -34,9 +34,6 @@ async def read_users(
     response_model=ApiResponse[User],
     status_code=status.HTTP_201_CREATED,
     summary="Crear un nuevo usuario",
-    responses={
-        400: {"description": "El email ya está registrado en el sistema."},
-    },
 )
 async def create_user(
     *,
@@ -59,9 +56,6 @@ async def create_user(
     "/{user_id}",
     response_model=ApiResponse[User],
     summary="Obtener un usuario por su ID",
-    responses={
-        404: {"description": "El usuario con el ID especificado no fue encontrado."}
-    },
 )
 async def read_user_by_id(
     user_id: uuid.UUID,
@@ -79,9 +73,6 @@ async def read_user_by_id(
     "/{user_id}",
     response_model=ApiResponse[User],
     summary="Actualizar un usuario existente",
-    responses={
-        404: {"description": "El usuario con el ID especificado no fue encontrado."}
-    },
 )
 async def update_user(
     *,
@@ -102,9 +93,6 @@ async def update_user(
     "/{user_id}",
     response_model=ApiResponse[User],
     summary="Eliminar un usuario",
-    responses={
-        404: {"description": "El usuario con el ID especificado no fue encontrado."}
-    },
 )
 async def delete_user(
     *,

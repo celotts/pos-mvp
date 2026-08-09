@@ -10,15 +10,22 @@ T = TypeVar("T")
 class ApiResponse(BaseModel, Generic[T]):
     """Modelo base para respuestas de API estandarizadas."""
 
-    codigo: int = Field(200, description="Código de estado HTTP.")
-    comment: str = Field("OK", description="Mensaje descriptivo de la respuesta.")
-    response: T | None = Field(
-        None, description="El contenido de la respuesta (payload)."
+    success: bool = Field(True, description="Indica si la operación fue exitosa.")
+    status_code: int = Field(200, description="Código de estado HTTP.")
+    message: str = Field(
+        "Operación exitosa", description="Mensaje descriptivo de la respuesta."
     )
+    data: T | None = Field(None, description="El contenido de la respuesta (payload).")
 
 
 def create_api_response(
-    data: Any, status_code: int = 200, message: str = "OK"
+    *,
+    data: T | None = None,
+    status_code: int = 200,
+    message: str = "Operación exitosa",
+    success: bool = True,
 ) -> ApiResponse[Any]:
     """Factory para crear respuestas de API estandarizadas."""
-    return ApiResponse(codigo=status_code, comment=message, response=data)
+    return ApiResponse(
+        success=success, status_code=status_code, message=message, data=data
+    )

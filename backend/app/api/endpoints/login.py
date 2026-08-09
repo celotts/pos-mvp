@@ -1,3 +1,4 @@
+from api.response_factory import ApiResponse, create_api_response
 from core import crud_user
 from core.security import create_access_token
 from dependencies import get_db
@@ -54,11 +55,11 @@ router = APIRouter()
 #     )
 
 
-@router.post("/login/access-token", response_model=Token)
+@router.post("/login/access-token", response_model=ApiResponse[Token])
 async def login_access_token(
     user_in: UserLogin,
     db: AsyncSession = Depends(get_db),
-):
+) -> ApiResponse[Token]:
     """
     OAuth2 compatible token login, get an access token for future requests.
     """
@@ -70,7 +71,8 @@ async def login_access_token(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email o contraseña incorrectos",
         )
-    return {
+    token_data = {
         "access_token": create_access_token(user.id),
         "token_type": "bearer",
     }
+    return create_api_response(data=token_data, message="Inicio de sesión exitoso.")
