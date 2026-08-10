@@ -1,4 +1,4 @@
-from api.endpoints import login, roles, users
+from api.endpoints import customers, login, roles, users
 from api.exception_handlers import http_exception_handler
 from core.db import async_session_maker
 from fastapi import APIRouter, FastAPI, HTTPException
@@ -35,6 +35,7 @@ def read_root():
 api_router.include_router(login, tags=["Boostrap & Auth"])
 api_router.include_router(users, prefix="/users", tags=["Users"])
 api_router.include_router(roles, prefix="/roles", tags=["Roles"])
+api_router.include_router(customers, prefix="/customers", tags=["Customers"])
 
 # Incluye el router principal en la aplicación
 app.include_router(api_router)
