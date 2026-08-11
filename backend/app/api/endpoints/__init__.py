@@ -1,4 +1,33 @@
-from api.endpoints.customers import router as customers
-from api.endpoints.login import router as login
-from api.endpoints.roles import router as roles
-from api.endpoints.users import router as users
+from . import (
+    cash_account_controller,
+    countries_controller,
+    customers_controller,
+    login_controller,
+    municipality_controller,
+    pos_terminal_controller,
+    roles_controller,
+    sale_controller,
+    shift_controller,
+    specialties_controller,
+    state_province_controller,
+    store_controller,
+    supplier_controller,
+    users_controller,
+)
+
+__all__ = [
+    "cash_account_controller",
+    "countries_controller",
+    "customers_controller",
+    "login_controller",
+    "municipality_controller",
+    "pos_terminal_controller",
+    "roles_controller",
+    "sale_controller",
+    "shift_controller",
+    "specialties_controller",
+    "state_province_controller",
+    "store_controller",
+    "supplier_controller",
+    "users_controller",
+]

@@ -1,16 +1,18 @@
 from api.endpoints import (
-    cash_account,
-    countries,
-    customers,
-    login,
-    municipality,
-    pos_terminal,
-    roles,
-    specialties,
-    state_province,
-    store,
-    supplier,
-    users,
+    cash_account_controller,
+    countries_controller,
+    customers_controller,
+    login_controller,
+    municipality_controller,
+    pos_terminal_controller,
+    roles_controller,
+    sale_controller,
+    shift_controller,
+    specialties_controller,
+    state_province_controller,
+    store_controller,
+    supplier_controller,
+    users_controller,
 )
 from api.exception_handlers import http_exception_handler
 from core.db import async_session_maker
@@ -45,20 +47,36 @@ def read_root():
 
 
 # Incluye los routers de los endpoints en el router principal
-api_router.include_router(login, tags=["Boostrap & Auth"])
-api_router.include_router(users, prefix="/users", tags=["Users"])
-api_router.include_router(roles, prefix="/roles", tags=["Roles"])
-api_router.include_router(customers, prefix="/customers", tags=["Customers"])
-api_router.include_router(countries, prefix="/countries", tags=["Locations"])
+api_router.include_router(login_controller.router, tags=["Boostrap & Auth"])
+api_router.include_router(users_controller.router, prefix="/users", tags=["Users"])
+api_router.include_router(roles_controller.router, prefix="/roles", tags=["Roles"])
 api_router.include_router(
-    state_province, prefix="/states-provinces", tags=["Locations"]
+    customers_controller.router, prefix="/customers", tags=["Customers"]
 )
-api_router.include_router(municipality, prefix="/municipalities", tags=["Locations"])
-api_router.include_router(specialties, prefix="/specialties", tags=["Specialties"])
-api_router.include_router(supplier, prefix="/suppliers", tags=["Suppliers"])
-api_router.include_router(store, prefix="/stores", tags=["Locations"])
-api_router.include_router(cash_account, prefix="/cash-accounts", tags=["Accounting"])
-api_router.include_router(pos_terminal, prefix="/pos-terminals", tags=["POS"])
+api_router.include_router(
+    countries_controller.router, prefix="/countries", tags=["Locations"]
+)
+api_router.include_router(
+    state_province_controller.router, prefix="/states-provinces", tags=["Locations"]
+)
+api_router.include_router(
+    municipality_controller.router, prefix="/municipalities", tags=["Locations"]
+)
+api_router.include_router(
+    specialties_controller.router, prefix="/specialties", tags=["Specialties"]
+)
+api_router.include_router(
+    supplier_controller.router, prefix="/suppliers", tags=["Suppliers"]
+)
+api_router.include_router(store_controller.router, prefix="/stores", tags=["Locations"])
+api_router.include_router(
+    cash_account_controller.router, prefix="/cash-accounts", tags=["Accounting"]
+)
+api_router.include_router(
+    pos_terminal_controller.router, prefix="/pos-terminals", tags=["POS"]
+)
+api_router.include_router(shift_controller.router, prefix="/shifts", tags=["POS"])
+api_router.include_router(sale_controller.router, prefix="/sales", tags=["POS"])
 
 # Incluye el router principal en la aplicación
 app.include_router(api_router)

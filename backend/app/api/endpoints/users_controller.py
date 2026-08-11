@@ -5,8 +5,8 @@ from api.response_factory import ApiResponse, create_api_response
 from dependencies import get_current_user, get_db
 from fastapi import APIRouter, Depends, status
 from models.user import User as UserModel
+from modules import user_service
 from schemas.user import User, UserCreate, UserUpdate
-from services.users import user_service  # Esta ruta ahora es correcta
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
