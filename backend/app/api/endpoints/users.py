@@ -2,13 +2,11 @@ import uuid
 
 from api.deps_auth import get_current_admin_user
 from api.response_factory import ApiResponse, create_api_response
-from core import crud_user
 from dependencies import get_current_user, get_db
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from models.user import User as UserModel
-from modules import user_service
 from schemas.user import User, UserCreate, UserUpdate
-from sqlalchemy.exc import IntegrityError
+from services.users import user_service  # Esta ruta ahora es correcta
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
@@ -30,7 +28,7 @@ async def read_users(
     limit: int = 100,
 ) -> ApiResponse[list[User]]:
     """Obtiene una lista de usuarios."""
-    users = await crud_user.get_users(db, skip=skip, limit=limit)
+    users = await user_service.get_users(db, skip=skip, limit=limit)
     return create_api_response(data=users)
 
 
@@ -46,10 +44,7 @@ async def create_user(
     current_user: UserModel = get_current_admin_user_dependency,
     db: AsyncSession = get_db_dependency,
 ) -> ApiResponse[User]:
-    try:
-        user = await user_service.create_user_with_logic(db=db, user_in=user_in)
-    except IntegrityError:
-        raise HTTPException(status_code=400, detail="El email ya está registrado.")
+    user = await user_service.create_user_with_logic(db=db, user_in=user_in)
     return create_api_response(
         data=user,
         status_code=status.HTTP_201_CREATED,
@@ -68,9 +63,7 @@ async def read_user_by_id(
     current_user: UserModel = get_current_user_dependency,
 ) -> ApiResponse[User]:
     """Obtiene un usuario por su ID."""
-    user = await user_service.get_user_by_id(db, user_id=user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
+    user = await user_service.get_user(db=db, user_id=user_id)
     return create_api_response(data=user)
 
 
@@ -87,19 +80,9 @@ async def update_user(
     db: AsyncSession = get_db_dependency,
 ) -> ApiResponse[User]:
     """Actualiza un usuario."""
-    # Regla de negocio: Un usuario solo puede modificarse a sí mismo,
-    # a menos que sea un administrador.
-    if current_user.id != user_id and (
-        not current_user.role or current_user.role.name != "ADMIN"
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="No tienes permiso para actualizar este usuario.",
-        )
-    db_user = await user_service.get_user_by_id(db, user_id=user_id)
-    if not db_user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
-    user = await user_service.update_user(db=db, db_user=db_user, user_in=user_in)
+    user = await user_service.update_user(
+        db=db, user_id=user_id, user_in=user_in, current_user=current_user
+    )
     return create_api_response(data=user, message="Usuario actualizado con éxito.")
 
 
@@ -115,7 +98,5 @@ async def delete_user(
     db: AsyncSession = get_db_dependency,
 ) -> ApiResponse[User]:
     """Elimina un usuario."""
-    user = await user_service.delete_user(db=db, user_id=user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
+    user = await user_service.remove_user(db=db, user_id=user_id)
     return create_api_response(data=user, message="Usuario eliminado con éxito.")

@@ -2,6 +2,7 @@
 # descubran los modelos de la aplicación.
 
 from core.db import Base  # noqa: F401
+from models.country import Country  # noqa: F401
 from models.role import Role  # noqa: F401
 from models.specialty import Specialty  # noqa: F401
 from models.user import User  # noqa: F401

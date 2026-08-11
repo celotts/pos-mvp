@@ -1,11 +1,12 @@
 import uuid
+from typing import Any
 
-from api.deps_auth import get_current_admin_user
+from api.deps import get_db
 from api.response_factory import ApiResponse, create_api_response
-from core import crud_specialty
-from dependencies import get_current_user, get_db
-from fastapi import APIRouter, Depends, HTTPException, status
+from dependencies import get_current_admin_user, get_current_user
+from fastapi import APIRouter, Depends, status
 from models.user import User as UserModel
+from modules import specialty_service
 from schemas.specialty import Specialty, SpecialtyCreate, SpecialtyUpdate
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,18 +19,21 @@ current_admin_user_dependency = Depends(get_current_admin_user)
 
 
 @router.post(
-    "/", response_model=ApiResponse[Specialty], status_code=status.HTTP_201_CREATED
+    "/",
+    response_model=ApiResponse[Specialty],
+    status_code=status.HTTP_201_CREATED,
+    summary="Crear una nueva especialidad",
 )
 async def create_specialty(
     *,
     specialty_in: SpecialtyCreate,
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_admin_user_dependency,
-) -> ApiResponse[Specialty]:
+) -> Any:
     """
     Crea una nueva especialidad médica.
     """
-    specialty = await crud_specialty.create_specialty(
+    specialty = await specialty_service.create_specialty(
         db=db, specialty_in=specialty_in, user_id=current_user.id
     )
     return create_api_response(
@@ -39,53 +43,60 @@ async def create_specialty(
     )
 
 
-@router.get("/", response_model=ApiResponse[list[Specialty]])
+@router.get(
+    "/",
+    response_model=ApiResponse[list[Specialty]],
+    summary="Obtener una lista de especialidades",
+)
 async def read_specialties(
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_user_dependency,
     skip: int = 0,
     limit: int = 100,
-) -> ApiResponse[list[Specialty]]:
+) -> Any:
     """
     Obtiene una lista de especialidades.
     """
-    specialties = await crud_specialty.get_specialties(db, skip=skip, limit=limit)
+    specialties = await specialty_service.get_specialties(db, skip=skip, limit=limit)
     return create_api_response(data=specialties)
 
 
-@router.get("/{specialty_id}", response_model=ApiResponse[Specialty])
+@router.get(
+    "/{specialty_id}",
+    response_model=ApiResponse[Specialty],
+    summary="Obtener una especialidad por su ID",
+)
 async def read_specialty(
     *,
     specialty_id: uuid.UUID,
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_user_dependency,
-) -> ApiResponse[Specialty]:
+) -> Any:
     """
     Obtiene una especialidad por su ID.
     """
-    specialty = await crud_specialty.get_specialty(db, specialty_id=specialty_id)
-    if not specialty:
-        raise HTTPException(status_code=404, detail="Especialidad no encontrada.")
+    specialty = await specialty_service.get_specialty(db, specialty_id=specialty_id)
     return create_api_response(data=specialty)
 
 
-@router.put("/{specialty_id}", response_model=ApiResponse[Specialty])
+@router.put(
+    "/{specialty_id}",
+    response_model=ApiResponse[Specialty],
+    summary="Actualizar una especialidad",
+)
 async def update_specialty(
     *,
     specialty_id: uuid.UUID,
     specialty_in: SpecialtyUpdate,
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_admin_user_dependency,
-) -> ApiResponse[Specialty]:
+) -> Any:
     """
     Actualiza una especialidad.
     """
-    db_specialty = await crud_specialty.get_specialty(db, specialty_id=specialty_id)
-    if not db_specialty:
-        raise HTTPException(status_code=404, detail="Especialidad no encontrada.")
-    specialty = await crud_specialty.update_specialty(
+    specialty = await specialty_service.update_specialty(
         db=db,
-        db_specialty=db_specialty,
+        specialty_id=specialty_id,
         specialty_in=specialty_in,
         user_id=current_user.id,
     )
@@ -94,19 +105,21 @@ async def update_specialty(
     )
 
 
-@router.delete("/{specialty_id}", response_model=ApiResponse[Specialty])
+@router.delete(
+    "/{specialty_id}",
+    response_model=ApiResponse[Specialty],
+    summary="Eliminar una especialidad",
+)
 async def delete_specialty(
     *,
     specialty_id: uuid.UUID,
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_admin_user_dependency,
-) -> ApiResponse[Specialty]:
+) -> Any:
     """
     Elimina una especialidad.
     """
-    specialty = await crud_specialty.remove_specialty(db, specialty_id=specialty_id)
-    if not specialty:
-        raise HTTPException(status_code=404, detail="Especialidad no encontrada.")
+    specialty = await specialty_service.remove_specialty(db, specialty_id=specialty_id)
     return create_api_response(
         data=specialty, message="Especialidad eliminada con éxito."
     )
