@@ -31,10 +31,18 @@ def decode_access_token(token: str) -> str:
         detail="No se pudieron validar las credenciales",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    expired_token_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="El token ha expirado",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
         return payload.get("sub")
-    except (JWTError, AttributeError):
+    except jwt.ExpiredSignatureError:
+        raise expired_token_exception from None
+    except (JWTError, AttributeError, ValueError):
         raise credentials_exception from None
 
 

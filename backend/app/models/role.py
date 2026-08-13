@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
 from typing import TYPE_CHECKING
 
 from core.db import Base
-from sqlalchemy import ForeignKey, String, func
+from sqlalchemy import String
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
-    from models.user import User
+    from .pos_terminal import PosTerminal
+    from .user import User
 
 
 class Role(Base):
@@ -20,28 +20,24 @@ class Role(Base):
         PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     name: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    description: Mapped[str | None] = mapped_column(String(255))
 
-    # Columnas de auditoría
-    created_at: Mapped[datetime] = mapped_column(
-        server_default=func.now(), nullable=False
-    )
-    updated_at: Mapped[datetime | None] = mapped_column(
-        onupdate=func.now(), server_default=func.now(), nullable=True
-    )
-    deleted_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    # Relación inversa con User
+    users: Mapped[list[User]] = relationship("User", back_populates="role")
 
-    # Campos de auditoría de usuario
-    created_by: Mapped[uuid.UUID | None] = mapped_column(
-        PG_UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+    # Relaciones inversas con PosTerminal para auditoría
+    role_created_pos_terminals: Mapped[list[PosTerminal]] = relationship(
+        "PosTerminal",
+        back_populates="created_by_role_rel",
+        foreign_keys="PosTerminal.created_by_role_id",
     )
-    updated_by: Mapped[uuid.UUID | None] = mapped_column(
-        PG_UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+    role_updated_pos_terminals: Mapped[list[PosTerminal]] = relationship(
+        "PosTerminal",
+        back_populates="updated_by_role_rel",
+        foreign_keys="PosTerminal.updated_by_role_id",
     )
-    deleted_by: Mapped[uuid.UUID | None] = mapped_column(
-        PG_UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
-    )
-
-    # Relación inversa
-    users: Mapped[list[User]] = relationship(
-        "User", back_populates="role", foreign_keys="User.role_id"
+    role_deleted_pos_terminals: Mapped[list[PosTerminal]] = relationship(
+        "PosTerminal",
+        back_populates="deleted_by_role_rel",
+        foreign_keys="PosTerminal.deleted_by_role_id",
     )

@@ -1,53 +1,54 @@
 # Etapa 1: Builder - Instala dependencias en un entorno de construcción
-FROM python:3.11.9-alpine3.20 AS builder
+FROM python:3.11-slim AS builder
 
 # Evita que Python escriba archivos .pyc
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-WORKDIR /app
-
-# Instala las dependencias del sistema necesarias para compilar algunas librerías de Python
-RUN apk update && apk upgrade --no-cache && apk add --no-cache \
-    build-base \
-    postgresql-dev
+# Instala solo las dependencias de sistema necesarias para la compilación.
+# Se omite 'apt-get upgrade' para acelerar las builds de desarrollo.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq-dev build-essential && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copia el archivo de requerimientos
+WORKDIR /app
 COPY backend/requirements.txt .
 
-# Instala pip y crea wheels para las dependencias. Esto acelera la construcción de la imagen final.
-RUN python -m venv /opt/venv && \
-    /opt/venv/bin/pip install --no-cache-dir --upgrade pip && \
-    /opt/venv/bin/pip wheel --no-cache-dir --wheel-dir /app/wheels -r requirements.txt
+# Crea el entorno virtual y lo activa para los siguientes comandos
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Instala las dependencias de Python. Esto se cacheará si requirements.txt no cambia.
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Etapa 2: Runner - La imagen final que se ejecutará
-FROM python:3.11.9-alpine3.20 AS runner
+FROM python:3.11-slim AS runner
 
 # Evita que Python escriba archivos .pyc
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Añade el venv al PATH
-ENV PATH="/opt/venv/bin:$PATH"
-
 WORKDIR /app
 
-# Instala solo las dependencias de sistema necesarias para ejecutar la aplicación
-RUN apk update && apk upgrade --no-cache && apk add --no-cache libpq
+# Instala la librería de cliente de PostgreSQL necesaria en tiempo de ejecución.
+# Se omite 'apt-get upgrade' para acelerar las builds de desarrollo.
+RUN apt-get update && apt-get install -y --no-install-recommends libpq5 && rm -rf /var/lib/apt/lists/*
 
 # Copia el entorno virtual desde la etapa de builder
 COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
-# Copia las wheels pre-compiladas desde la etapa de builder
-COPY --from=builder /app/wheels /wheels
+# En desarrollo, el código se monta a través de un volumen en docker-compose.
+# Esta línea se deja comentada. Se puede descomentar para construir una imagen de producción autónoma.
+# COPY backend/app .
 
-# Instala las dependencias desde las wheels locales sin necesidad de compilarlas de nuevo
-RUN pip install --no-cache-dir --no-index --find-links=/wheels /wheels/* && \
-    rm -rf /wheels
-
-# Copia el código de la aplicación
-COPY backend/app .
+# Copia el script de entrada desde la raíz del proyecto y lo hace ejecutable
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Crea un usuario no-root para ejecutar la aplicación por seguridad
-RUN addgroup -S appgroup && adduser -S -G appgroup appuser
+RUN addgroup --system appuser && adduser --system --ingroup appuser appuser
 USER appuser
+
+ENTRYPOINT ["/entrypoint.sh"]

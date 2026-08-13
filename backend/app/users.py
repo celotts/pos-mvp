@@ -6,10 +6,11 @@ from core import crud_user
 from dependencies import get_current_user, get_db
 from fastapi import APIRouter, Depends, HTTPException, status
 from models.user import User as UserModel
-from modules import user_service
 from schemas.user import User, UserCreate, UserUpdate
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.app.modules import user_service
 
 router = APIRouter()
 

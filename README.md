@@ -608,14 +608,39 @@ med-appoinments/
         ├── api/
         │   ├── deps.py
         │   └── endpoints/
-        │       └── specialties.py
+        │       ├── countries.py
+        │       ├── customers.py
+        │       ├── login.py
+        │       ├── roles.py
+        │       ├── specialties.py
+        │       └── users.py
         ├── core/
         │   ├── config.py
         │   └── db.py
         ├── crud/
+        │   ├── crud_country.py
+        │   ├── crud_customer.py
+        │   ├── crud_role.py
         │   └── crud_specialty.py
-        ├── models/
+        ├── models/ # Modelos de SQLAlchemy
+        │   ├── country.py
+        │   ├── customer.py
+        │   ├── role.py
         │   └── specialty.py
+        ├── schemas/ # Esquemas Pydantic (DTOs)
+        │   ├── country.py
+        │   ├── customer.py
+        │   ├── role.py
+        │   ├── specialty.py
+        │   ├── token.py
+        │   └── user.py
+        ├── services/ # Lógica de Negocio (Servicios)
+        │   ├── appointments/
+        │   ├── countries/
+        │   ├── patient/
+        │   ├── rag/
+        │   ├── roles/
+        │   └── users/
         ├── schemas/
         │   └── specialty.py
         └── main.py
@@ -981,4 +1006,3 @@ Para facilitar el desarrollo, se han definido los siguientes comandos:
 
 ---
 *Este proyecto fue configurado siguiendo las mejores prácticas para un desarrollo robusto y escalable.*
-
