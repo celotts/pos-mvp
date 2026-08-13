@@ -1,14 +1,20 @@
-from .cash_account import CashAccount
-from .country import Country
-from .customer import Customer
-from .municipality import Municipality
-from .pos_terminal import PosTerminal
-from .purchase import Purchase
-from .role import Role
-from .sale import Sale
-from .shift import Shift
-from .specialty import Specialty
-from .state_province import StateProvince
-from .store import Store
-from .supplier import Supplier
-from .user import User
+from .cash_account import CashAccount as CashAccount
+from .cash_account import CashAccountType as CashAccountType
+from .country import Country as Country
+from .customer import Customer as Customer
+from .municipality import Municipality as Municipality
+from .pos_terminal import PosTerminal as PosTerminal
+from .product import Product as Product
+from .purchase import Purchase as Purchase
+from .purchase import PurchaseItem as PurchaseItem
+from .role import Role as Role
+from .sale import Sale as Sale
+from .sale import SaleItem as SaleItem
+from .shift import Shift as Shift
+from .state_province import StateProvince as StateProvince
+from .store import Store as Store
+from .supplier import Supplier as Supplier
+from .user import User as User
+
+# Este archivo asegura que todos los modelos sean conocidos por SQLAlchemy
+# cuando se importa el paquete 'models'.

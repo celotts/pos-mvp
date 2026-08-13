@@ -7,14 +7,17 @@ from typing import TYPE_CHECKING
 from core.db import Base
 from sqlalchemy import Boolean, ForeignKey, String, func
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship  # type: ignore
 
 # Esto solo lo lee el IDE para el autocompletado y los tipos,
 # evitando importaciones circulares en ejecución.
 if TYPE_CHECKING:
-    from app.models.role import (
-        Role,
-    )  # Ajusta la ruta según dónde tengas tu archivo role.py
+    from .pos_terminal import PosTerminal
+    from .role import Role
+
+from .purchase import Purchase
+from .sale import Sale
+from .shift import Shift
 
 
 class User(Base):
@@ -48,3 +51,19 @@ class User(Base):
         onupdate=func.now(), server_default=func.now(), nullable=True
     )
     deleted_at: Mapped[datetime | None] = mapped_column(nullable=True)
+
+    # Relaciones inversas con transacciones
+    purchases: Mapped[list[Purchase]] = relationship(back_populates="user")
+    sales: Mapped[list[Sale]] = relationship(back_populates="user")
+    shifts: Mapped[list[Shift]] = relationship(back_populates="user")
+
+    # Relaciones inversas con PosTerminal para auditoría
+    created_pos_terminals: Mapped[list[PosTerminal]] = relationship(
+        back_populates="created_by_rel", foreign_keys="PosTerminal.created_by"
+    )
+    updated_pos_terminals: Mapped[list[PosTerminal]] = relationship(
+        back_populates="updated_by_rel", foreign_keys="PosTerminal.updated_by"
+    )
+    deleted_pos_terminals: Mapped[list[PosTerminal]] = relationship(
+        back_populates="deleted_by_rel", foreign_keys="PosTerminal.deleted_by"
+    )

@@ -1,14 +1,11 @@
 from core.crud_base import CRUDBase
 from models.sale import Sale
-from schemas.sale import SaleCreate, SaleUpdate
-from sqlalchemy.orm import selectinload
+from schemas.sale import SaleCreate  # Usamos SaleCreate, no hay Update para Sale
 
 
-class CRUDSale(CRUDBase[Sale, SaleCreate, SaleUpdate]):
+class CRUDSale(CRUDBase[Sale, SaleCreate, SaleCreate]):
     def __init__(self, model: type[Sale]):
         super().__init__(model)
-        # Cargar la relación con el cliente por defecto
-        self.default_loads = [selectinload(self.model.customer)]
 
 
 crud_sale = CRUDSale(Sale)

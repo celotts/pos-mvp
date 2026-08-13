@@ -2,35 +2,37 @@ import enum
 import uuid
 
 from core.db import Base
-from sqlalchemy import UUID, Column, Enum, ForeignKey, Numeric, String
-from sqlalchemy.dialects.postgresql import TIMESTAMP
-from sqlalchemy.sql import func
+from sqlalchemy import (
+    Column,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Numeric,
+    String,
+    func,
+)
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+from sqlalchemy.orm import relationship
 
 
-class CashAccountType(str, enum.Enum):
-    CASH = "CASH"
-    BANK = "BANK"
+class CashAccountType(enum.Enum):
+    DEPOSIT = "deposit"
+    WITHDRAWAL = "withdrawal"
 
 
 class CashAccount(Base):
     __tablename__ = "cash_accounts"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String(255), nullable=False, unique=True)
-    account_type = Column(Enum(CashAccountType), nullable=False)
-    current_balance = Column(Numeric(18, 2), nullable=False, default=0)
-    currency = Column(String(3), nullable=False, default="MXN")
-
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    amount = Column(Numeric(10, 2), nullable=False)
+    type = Column(Enum(CashAccountType), nullable=False)
+    description = Column(String(255))
     created_at = Column(
-        TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=func.now(), nullable=False
     )
-    updated_at = Column(TIMESTAMP(timezone=True), onupdate=func.now())
-    deleted_at = Column(TIMESTAMP(timezone=True))
 
-    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
-    updated_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
-    deleted_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    shift_id = Column(PG_UUID(as_uuid=True), ForeignKey("shifts.id"), nullable=False)
+    shift = relationship("Shift", back_populates="cash_transactions")
 
-    created_by_role_id = Column(UUID(as_uuid=True), ForeignKey("roles.id"))
-    updated_by_role_id = Column(UUID(as_uuid=True), ForeignKey("roles.id"))
-    deleted_by_role_id = Column(UUID(as_uuid=True), ForeignKey("roles.id"))
+    def __repr__(self):
+        return f"<CashAccount(id={self.id}, type='{self.type.value}', amount={self.amount})>"
