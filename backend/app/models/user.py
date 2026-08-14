@@ -14,11 +14,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship  # type: ignore
 if TYPE_CHECKING:
     from .pos_terminal import PosTerminal
     from .purchase import Purchase
-    from .role import Role  # This was already correct
+    from .role import Role
     from .sale import Sale
-from .purchase import Purchase
-from .sale import Sale
-from .shift import Shift
+    from .shift import Shift
+from .purchase import Purchase  # Needed at runtime for foreign_keys
 
 
 class User(Base):
