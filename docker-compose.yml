@@ -1,7 +1,7 @@
 services:
   pos-db:
     image: pgvector/pgvector:pg16
-    container_name: pos_db
+    container_name: pos-db # Estandarizado a guion medio
     env_file:
       - .env
     environment:
