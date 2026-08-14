@@ -10,6 +10,7 @@ from .purchase import PurchaseItem as PurchaseItem
 from .role import Role as Role
 from .sale import Sale as Sale
 from .sale import SaleItem as SaleItem
+from .sales_vector import SalesVector as SalesVector
 from .shift import Shift as Shift
 from .state_province import StateProvince as StateProvince
 from .store import Store as Store

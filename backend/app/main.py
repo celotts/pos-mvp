@@ -5,6 +5,7 @@ from api.endpoints import (
     login_controller,
     municipality_controller,
     pos_terminal_controller,
+    product_controller,
     roles_controller,
     sale_controller,
     shift_controller,
@@ -77,6 +78,9 @@ api_router.include_router(
 )
 api_router.include_router(shift_controller.router, prefix="/shifts", tags=["POS"])
 api_router.include_router(sale_controller.router, prefix="/sales", tags=["POS"])
+api_router.include_router(
+    product_controller.router, prefix="/products", tags=["Products"]
+)
 
 # Incluye el router principal en la aplicación
 app.include_router(api_router)

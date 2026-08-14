@@ -1,6 +1,7 @@
 import uuid
 
-from core import crud_role, crud_user
+from core.crud_role import crud_role
+from core.crud_user import crud_user
 from fastapi import HTTPException, status
 from models.user import User
 from schemas.user import UserCreate, UserUpdate
@@ -31,8 +32,8 @@ async def create_user_with_logic(db: AsyncSession, *, user_in: UserCreate) -> Us
     Crea un nuevo usuario con validaciones de negocio.
     """
     # 1. Verificar si el email ya existe
-    db_user = await crud_user.get_by_email(db, email=user_in.email)
-    if db_user:
+    existing_users = await crud_user.get_multi(db, limit=1, email=user_in.email)
+    if existing_users:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Un usuario con este email ya existe.",

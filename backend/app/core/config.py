@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     FIRST_SUPERUSER_PASSWORD: str
     FIRST_SUPERUSER_FULL_NAME: str
 
+    # IA Settings
+    OLLAMA_BASE_URL: str
+    LLM_MODEL: str
+    EMBEDDING_MODEL: str
+
     # Clave secreta y tiempo de expiración del token en segundos
     SECRET_KEY: str
     ACCESS_TOKEN_EXPIRE_SECONDS: int = 90000  # 25 horas por defecto

@@ -1,8 +1,8 @@
 
 Gemini
 Nueva conversación
-Buscar conversaciones
-Imágenes
+uscar conversaciones
+mágenes
 Vídeos
 Biblioteca
 Gems
