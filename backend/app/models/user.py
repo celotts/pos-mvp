@@ -13,8 +13,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship  # type: ignore
 # evitando importaciones circulares en ejecución.
 if TYPE_CHECKING:
     from .pos_terminal import PosTerminal
-    from .role import Role
-
+    from .purchase import Purchase
+    from .role import Role  # This was already correct
+    from .sale import Sale
 from .purchase import Purchase
 from .sale import Sale
 from .shift import Shift
@@ -40,7 +41,7 @@ class User(Base):
         PG_UUID(as_uuid=True), ForeignKey("roles.id"), nullable=False
     )
 
-    role: Mapped[Role] = relationship(
+    role: Mapped[Role] = relationship(  # This was already correct
         "Role", back_populates="users", foreign_keys=[role_id]
     )
 
@@ -53,17 +54,29 @@ class User(Base):
     deleted_at: Mapped[datetime | None] = mapped_column(nullable=True)
 
     # Relaciones inversas con transacciones
-    purchases: Mapped[list[Purchase]] = relationship(back_populates="user")
-    sales: Mapped[list[Sale]] = relationship(back_populates="user")
-    shifts: Mapped[list[Shift]] = relationship(back_populates="user")
+    purchases: Mapped[list[Purchase]] = relationship(  # This was already correct
+        "Purchase", foreign_keys=[Purchase.created_by], back_populates="creator"
+    )
+    sales: Mapped[list[Sale]] = relationship(  # This was already correct
+        back_populates="user"
+    )  # This was already correct
+    shifts: Mapped[list[Shift]] = relationship(  # This was already correct
+        back_populates="user"
+    )  # This was already correct
 
     # Relaciones inversas con PosTerminal para auditoría
-    created_pos_terminals: Mapped[list[PosTerminal]] = relationship(
-        back_populates="created_by_rel", foreign_keys="PosTerminal.created_by"
+    created_pos_terminals: Mapped[list[PosTerminal]] = (  # This was already correct
+        relationship(  # This was already correct
+            back_populates="created_by_rel", foreign_keys="PosTerminal.created_by"
+        )
     )
-    updated_pos_terminals: Mapped[list[PosTerminal]] = relationship(
-        back_populates="updated_by_rel", foreign_keys="PosTerminal.updated_by"
+    updated_pos_terminals: Mapped[list[PosTerminal]] = (  # This was already correct
+        relationship(  # This was already correct
+            back_populates="updated_by_rel", foreign_keys="PosTerminal.updated_by"
+        )
     )
-    deleted_pos_terminals: Mapped[list[PosTerminal]] = relationship(
-        back_populates="deleted_by_rel", foreign_keys="PosTerminal.deleted_by"
+    deleted_pos_terminals: Mapped[list[PosTerminal]] = (  # This was already correct
+        relationship(  # This was already correct
+            back_populates="deleted_by_rel", foreign_keys="PosTerminal.deleted_by"
+        )
     )

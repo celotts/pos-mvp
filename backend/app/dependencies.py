@@ -23,7 +23,8 @@ async def get_db() -> AsyncSession:
 
 
 async def get_current_user(
-    token: str = Depends(reusable_oauth2), db: AsyncSession = Depends(get_db)
+    token: str = Depends(reusable_oauth2),
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> User:
     """
     Dependencia para obtener el usuario actual a partir de un token JWT.

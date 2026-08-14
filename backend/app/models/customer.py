@@ -9,7 +9,7 @@ from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
-    from .sale import Sale  # noqa: F401
+    from .sale import Sale
 
 
 class Customer(Base):
@@ -26,7 +26,9 @@ class Customer(Base):
     address: Mapped[str | None] = mapped_column(String(255))
 
     # Relationship to Sale
-    sales: Mapped[list[Sale]] = relationship("Sale", back_populates="customer")
+    sales: Mapped[list[Sale]] = relationship(  # This was already correct
+        "Sale", back_populates="customer"
+    )  # This was already correct
 
     def __repr__(self):
         return f"<Customer(full_name='{self.full_name}')>"

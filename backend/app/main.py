@@ -1,4 +1,7 @@
 from api.endpoints import (
+    accounts_payable_controller,
+    accounts_receivable_controller,
+    assistant_controller,
     cash_account_controller,
     countries_controller,
     customers_controller,
@@ -6,6 +9,7 @@ from api.endpoints import (
     municipality_controller,
     pos_terminal_controller,
     product_controller,
+    purchase_controller,
     roles_controller,
     sale_controller,
     shift_controller,
@@ -80,6 +84,20 @@ api_router.include_router(shift_controller.router, prefix="/shifts", tags=["POS"
 api_router.include_router(sale_controller.router, prefix="/sales", tags=["POS"])
 api_router.include_router(
     product_controller.router, prefix="/products", tags=["Products"]
+)
+api_router.include_router(
+    purchase_controller.router, prefix="/purchases", tags=["Purchases"]
+)
+api_router.include_router(
+    accounts_payable_controller.router, prefix="/accounts-payable", tags=["Accounting"]
+)
+api_router.include_router(
+    accounts_receivable_controller.router,
+    prefix="/accounts-receivable",
+    tags=["Accounting"],
+)
+api_router.include_router(
+    assistant_controller.router, prefix="/assistant", tags=["AI Assistant"]
 )
 
 # Incluye el router principal en la aplicación

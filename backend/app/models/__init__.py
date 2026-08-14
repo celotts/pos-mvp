@@ -1,3 +1,5 @@
+from .accounts_payable import AccountsPayable as AccountsPayable
+from .accounts_receivable import AccountsReceivable as AccountsReceivable
 from .cash_account import CashAccount as CashAccount
 from .cash_account import CashAccountType as CashAccountType
 from .country import Country as Country

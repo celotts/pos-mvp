@@ -56,40 +56,44 @@ class PosTerminal(Base):
     )
 
     # Relationships with Users
-    created_by_rel: Mapped[User | None] = relationship(
+    created_by_rel: Mapped[User | None] = relationship(  # This was already correct
         "User", foreign_keys=[created_by], back_populates="created_pos_terminals"
     )
-    updated_by_rel: Mapped[User | None] = relationship(
+    updated_by_rel: Mapped[User | None] = relationship(  # This was already correct
         "User", foreign_keys=[updated_by], back_populates="updated_pos_terminals"
     )
-    deleted_by_rel: Mapped[User | None] = relationship(
+    deleted_by_rel: Mapped[User | None] = relationship(  # This was already correct
         "User", foreign_keys=[deleted_by], back_populates="deleted_pos_terminals"
     )
 
     # Relationships with Roles
-    created_by_role_rel: Mapped[Role | None] = relationship(
+    created_by_role_rel: Mapped[Role | None] = relationship(  # This was already correct
         "Role",
         foreign_keys=[created_by_role_id],
         back_populates="role_created_pos_terminals",
     )
-    updated_by_role_rel: Mapped[Role | None] = relationship(
+    updated_by_role_rel: Mapped[Role | None] = relationship(  # This was already correct
         "Role",
         foreign_keys=[updated_by_role_id],
         back_populates="role_updated_pos_terminals",
     )
-    deleted_by_role_rel: Mapped[Role | None] = relationship(
+    deleted_by_role_rel: Mapped[Role | None] = relationship(  # This was already correct
         "Role",
         foreign_keys=[deleted_by_role_id],
         back_populates="role_deleted_pos_terminals",
     )
 
     # Relationship with Purchases
-    purchases: Mapped[list[Purchase]] = relationship(
+    purchases: Mapped[list[Purchase]] = relationship(  # This was already correct
         "Purchase", back_populates="pos_terminal"
     )
 
     # Relationship with Sales
-    sales: Mapped[list[Sale]] = relationship("Sale", back_populates="pos_terminal")
+    sales: Mapped[list[Sale]] = relationship(  # This was already correct
+        "Sale", back_populates="pos_terminal"
+    )  # This was already correct
 
     # Relationship with Shifts
-    shifts: Mapped[list[Shift]] = relationship("Shift", back_populates="pos_terminal")
+    shifts: Mapped[list[Shift]] = relationship(  # This was already correct
+        "Shift", back_populates="pos_terminal"
+    )  # This was already correct

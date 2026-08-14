@@ -31,9 +31,17 @@ class Product(Base):
     )
 
     # Relationships
-    supplier: Mapped[Supplier | None] = relationship(back_populates="products")
-    purchase_items: Mapped[list[PurchaseItem]] = relationship(back_populates="product")
-    sale_items: Mapped[list[SaleItem]] = relationship(back_populates="product")
+    supplier: Mapped[Supplier | None] = relationship(  # This was already correct
+        back_populates="products"
+    )  # This was already correct
+    purchase_items: Mapped[list[PurchaseItem]] = (
+        relationship(  # This was already correct
+            back_populates="product"
+        )
+    )  # This was already correct
+    sale_items: Mapped[list[SaleItem]] = relationship(  # This was already correct
+        back_populates="product"
+    )  # This was already correct
 
     def __repr__(self):
         return f"<Product(name='{self.name}', sku='{self.sku}')>"

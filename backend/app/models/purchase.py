@@ -10,16 +10,20 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Numeric,
+    String,
     func,
 )
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
+    from .accounts_payable import AccountsPayable
     from .pos_terminal import PosTerminal
     from .product import Product
-    from .store import Store
+    from .role import Role
+    from .supplier import Supplier
     from .user import User
+from .store import Store  # Ensure Store is available at runtime
 
 
 class Purchase(Base):
@@ -28,26 +32,82 @@ class Purchase(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    total_amount: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    pos_terminal_id: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("pos_terminals.id"), nullable=True
+    )
+    store_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("stores.id"), nullable=False
+    )
+    supplier_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("suppliers.id"), nullable=False
+    )
+    # Specific purchase date, distinct from created_at audit field
+    purchase_date: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    total_amount: Mapped[float] = mapped_column(Numeric(18, 2), nullable=False)
+    total_tax_amount: Mapped[float] = mapped_column(Numeric(18, 2), nullable=False)
+    status: Mapped[str] = mapped_column(String, nullable=False, default="PENDING")
+    payment_status: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+        default="UNPAID",
+    )
+
+    # Audit fields
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
-
-    # Foreign Keys
-    store_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("stores.id"), nullable=False)
-    user_id: Mapped[uuid.UUID | None] = mapped_column(
-        PG_UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
-    )  # A purchase might be anonymous
-    pos_terminal_id: Mapped[uuid.UUID] = mapped_column(
-        PG_UUID(as_uuid=True), ForeignKey("pos_terminals.id"), nullable=False
+    updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), onupdate=func.now()
+    )
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("users.id")
+    )
+    updated_by: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("users.id")
+    )
+    deleted_by: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("users.id")
+    )
+    created_by_role_id: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("roles.id")
+    )
+    updated_by_role_id: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("roles.id")
+    )
+    deleted_by_role_id: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("roles.id")
     )
 
     # Relationships
-    store: Mapped[Store] = relationship(back_populates="purchases")
-    user: Mapped[User | None] = relationship(back_populates="purchases")
-    pos_terminal: Mapped[PosTerminal] = relationship(back_populates="purchases")
+    pos_terminal: Mapped[PosTerminal | None] = relationship(
+        "PosTerminal", back_populates="purchases"
+    )
+    store: Mapped[Store] = relationship("Store", back_populates="purchases")
+    supplier: Mapped[Supplier] = relationship("Supplier", back_populates="purchases")
     items: Mapped[list[PurchaseItem]] = relationship(
         "PurchaseItem", back_populates="purchase", cascade="all, delete-orphan"
+    )
+    accounts_payable: Mapped[AccountsPayable | None] = relationship(
+        "AccountsPayable",
+        back_populates="purchase",
+        uselist=False,
+    )
+    creator: Mapped[User | None] = relationship(
+        "User", foreign_keys=[created_by], back_populates="purchases"
+    )
+    updater: Mapped[User | None] = relationship("User", foreign_keys=[updated_by])
+    deleter: Mapped[User | None] = relationship("User", foreign_keys=[deleted_by])
+    creator_role: Mapped[Role | None] = relationship(
+        "Role", foreign_keys=[created_by_role_id]
+    )
+    updater_role: Mapped[Role | None] = relationship(
+        "Role", foreign_keys=[updated_by_role_id]
+    )
+    deleter_role: Mapped[Role | None] = relationship(
+        "Role", foreign_keys=[deleted_by_role_id]
     )
 
     def __repr__(self):
@@ -64,8 +124,12 @@ class PurchaseItem(Base):
     price_at_purchase: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
 
     # Foreign Keys
-    purchase_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("purchases.id"))
-    product_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("products.id"))
+    purchase_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("purchases.id"), nullable=False
+    )
+    product_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("products.id"), nullable=False
+    )
 
     # Relationships
     purchase: Mapped[Purchase] = relationship(back_populates="items")

@@ -1,6 +1,7 @@
 import sys
-from pydantic_settings import BaseSettings
+
 from pydantic import EmailStr, ValidationError
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
