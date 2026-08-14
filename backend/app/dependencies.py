@@ -1,6 +1,6 @@
 import uuid
 
-from core import crud_user
+from core.crud_user import crud_user
 from core.db import async_session_maker
 from core.security import decode_access_token
 from fastapi import Depends, HTTPException, status
@@ -33,7 +33,7 @@ async def get_current_user(
     4. Devuelve el usuario si es válido; de lo contrario, lanza una excepción.
     """
     user_id = decode_access_token(token)
-    user = await crud_user.get_user(db, user_id=uuid.UUID(user_id))
+    user = await crud_user.get(db, id=uuid.UUID(user_id))
     if not user:
         # Si el token es válido pero el usuario no existe (p. ej. fue borrado),
         # se considera un fallo de autenticación.

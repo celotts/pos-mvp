@@ -63,3 +63,14 @@ async def update_store(
     if not store:
         raise HTTPException(status_code=404, detail="Store not found")
     return store
+
+
+@router.delete("/{store_id}", response_model=Store)
+async def delete_store(*, db: AsyncSession = db_dependency, store_id: uuid.UUID) -> Any:
+    """
+    Delete a store.
+    """
+    store = await store_service.delete(db, id=store_id)
+    if not store:
+        raise HTTPException(status_code=404, detail="Store not found")
+    return store

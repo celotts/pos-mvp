@@ -1,103 +1,75 @@
-import uuid
+from typing import Any
 
+from core.crud_base import CRUDBase
 from core.security import get_password_hash, verify_password
-from models.user import User as UserModel
-from schemas.user import (
-    UserCreate as UserCreateSchema,
-)
-from schemas.user import (
-    UserUpdate as UserUpdateSchema,
-)
+from models.user import User
+from schemas.user import UserCreate, UserUpdate
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 
-async def get_user(db: AsyncSession, user_id: uuid.UUID) -> UserModel | None:
-    """Obtiene un usuario por su ID."""
-    result = await db.execute(
-        select(UserModel)
-        .options(selectinload(UserModel.role))
-        .filter(UserModel.id == user_id)
-    )
-    return result.scalars().first()
+class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
+    def __init__(self, model: type[User]):
+        super().__init__(model)
+        # Asegura que la relación con el rol se cargue eficientemente
+        self.default_loads = [selectinload(self.model.role)]
 
+    async def get_by_email(self, db: AsyncSession, *, email: str) -> User | None:
+        result = await db.execute(select(self.model).filter(self.model.email == email))
+        return result.scalars().first()
 
-async def get_user_by_email(db: AsyncSession, email: str) -> UserModel | None:
-    """Obtiene un usuario por su email."""
-    result = await db.execute(select(UserModel).filter(UserModel.email == email))
-    return result.scalars().first()
+    async def authenticate(
+        self, db: AsyncSession, *, email: str, password: str
+    ) -> User | None:
+        user = await self.get_by_email(db, email=email)
+        if not user:
+            return None
+        if not verify_password(password, user.password):
+            return None
+        return user
 
-
-async def get_users(
-    db: AsyncSession, skip: int = 0, limit: int = 100
-) -> list[UserModel]:
-    """Obtiene una lista de usuarios con paginación."""
-    result = await db.execute(
-        select(UserModel)
-        .options(selectinload(UserModel.role))
-        .offset(skip)
-        .limit(limit)
-    )
-    return result.scalars().all()
-
-
-async def authenticate(
-    db: AsyncSession, *, email: str, password: str
-) -> UserModel | None:
-    user = await get_user_by_email(db, email=email)
-    if not user:
-        return None
-    if not verify_password(password, user.password):
-        return None
-    return user
-
-
-async def create_user(db: AsyncSession, *, user_in: UserCreateSchema) -> UserModel:
-    hashed_password = get_password_hash(user_in.password.get_secret_value())
-    db_user = UserModel(
-        email=user_in.email,
-        full_name=user_in.full_name,
-        password=hashed_password,
-        # Los campos address, phone, phone2, is_active usan sus valores por defecto del modelo
-        role_id=user_in.role_id,
-    )
-    db.add(db_user)
-    await db.commit()
-    await db.refresh(db_user)
-    return db_user
-
-
-async def update_user(
-    db: AsyncSession, *, db_user: UserModel, user_in: UserUpdateSchema
-) -> UserModel:
-    """Actualiza un usuario."""
-    user_data = user_in.model_dump(exclude_unset=True)
-
-    # Si se proporciona una nueva contraseña, hashearla
-    if password := user_data.get("password"):
-        hashed_password = get_password_hash(password.get_secret_value())
-        db_user.password = hashed_password
-        del user_data["password"]
-
-    # Si se proporciona un role_id, actualizarlo
-    if "role_id" in user_data and user_data["role_id"] is not None:
-        db_user.role_id = user_data["role_id"]
-        del user_data["role_id"]
-
-    for field, value in user_data.items():
-        setattr(db_user, field, value)
-
-    await db.commit()
-    await db.refresh(db_user)
-    return db_user
-
-
-async def remove_user(db: AsyncSession, *, user_id: uuid.UUID) -> UserModel | None:
-    """Elimina un usuario por su ID."""
-    result = await db.execute(select(UserModel).filter(UserModel.id == user_id))
-    user_to_delete = result.scalars().first()
-    if user_to_delete:
-        await db.delete(user_to_delete)
+    async def create(self, db: AsyncSession, *, obj_in: UserCreate) -> User:
+        db_obj = self.model(
+            email=obj_in.email,
+            full_name=obj_in.full_name,
+            password=get_password_hash(obj_in.password.get_secret_value()),
+            role_id=obj_in.role_id,
+        )
+        db.add(db_obj)
         await db.commit()
-    return user_to_delete
+        await db.refresh(db_obj)
+        return db_obj
+
+    async def update(
+        self, db: AsyncSession, *, db_obj: User, obj_in: UserUpdate | dict[str, Any]
+    ) -> User:
+        if isinstance(obj_in, dict):
+            update_data = obj_in
+        else:
+            update_data = obj_in.model_dump(exclude_unset=True)
+
+        if update_data.get("password"):
+            hashed_password = get_password_hash(update_data["password"])
+            del update_data["password"]
+            update_data["password"] = hashed_password
+
+        return await super().update(db, db_obj=db_obj, obj_in=update_data)
+
+    async def get_multi(
+        self,
+        db: AsyncSession,
+        *,
+        skip: int = 0,
+        limit: int = 100,
+        email: str | None = None,
+    ) -> list[User]:
+        query = select(self.model)
+        if email:
+            query = query.filter(self.model.email == email)
+        query = query.offset(skip).limit(limit)
+        result = await db.execute(query)
+        return list(result.scalars().all())
+
+
+crud_user = CRUDUser(User)

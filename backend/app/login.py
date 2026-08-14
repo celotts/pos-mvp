@@ -1,4 +1,4 @@
-from core import crud_user
+from core.crud_user import crud_user
 from core.security import create_access_token
 from dependencies import get_db
 from fastapi import APIRouter, Depends, HTTPException, status

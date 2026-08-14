@@ -3,9 +3,9 @@ import uuid
 
 from core import (
     base,  # noqa: F401 - Importa todos los modelos para que Base los reconozca
-    crud_user,
 )
 from core.config import settings
+from core.crud_user import crud_user
 from core.db import async_session_maker
 from models.role import Role
 from schemas.user import UserCreate
@@ -37,8 +37,9 @@ async def init_db(db: AsyncSession) -> None:
         logger.info("El rol de Administrador ya existe, omitiendo creación.")
 
     # 2. Crear el superusuario si no existe
-    user = await crud_user.get_user_by_email(db, email=settings.FIRST_SUPERUSER_EMAIL)
-    if not user:
+    # Se asume que get_multi puede filtrar por email.
+    users = await crud_user.get_multi(db, limit=1, email=settings.FIRST_SUPERUSER_EMAIL)
+    if not users:
         logger.info("Creando superusuario inicial...")
         user_in = UserCreate(
             email=settings.FIRST_SUPERUSER_EMAIL,
@@ -46,7 +47,7 @@ async def init_db(db: AsyncSession) -> None:
             full_name=settings.FIRST_SUPERUSER_FULL_NAME,
             role_id=SUPER_ADMIN_ROLE_ID,
         )
-        await crud_user.create_user(db, user_in=user_in)
+        await crud_user.create(db=db, obj_in=user_in)
         logger.info("Superusuario creado.")
     else:
         logger.info("El superusuario ya existe, omitiendo creación.")
