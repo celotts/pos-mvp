@@ -1,6 +1,7 @@
 # /Users/carloslott/develop/python/pos-mvp/backend/app/models/sale.py
 import uuid
 from datetime import datetime
+from decimal import Decimal
 from typing import TYPE_CHECKING, Optional
 
 from core.db import Base
@@ -28,7 +29,7 @@ class Sale(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    total_amount: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    total_amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -74,7 +75,7 @@ class SaleItem(Base):
         PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     quantity: Mapped[int] = mapped_column(nullable=False)
-    price_at_sale: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    price_at_sale: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
 
     # Foreign Keys
     sale_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("sales.id"), nullable=False)

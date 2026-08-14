@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from decimal import Decimal
 
 from pydantic import BaseModel
 
@@ -13,12 +14,12 @@ class PurchaseItemBase(BaseModel):
 
 
 class PurchaseItemCreate(PurchaseItemBase):
-    price_at_purchase: float  # El precio al que compramos el producto
+    price_at_purchase: Decimal  # El precio al que compramos el producto
 
 
 class PurchaseItem(PurchaseItemBase):
     id: uuid.UUID
-    price_at_purchase: float
+    price_at_purchase: Decimal
 
     class Config:
         from_attributes = True
@@ -28,8 +29,8 @@ class PurchaseBase(BaseModel):
     """Esquema base para una compra."""
 
     supplier_id: uuid.UUID
-    total_amount: float
-    total_tax_amount: float
+    total_amount: Decimal
+    total_tax_amount: Decimal
     status: PurchaseStatus = PurchaseStatus.PENDING
     payment_status: PaymentStatus = PaymentStatus.UNPAID
 

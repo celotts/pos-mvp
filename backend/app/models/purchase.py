@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from core.db import Base
@@ -45,8 +46,8 @@ class Purchase(Base):
     purchase_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
-    total_amount: Mapped[float] = mapped_column(Numeric(18, 2), nullable=False)
-    total_tax_amount: Mapped[float] = mapped_column(Numeric(18, 2), nullable=False)
+    total_amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    total_tax_amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
     status: Mapped[str] = mapped_column(String, nullable=False, default="PENDING")
     payment_status: Mapped[str] = mapped_column(
         String,
@@ -121,7 +122,7 @@ class PurchaseItem(Base):
         PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     quantity: Mapped[int] = mapped_column()
-    price_at_purchase: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    price_at_purchase: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
 
     # Foreign Keys
     purchase_id: Mapped[uuid.UUID] = mapped_column(

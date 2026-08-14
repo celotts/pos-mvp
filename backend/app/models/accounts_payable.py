@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import date, datetime
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from core.db import Base
@@ -35,8 +36,8 @@ class AccountsPayable(Base):
     supplier_id: Mapped[uuid.UUID] = mapped_column(
         PG_UUID(as_uuid=True), ForeignKey("suppliers.id"), nullable=False
     )
-    original_amount: Mapped[float] = mapped_column(Numeric(18, 2), nullable=False)
-    outstanding_amount: Mapped[float] = mapped_column(Numeric(18, 2), nullable=False)
+    original_amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    outstanding_amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
     due_date: Mapped[date | None] = mapped_column(DATE)
     status: Mapped[str] = mapped_column(String, nullable=False, default="OPEN")
 

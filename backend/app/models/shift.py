@@ -3,6 +3,7 @@ from __future__ import annotations
 import enum
 import uuid
 from datetime import datetime
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from core.db import Base
@@ -10,13 +11,14 @@ from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
+    Numeric,
     func,
 )
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
-    from .cash_account import CashAccount
+    from .cash_transaction import CashTransaction
     from .pos_terminal import PosTerminal
     from .store import Store
     from .user import User
@@ -36,9 +38,11 @@ class Shift(Base):
     start_time: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
-    end_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    start_cash: Mapped[float] = mapped_column()
-    end_cash: Mapped[float | None] = mapped_column()
+    end_time: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    starting_cash: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    ending_cash: Mapped[Decimal | None] = mapped_column(Numeric(18, 2), nullable=True)
     notes: Mapped[str | None] = mapped_column()
     status: Mapped[ShiftStatus] = mapped_column(
         Enum(ShiftStatus), default=ShiftStatus.OPEN, nullable=False
@@ -55,7 +59,9 @@ class Shift(Base):
     user: Mapped[User] = relationship(back_populates="shifts")
     pos_terminal: Mapped[PosTerminal] = relationship(back_populates="shifts")
     store: Mapped[Store] = relationship(back_populates="shifts")
-    cash_transactions: Mapped[list[CashAccount]] = relationship(back_populates="shift")
+    cash_transactions: Mapped[list[CashTransaction]] = relationship(
+        back_populates="shift"
+    )
 
     def __repr__(self):
         return (

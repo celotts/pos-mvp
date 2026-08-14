@@ -1,6 +1,7 @@
 import httpx
 from core.config import settings
-from models.sale import Sale
+from core.db import async_session_maker
+from models.sale import Sale, SaleItem
 from models.sales_vector import SalesVector
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,40 +33,42 @@ class AIService:
             )
             raise
 
-    async def create_and_store_sale_embedding(
-        self, db: AsyncSession, sale_id: str
-    ) -> None:
+    async def create_and_store_sale_embedding(self, sale_id: str) -> None:
         """
         Generates and stores an embedding for a given sale.
         This is designed to be called as a background task after a sale is created.
         """
-        # Cargar la venta con todas sus relaciones para construir el texto
-        query = (
-            select(Sale)
-            .where(Sale.id == sale_id)
-            .options(
-                joinedload(Sale.items).joinedload(SaleItem.product),
-                joinedload(Sale.user),
-                joinedload(Sale.store),
+        # Crea una sesión de BD independiente para esta tarea en segundo plano
+        async with async_session_maker() as db:
+            # Cargar la venta con todas sus relaciones para construir el texto
+            query = (
+                select(Sale)
+                .where(Sale.id == sale_id)
+                .options(
+                    joinedload(Sale.items).joinedload(SaleItem.product),
+                    joinedload(Sale.user),
+                    joinedload(Sale.store),
+                )
             )
-        )
-        result = await db.execute(query)
-        sale = result.scalars().one_or_none()
+            result = await db.execute(query)
+            sale = result.scalars().one_or_none()
 
-        if not sale:
-            print(f"Error: Sale with id {sale_id} not found for embedding.")
-            return
+            if not sale:
+                print(f"Error: Sale with id {sale_id} not found for embedding.")
+                return
 
-        # Construir un texto descriptivo para la venta
-        items_desc = ", ".join(
-            [f"{item.quantity}x '{item.product.name}'" for item in sale.items]
-        )
-        content = f"Venta realizada el {sale.created_at.strftime('%Y-%m-%d %H:%M')} en la tienda '{sale.store.name}'. El usuario '{sale.user.full_name}' vendió: {items_desc}. Monto total: {sale.total_amount}."
+            # Construir un texto descriptivo para la venta
+            items_desc = ", ".join(
+                [f"{item.quantity}x '{item.product.name}'" for item in sale.items]
+            )
+            content = f"Venta realizada el {sale.created_at.strftime('%Y-%m-%d %H:%M')} en la tienda '{sale.store.name}'. El usuario '{sale.user.full_name}' vendió: {items_desc}. Monto total: {sale.total_amount}."
 
-        embedding = await self.get_embedding(content)
-        sale_vector = SalesVector(sale_id=sale.id, content=content, embedding=embedding)
-        db.add(sale_vector)
-        await db.commit()
+            embedding = await self.get_embedding(content)
+            sale_vector = SalesVector(
+                sale_id=sale.id, content=content, embedding=embedding
+            )
+            db.add(sale_vector)
+            await db.commit()
 
     async def get_rag_response(self, db: AsyncSession, query: str) -> str:
         """

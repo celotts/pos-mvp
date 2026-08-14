@@ -96,9 +96,7 @@ api_router.include_router(
     prefix="/accounts-receivable",
     tags=["Accounting"],
 )
-api_router.include_router(
-    assistant_controller.router, prefix="/assistant", tags=["AI Assistant"]
-)
+api_router.include_router(assistant_controller.router)
 
 # Incluye el router principal en la aplicación
 app.include_router(api_router)

@@ -1,7 +1,8 @@
 from .accounts_payable import AccountsPayable as AccountsPayable
 from .accounts_receivable import AccountsReceivable as AccountsReceivable
 from .cash_account import CashAccount as CashAccount
-from .cash_account import CashAccountType as CashAccountType
+from .cash_account import CashAccountType
+from .cash_transaction import CashTransaction, CashTransactionType
 from .country import Country as Country
 from .customer import Customer as Customer
 from .municipality import Municipality as Municipality

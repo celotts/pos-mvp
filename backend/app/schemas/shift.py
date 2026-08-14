@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from decimal import Decimal
 
 from models.shift import ShiftStatus
 from pydantic import BaseModel
@@ -13,12 +14,12 @@ class ShiftBase(BaseModel):
 
 # --- Properties for Creating a Shift ---
 class ShiftOpen(ShiftBase):
-    start_cash: float
+    starting_cash: Decimal
 
 
 # --- Properties for Closing a Shift ---
 class ShiftClose(BaseModel):
-    end_cash: float
+    ending_cash: Decimal
     notes: str | None = None
 
 
@@ -28,8 +29,8 @@ class Shift(ShiftBase):
     user_id: uuid.UUID
     start_time: datetime
     end_time: datetime | None = None
-    start_cash: float
-    end_cash: float | None = None
+    starting_cash: Decimal
+    ending_cash: Decimal | None = None
     notes: str | None = None
     status: ShiftStatus
 

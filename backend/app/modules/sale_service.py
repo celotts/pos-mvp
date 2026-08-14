@@ -70,9 +70,7 @@ class SaleService(CRUDService[Sale, SaleCreate, SaleUpdate]):
         await db.refresh(db_obj)
 
         # 3. Disparar la creación del embedding en segundo plano
-        background_tasks.add_task(
-            ai_service.create_and_store_sale_embedding, db, db_obj.id
-        )
+        background_tasks.add_task(ai_service.create_and_store_sale_embedding, db_obj.id)
 
         return db_obj
 

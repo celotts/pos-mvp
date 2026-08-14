@@ -1,5 +1,6 @@
 import uuid
 from datetime import date, datetime
+from decimal import Decimal
 
 from pydantic import BaseModel
 
@@ -11,8 +12,8 @@ class AccountsReceivableBase(BaseModel):
 
     sale_id: uuid.UUID
     customer_id: uuid.UUID
-    original_amount: float
-    outstanding_amount: float
+    original_amount: Decimal
+    outstanding_amount: Decimal
     due_date: date | None = None
     status: ARAPStatus = ARAPStatus.OPEN
 
@@ -24,7 +25,7 @@ class AccountsReceivableCreate(AccountsReceivableBase):
 class AccountsReceivableUpdate(BaseModel):
     """Esquema para actualizar una cuenta por cobrar. Todos los campos son opcionales."""
 
-    outstanding_amount: float | None = None
+    outstanding_amount: Decimal | None = None
     due_date: date | None = None
     status: ARAPStatus | None = None
 
