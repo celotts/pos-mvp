@@ -12,12 +12,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 router = APIRouter(tags=["Roles"])
 
 db_dependency = Depends(get_db)
+current_admin_user_dependency = Depends(get_current_admin_user)
 
 
 @router.get("/", response_model=ApiResponse[list[Role]])
 async def read_roles(
     db: AsyncSession = db_dependency,
-    current_user: UserModel = Depends(get_current_admin_user),
+    current_user: UserModel = current_admin_user_dependency,
     skip: int = 0,
     limit: int = 100,
 ) -> ApiResponse[list[Role]]:
@@ -33,7 +34,7 @@ async def create_role(
     *,
     role_in: RoleCreate,
     db: AsyncSession = db_dependency,
-    current_user: UserModel = Depends(get_current_admin_user),
+    current_user: UserModel = current_admin_user_dependency,
 ) -> ApiResponse[Role]:
     """
     Crea un nuevo rol.
@@ -47,8 +48,8 @@ async def update_role(
     *,
     role_id: uuid.UUID,
     role_in: RoleUpdate,
-    current_user: UserModel = Depends(get_current_admin_user),
     db: AsyncSession = db_dependency,
+    current_user: UserModel = current_admin_user_dependency,
 ) -> ApiResponse[Role]:
     """
     Actualiza un rol.

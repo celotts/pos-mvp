@@ -10,6 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["Boostrap & Auth"])
 
+db_dependency = Depends(get_db)
+form_data_dependency = Depends()
+
 
 @router.post(
     "/login/access-token",
@@ -17,8 +20,8 @@ router = APIRouter(tags=["Boostrap & Auth"])
     description="Autentica a un usuario con email y contraseña y devuelve un token.",
 )
 async def login_access_token(
-    db: AsyncSession = Depends(get_db),  # noqa: B008
-    form_data: OAuth2PasswordRequestForm = Depends(),  # noqa: B008
+    db: AsyncSession = db_dependency,
+    form_data: OAuth2PasswordRequestForm = form_data_dependency,
 ):
     """
     Endpoint para autenticar y generar un token de acceso.

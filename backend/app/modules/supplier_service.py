@@ -22,5 +22,9 @@ class SupplierService:
         db_obj = await self.crud.get(db, id)
         return await self.crud.update(db, db_obj=db_obj, obj_in=obj_in)
 
+    async def delete(self, db: AsyncSession, *, id: UUID):
+        """Elimina un proveedor."""
+        return await self.crud.remove(db=db, id=id)
+
 
 supplier_service = SupplierService()

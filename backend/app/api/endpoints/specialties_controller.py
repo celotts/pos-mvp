@@ -1,9 +1,10 @@
 import uuid
 from typing import Any
 
-from api.response_factory import create_api_response
-from dependencies import get_current_user, get_db
-from fastapi import APIRouter, Depends
+from api.deps_auth import get_current_admin_user
+from api.response_factory import ApiResponse, create_api_response
+from dependencies import get_db
+from fastapi import APIRouter, Depends, status
 from models.user import User as UserModel
 from modules import specialty_service
 from schemas.specialty import Specialty, SpecialtyCreate, SpecialtyUpdate
@@ -11,24 +12,31 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["Specialties"])
 
+db_dependency = Depends(get_db)
+admin_user_dependency = Depends(get_current_admin_user)
 
-@router.get("/", response_model=list[Specialty])
+
+@router.get("/", response_model=ApiResponse[list[Specialty]])
 async def read_specialties(
-    db: AsyncSession = Depends(get_db), skip: int = 0, limit: int = 100
+    db: AsyncSession = db_dependency, skip: int = 0, limit: int = 100
 ) -> Any:
     """
     Retrieve specialties.
     """
     specialties = await specialty_service.get_specialties(db, skip=skip, limit=limit)
-    return create_api_response(data=specialties)
+    return create_api_response(
+        data=specialties, message="Especialidades obtenidas con éxito."
+    )
 
 
-@router.post("/", response_model=Specialty)
+@router.post(
+    "/", response_model=ApiResponse[Specialty], status_code=status.HTTP_201_CREATED
+)
 async def create_specialty(
     *,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = db_dependency,
     specialty_in: SpecialtyCreate,
-    current_user: UserModel = Depends(get_current_user),
+    current_user: UserModel = admin_user_dependency,
 ) -> Any:
     """
     Create new specialty.
@@ -41,10 +49,8 @@ async def create_specialty(
     )
 
 
-@router.get("/{id}", response_model=Specialty)
-async def read_specialty_by_id(
-    id: uuid.UUID, db: AsyncSession = Depends(get_db)
-) -> Any:
+@router.get("/{id}", response_model=ApiResponse[Specialty])
+async def read_specialty_by_id(id: uuid.UUID, db: AsyncSession = db_dependency) -> Any:
     """
     Get a specific specialty by id.
     """
@@ -52,13 +58,13 @@ async def read_specialty_by_id(
     return create_api_response(data=specialty)
 
 
-@router.put("/{id}", response_model=Specialty)
+@router.put("/{id}", response_model=ApiResponse[Specialty])
 async def update_specialty_by_id(
     *,
     id: uuid.UUID,
     specialty_in: SpecialtyUpdate,
-    db: AsyncSession = Depends(get_db),
-    current_user: UserModel = Depends(get_current_user),
+    db: AsyncSession = db_dependency,
+    current_user: UserModel = admin_user_dependency,
 ) -> Any:
     """
     Update a specialty by id.
@@ -71,17 +77,17 @@ async def update_specialty_by_id(
     )
 
 
-@router.delete("/{id}", status_code=204)
+@router.delete("/{id}", response_model=ApiResponse[Specialty])
 async def delete_specialty_by_id(
-    *, id: uuid.UUID, db: AsyncSession = Depends(get_db)
-) -> None:
+    *,
+    id: uuid.UUID,
+    db: AsyncSession = db_dependency,
+    current_user: UserModel = admin_user_dependency,
+) -> Any:
     """
     Delete a specialty by id.
     """
-    await specialty_service.get_specialty(db, specialty_id=id)  # ensure it exists
-    # Assuming you have a remove function in crud_specialty
-    # await crud_specialty.remove(db, id=id)
-    # For now, just returning success as remove is not in the provided crud
+    deleted_specialty = await specialty_service.remove_specialty(db=db, specialty_id=id)
     return create_api_response(
-        data=None, status_code=204, message="Especialidad eliminada con éxito."
+        data=deleted_specialty, message="Especialidad eliminada con éxito."
     )

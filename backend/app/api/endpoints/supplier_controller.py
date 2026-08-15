@@ -1,8 +1,10 @@
 import uuid
 from typing import Any
 
-from api.deps import get_db
+from api.response_factory import ApiResponse, create_api_response
+from dependencies import get_current_user, get_db
 from fastapi import APIRouter, Depends, HTTPException, status
+from models.user import User as UserModel
 from modules.supplier_service import supplier_service
 from schemas.supplier import Supplier, SupplierCreate, SupplierUpdate
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,38 +12,48 @@ from sqlalchemy.ext.asyncio import AsyncSession
 router = APIRouter(tags=["Suppliers"])
 
 db_dependency = Depends(get_db)
+current_user_dependency = Depends(get_current_user)
 
 
-@router.get("/", response_model=list[Supplier])
+@router.get("/", response_model=ApiResponse[list[Supplier]])
 async def read_suppliers(
     db: AsyncSession = db_dependency,
     skip: int = 0,
     limit: int = 100,
+    current_user: UserModel = current_user_dependency,
 ) -> Any:
     """
     Retrieve suppliers.
     """
     suppliers = await supplier_service.get_all(db, skip=skip, limit=limit)
-    return suppliers
+    return create_api_response(data=suppliers)
 
 
-@router.post("/", response_model=Supplier, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/", response_model=ApiResponse[Supplier], status_code=status.HTTP_201_CREATED
+)
 async def create_supplier(
     *,
     db: AsyncSession = db_dependency,
     supplier_in: SupplierCreate,
+    current_user: UserModel = current_user_dependency,
 ) -> Any:
     """
     Create new supplier.
     """
     supplier = await supplier_service.create(db, obj_in=supplier_in)
-    return supplier
+    return create_api_response(
+        data=supplier,
+        status_code=status.HTTP_201_CREATED,
+        message="Proveedor creado con éxito.",
+    )
 
 
-@router.get("/{supplier_id}", response_model=Supplier)
+@router.get("/{supplier_id}", response_model=ApiResponse[Supplier])
 async def read_supplier_by_id(
     supplier_id: uuid.UUID,
     db: AsyncSession = db_dependency,
+    current_user: UserModel = current_user_dependency,
 ) -> Any:
     """
     Get a specific supplier by ID.
@@ -49,15 +61,16 @@ async def read_supplier_by_id(
     supplier = await supplier_service.get_by_id(db, id=supplier_id)
     if not supplier:
         raise HTTPException(status_code=404, detail="Supplier not found")
-    return supplier
+    return create_api_response(data=supplier)
 
 
-@router.put("/{supplier_id}", response_model=Supplier)
+@router.put("/{supplier_id}", response_model=ApiResponse[Supplier])
 async def update_supplier(
     *,
     db: AsyncSession = db_dependency,
     supplier_id: uuid.UUID,
     supplier_in: SupplierUpdate,
+    current_user: UserModel = current_user_dependency,
 ) -> Any:
     """
     Update a supplier.
@@ -65,4 +78,22 @@ async def update_supplier(
     supplier = await supplier_service.update(db, id=supplier_id, obj_in=supplier_in)
     if not supplier:
         raise HTTPException(status_code=404, detail="Supplier not found")
-    return supplier
+    return create_api_response(
+        data=supplier, message="Proveedor actualizado con éxito."
+    )
+
+
+@router.delete("/{supplier_id}", response_model=ApiResponse[Supplier])
+async def delete_supplier(
+    *,
+    db: AsyncSession = db_dependency,
+    supplier_id: uuid.UUID,
+    current_user: UserModel = current_user_dependency,
+) -> Any:
+    """
+    Delete a supplier.
+    """
+    supplier = await supplier_service.delete(db, id=supplier_id)
+    if not supplier:
+        raise HTTPException(status_code=404, detail="Supplier not found")
+    return create_api_response(data=supplier, message="Proveedor eliminado con éxito.")
