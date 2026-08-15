@@ -25,8 +25,8 @@ from fastapi import APIRouter, FastAPI, HTTPException
 from initial_data import init_db
 
 app = FastAPI(
-    title="Medical Appointments RAG API",
-    description="API para la gestión de citas médicas con capacidades de Búsqueda Aumentada por Generación (RAG).",
+    title="Pos-Rag api",
+    description="API para el control de inventario con capacidades de Búsqueda Aumentada por Generación (RAG).",
     version="0.1.0",
 )
 

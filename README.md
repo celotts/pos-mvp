@@ -234,7 +234,7 @@ Plaintext
 ---
 
 <FollowUp label="¿Quieres agregar secciones adicionales al README (como pasos de instalación, variables de entorno o ejecución con Docker)?" query="Ayúdame a agregar secciones de instalación, variables de entorno y ejecución del proyecto a mi README.md"/>
-revisa y arregla esto # Medical Appointments RAG API
+revisa y arregla esto # Pos rag api
 
 
 
@@ -569,7 +569,7 @@ Se eliminaron espacios de no separación (\u00a0) que desalineaban los árboles 
 
 📄 README.md Corregido
 Markdown
-# Medical Appointments RAG API
+# Pos rag api
 
 Una API moderna y contenerizada para la gestión de citas médicas, potenciada con capacidades de Generación Aumentada por Recuperación (RAG). Construida con Python, FastAPI y Docker, siguiendo las mejores prácticas de desarrollo de software.
 
@@ -857,7 +857,7 @@ El archivo README.md incluye todas las correcciones estructurales, sintácticas 
 Gemini es una IA y puede cometer errores.
 
 
-# Medical Appointments RAG API
+# Pos rag api
 
 Una API moderna y contenerizada para la gestión de citas médicas, potenciada con capacidades de Generación Aumentada por Recuperación (RAG). Construida con Python, FastAPI y Docker, siguiendo las mejores prácticas de desarrollo de software.
 
