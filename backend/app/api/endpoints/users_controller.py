@@ -9,7 +9,7 @@ from modules import user_service
 from schemas.user import User, UserCreate, UserUpdate
 from sqlalchemy.ext.asyncio import AsyncSession
 
-router = APIRouter()
+router = APIRouter(tags=["Users"])
 
 get_db_dependency = Depends(get_db)
 get_current_user_dependency = Depends(get_current_user)

@@ -7,7 +7,7 @@ from modules.store_service import store_service
 from schemas.store import Store, StoreCreate, StoreUpdate
 from sqlalchemy.ext.asyncio import AsyncSession
 
-router = APIRouter(prefix="/stores", tags=["stores"])
+router = APIRouter(tags=["Stores"])
 
 db_dependency = Depends(get_db)
 

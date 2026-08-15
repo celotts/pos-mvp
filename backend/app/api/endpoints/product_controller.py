@@ -7,7 +7,7 @@ from modules.product_service import product_service
 from schemas.product import Product, ProductCreate, ProductUpdate
 from sqlalchemy.ext.asyncio import AsyncSession
 
-router = APIRouter(prefix="/products", tags=["products"])
+router = APIRouter(tags=["Products"])
 
 db_dependency = Depends(get_db)
 

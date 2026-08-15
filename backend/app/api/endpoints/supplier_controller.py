@@ -7,7 +7,7 @@ from modules.supplier_service import supplier_service
 from schemas.supplier import Supplier, SupplierCreate, SupplierUpdate
 from sqlalchemy.ext.asyncio import AsyncSession
 
-router = APIRouter(prefix="/suppliers", tags=["suppliers"])
+router = APIRouter(tags=["Suppliers"])
 
 db_dependency = Depends(get_db)
 

@@ -8,7 +8,7 @@ from modules import sale_service
 from schemas.sale import Sale, SaleCreate
 from sqlalchemy.ext.asyncio import AsyncSession
 
-router = APIRouter()
+router = APIRouter(tags=["POS"])
 
 db_dependency = Depends(get_db)
 current_user_dependency = Depends(get_current_user)

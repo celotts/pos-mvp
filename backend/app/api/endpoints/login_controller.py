@@ -8,7 +8,7 @@ from schemas.token import TokenData
 from schemas.user import User
 from sqlalchemy.ext.asyncio import AsyncSession
 
-router = APIRouter()
+router = APIRouter(tags=["Boostrap & Auth"])
 
 
 @router.post(

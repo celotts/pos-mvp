@@ -9,7 +9,7 @@ from modules.purchase_service import purchase_service
 from schemas.purchase import Purchase, PurchaseCreate, PurchaseUpdate
 from sqlalchemy.ext.asyncio import AsyncSession
 
-router = APIRouter()
+router = APIRouter(tags=["Purchases"])
 
 db_dependency = Depends(get_db)
 current_user_dependency = Depends(get_current_user)
