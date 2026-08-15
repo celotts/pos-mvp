@@ -6,17 +6,20 @@ from models.role import Role
 from schemas.role import RoleCreate, RoleUpdate
 from sqlalchemy.ext.asyncio import AsyncSession
 
-# Roles del sistema que no pueden ser modificados o eliminados.
+# System roles that cannot be modified or deleted.
 PROTECTED_ROLES = {"SUPER_ADMIN", "ADMIN"}
 
 
 async def get_roles(db: AsyncSession, skip: int = 0, limit: int = 100) -> list[Role]:
-    """Obtiene una lista de roles."""
+    """Get a list of roles."""
     return await crud_role.get_multi(db, skip=skip, limit=limit)
 
 
 async def create_role(db: AsyncSession, *, role_in: RoleCreate) -> Role:
-    """Crea un nuevo rol."""
+    """Create a new role."""
+    # Asegura que el nombre del rol se guarde en mayúsculas.
+    role_in.name = role_in.name.upper()
+
     existing_role = await crud_role.get_by_name(db, name=role_in.name)
     if existing_role:
         raise HTTPException(
@@ -27,7 +30,7 @@ async def create_role(db: AsyncSession, *, role_in: RoleCreate) -> Role:
 
 
 async def get_role(db: AsyncSession, *, role_id: uuid.UUID) -> Role:
-    """Obtiene un rol por ID, manejando el caso de no encontrarlo."""
+    """Get a role by ID, handling the not-found case."""
     db_role = await crud_role.get(db=db, id=role_id)
     if not db_role:
         raise HTTPException(
@@ -39,28 +42,39 @@ async def get_role(db: AsyncSession, *, role_id: uuid.UUID) -> Role:
 async def update_role(
     db: AsyncSession, *, role_id: uuid.UUID, role_in: RoleUpdate
 ) -> Role:
-    """Actualiza un rol, verificando primero su existencia y si está protegido."""
+    """Update a role, first checking for its existence and if it is protected."""
     db_role = await get_role(db=db, role_id=role_id)
 
-    # Lógica de protección: si el nombre del rol está en la lista, no se puede modificar.
+    # Protection logic: protected roles cannot be modified.
     if db_role.name in PROTECTED_ROLES:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Role '{db_role.name}' is protected and cannot be modified.",
         )
 
+    # Si se está actualizando el nombre, convertirlo a mayúsculas y verificar duplicados.
+    # If the name is being updated, convert it to uppercase and check for duplicates.
+    if role_in.name is not None:
+        role_in.name = role_in.name.upper()
+        existing_role = await crud_role.get_by_name(db, name=role_in.name)
+        # If a role with that name already exists and it's not the one we are updating.
+        if existing_role and existing_role.id != role_id:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"A role with the name '{role_in.name}' already exists.",
+            )
+
     return await crud_role.update(db=db, db_obj=db_role, obj_in=role_in)
 
 
 async def remove_role(db: AsyncSession, *, role_id: uuid.UUID) -> Role:
-    """
-    Elimina un rol, con dos niveles de protección:
-    1. No se pueden eliminar roles protegidos.
-    2. No se pueden eliminar roles si están asignados a algún usuario.
+    """Deletes a role, with two levels of protection:
+    1. Protected roles cannot be deleted.
+    2. Roles cannot be deleted if they are assigned to any user.
     """
     db_role = await get_role(db=db, role_id=role_id)
 
-    # Protección N°1: Roles del sistema.
+    # Protection #1: System roles.
     if db_role.name in PROTECTED_ROLES:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -68,6 +82,7 @@ async def remove_role(db: AsyncSession, *, role_id: uuid.UUID) -> Role:
         )
 
     # Protección N°2: Roles en uso.
+    # Protection #2: Roles in use.
     if db_role.users:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -75,7 +90,7 @@ async def remove_role(db: AsyncSession, *, role_id: uuid.UUID) -> Role:
         )
 
     deleted_role = await crud_role.remove(db=db, id=role_id)
-    # Esta comprobación es por seguridad, aunque get_role ya lo valida.
+    # This check is for safety, although get_role already validates it.
     if not deleted_role:
         raise HTTPException(status_code=404, detail="Role not found to delete.")
     return deleted_role

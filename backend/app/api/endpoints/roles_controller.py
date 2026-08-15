@@ -39,6 +39,19 @@ async def create_role(
     return create_api_response(data=role, status_code=status.HTTP_201_CREATED)
 
 
+@router.get("/{role_id}", response_model=ApiResponse[Role])
+async def read_role_by_id(
+    *,
+    role_id: uuid.UUID,
+    db: AsyncSession = db_dependency,
+    current_user: UserModel = current_admin_user_dependency,
+) -> ApiResponse[Role]:
+    """Get a specific role by its ID."""
+    # Llama a la función del servicio que ya maneja la lógica de búsqueda y el error 404.
+    role = await role_service.get_role(db=db, role_id=role_id)
+    return create_api_response(data=role)
+
+
 @router.put("/{role_id}", response_model=ApiResponse[Role])
 async def update_role(
     *,
