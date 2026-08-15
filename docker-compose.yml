@@ -1,7 +1,7 @@
 services:
   pos-db:
     image: pgvector/pgvector:pg16
-    container_name: pos_db
+    container_name: pos-db # Estandarizado a guion medio
     env_file:
       - .env
     environment:
@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5437:5432" # Cambiado a 5437 para evitar el conflicto
+      - "5438:5432" # Cambiado a 5437 para evitar el conflicto
     volumes:
       - ./script_data/V1__initial_schema.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:

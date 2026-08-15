@@ -1,38 +1,42 @@
 import enum
 import uuid
+from datetime import datetime
+from decimal import Decimal
 
 from core.db import Base
 from sqlalchemy import (
-    Column,
     DateTime,
     Enum,
-    ForeignKey,
     Numeric,
     String,
     func,
 )
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column
 
 
 class CashAccountType(enum.Enum):
-    DEPOSIT = "deposit"
-    WITHDRAWAL = "withdrawal"
+    CASH = "CASH"
+    BANK = "BANK"
 
 
 class CashAccount(Base):
     __tablename__ = "cash_accounts"
 
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    amount = Column(Numeric(10, 2), nullable=False)
-    type = Column(Enum(CashAccountType), nullable=False)
-    description = Column(String(255))
-    created_at = Column(
+    id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    account_type: Mapped[CashAccountType] = mapped_column(
+        Enum(CashAccountType), nullable=False
+    )
+    current_balance: Mapped[Decimal] = mapped_column(
+        Numeric(18, 2), nullable=False, default=Decimal("0.0")
+    )
+    currency: Mapped[str] = mapped_column(String(3), nullable=False, default="MXN")
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    shift_id = Column(PG_UUID(as_uuid=True), ForeignKey("shifts.id"), nullable=False)
-    shift = relationship("Shift", back_populates="cash_transactions")
-
     def __repr__(self):
-        return f"<CashAccount(id={self.id}, type='{self.type.value}', amount={self.amount})>"
+        return f"<CashAccount(name='{self.name}', balance={self.current_balance})>"

@@ -9,7 +9,7 @@ from modules import country_service
 from schemas.country import Country, CountryCreate, CountryUpdate
 from sqlalchemy.ext.asyncio import AsyncSession
 
-router = APIRouter()
+router = APIRouter(tags=["Countries"])
 
 db_dependency = Depends(get_db)
 admin_user_dependency = Depends(get_current_admin_user)

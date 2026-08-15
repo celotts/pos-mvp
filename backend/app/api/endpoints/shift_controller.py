@@ -9,7 +9,7 @@ from modules import shift_service
 from schemas.shift import Shift, ShiftClose, ShiftOpen
 from sqlalchemy.ext.asyncio import AsyncSession
 
-router = APIRouter()
+router = APIRouter(tags=["POS"])
 
 db_dependency = Depends(get_db)
 current_user_dependency = Depends(get_current_user)

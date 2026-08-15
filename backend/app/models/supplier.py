@@ -10,6 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
     from .product import Product
+    from .purchase import Purchase
 
 
 class Supplier(Base):
@@ -27,6 +28,7 @@ class Supplier(Base):
     address: Mapped[str | None] = mapped_column(String(255))
 
     products: Mapped[list[Product]] = relationship(back_populates="supplier")
+    purchases: Mapped[list[Purchase]] = relationship(back_populates="supplier")
 
     def __repr__(self):
         return f"<Supplier(name='{self.name}')>"

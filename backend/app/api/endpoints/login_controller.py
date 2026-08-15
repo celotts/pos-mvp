@@ -1,36 +1,46 @@
-from api.response_factory import ApiResponse, create_api_response
+from api.response_factory import create_api_response
 from core.crud_user import crud_user
 from core.security import create_access_token
 from dependencies import get_db
 from fastapi import APIRouter, Depends, HTTPException, status
-from schemas.token import Token
-from schemas.user import UserLogin
+from fastapi.security import OAuth2PasswordRequestForm
+from schemas.token import TokenData
+from schemas.user import User
 from sqlalchemy.ext.asyncio import AsyncSession
 
-router = APIRouter()
-
-db_dependency = Depends(get_db)
+router = APIRouter(tags=["Boostrap & Auth"])
 
 
-@router.post("/login/access-token", response_model=ApiResponse[Token])
+@router.post(
+    "/login/access-token",
+    summary="Obtiene un token de acceso JWT",
+    description="Autentica a un usuario con email y contraseña y devuelve un token.",
+)
 async def login_access_token(
-    *,
-    user_in: UserLogin,
-    db: AsyncSession = db_dependency,
-) -> ApiResponse[Token]:
+    db: AsyncSession = Depends(get_db),  # noqa: B008
+    form_data: OAuth2PasswordRequestForm = Depends(),  # noqa: B008
+):
     """
-    OAuth2 compatible token login, get an access token for future requests.
+    Endpoint para autenticar y generar un token de acceso.
+
+    Utiliza el `response_factory` para devolver una respuesta estandarizada
+    que incluye el token y la información del usuario.
     """
     user = await crud_user.authenticate(
-        db, email=user_in.email, password=user_in.password.get_secret_value()
+        db, email=form_data.username, password=form_data.password
     )
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Email o contraseña incorrectos",
+            detail="El correo electrónico o la contraseña son incorrectos.",
+            headers={"WWW-Authenticate": "Bearer"},
         )
-    token_data = {
-        "access_token": create_access_token(user.id),
-        "token_type": "bearer",
-    }
-    return create_api_response(data=token_data, message="Inicio de sesión exitoso.")
+
+    access_token = create_access_token(subject=str(user.id))
+
+    # Prepara los datos para la respuesta estandarizada
+    token_data = TokenData(
+        access_token=access_token, token_type="bearer", user=User.from_orm(user)
+    )
+
+    return create_api_response(data=token_data, message="Autenticación exitosa")

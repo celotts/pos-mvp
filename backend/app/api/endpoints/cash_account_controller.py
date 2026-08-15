@@ -14,7 +14,7 @@ from schemas.cash_account import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
-router = APIRouter()
+router = APIRouter(tags=["Accounting"])
 
 db_dependency = Depends(get_db)
 current_user_dependency = Depends(get_current_user)

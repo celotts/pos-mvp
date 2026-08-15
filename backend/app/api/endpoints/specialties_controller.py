@@ -9,7 +9,7 @@ from modules import specialty_service
 from schemas.specialty import Specialty, SpecialtyCreate, SpecialtyUpdate
 from sqlalchemy.ext.asyncio import AsyncSession
 
-router = APIRouter()
+router = APIRouter(tags=["Specialties"])
 
 
 @router.get("/", response_model=list[Specialty])

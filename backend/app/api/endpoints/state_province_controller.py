@@ -14,7 +14,7 @@ from schemas.state_province import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
-router = APIRouter()
+router = APIRouter(tags=["States & Provinces"])
 
 db_dependency = Depends(get_db)
 current_user_dependency = Depends(get_current_user)

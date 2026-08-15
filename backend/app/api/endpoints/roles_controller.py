@@ -9,7 +9,7 @@ from modules import role_service
 from schemas.role import Role, RoleCreate, RoleUpdate
 from sqlalchemy.ext.asyncio import AsyncSession
 
-router = APIRouter()
+router = APIRouter(tags=["Roles"])
 
 db_dependency = Depends(get_db)
 

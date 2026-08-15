@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from core.db import Base
@@ -22,7 +23,7 @@ class Product(Base):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     description: Mapped[str | None] = mapped_column(String)
-    price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     sku: Mapped[str | None] = mapped_column(String(100), unique=True, index=True)
 
     # Foreign Key to Supplier
@@ -31,9 +32,17 @@ class Product(Base):
     )
 
     # Relationships
-    supplier: Mapped[Supplier | None] = relationship(back_populates="products")
-    purchase_items: Mapped[list[PurchaseItem]] = relationship(back_populates="product")
-    sale_items: Mapped[list[SaleItem]] = relationship(back_populates="product")
+    supplier: Mapped[Supplier | None] = relationship(  # This was already correct
+        back_populates="products"
+    )  # This was already correct
+    purchase_items: Mapped[list[PurchaseItem]] = (
+        relationship(  # This was already correct
+            back_populates="product"
+        )
+    )  # This was already correct
+    sale_items: Mapped[list[SaleItem]] = relationship(  # This was already correct
+        back_populates="product"
+    )  # This was already correct
 
     def __repr__(self):
         return f"<Product(name='{self.name}', sku='{self.sku}')>"

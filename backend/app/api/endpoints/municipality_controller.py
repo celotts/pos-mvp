@@ -14,7 +14,7 @@ from schemas.municipality import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
-router = APIRouter()
+router = APIRouter(tags=["Municipalities"])
 
 db_dependency = Depends(get_db)
 current_user_dependency = Depends(get_current_user)

@@ -9,7 +9,7 @@ from models.user import User as UserModel
 from schemas.customer import Customer, CustomerCreate, CustomerUpdate
 from sqlalchemy.ext.asyncio import AsyncSession
 
-router = APIRouter()
+router = APIRouter(tags=["Customers"])
 
 # Dependencias a nivel de módulo para un código más limpio y sin advertencias del linter
 db_dependency = Depends(get_db)
