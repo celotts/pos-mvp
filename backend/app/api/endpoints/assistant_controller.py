@@ -24,6 +24,6 @@ async def handle_chat(
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_user_dependency,
 ) -> Any:
-    """Endpoint para interactuar con el Asistente de Inteligencia de Negocio."""
+    """Endpoint to interact with the Business Intelligence Assistant."""
     response_text = await ai_service.get_rag_response(db=db, query=query.question)
     return create_api_response(data={"answer": response_text})

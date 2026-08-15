@@ -25,7 +25,7 @@ current_admin_user_dependency = Depends(get_current_admin_user)
     "/",
     response_model=ApiResponse[StateProvince],
     status_code=status.HTTP_201_CREATED,
-    summary="Crear un nuevo Estado/Provincia",
+    summary="Create a new State/Province",
 )
 async def create_state_province(
     *,
@@ -33,28 +33,28 @@ async def create_state_province(
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_admin_user_dependency,
 ) -> Any:
-    """Crea un nuevo estado o provincia, asociado a un país."""
+    """Creates a new state or province, associated with a country."""
     state = await state_province_service.create_state_province(
         db=db, state_in=state_in, current_user=current_user
     )
     return create_api_response(
         data=state,
         status_code=status.HTTP_201_CREATED,
-        message="Estado/Provincia creado con éxito.",
+        message="State/Province created successfully.",
     )
 
 
 @router.get(
     "/",
     response_model=ApiResponse[list[StateProvince]],
-    summary="Obtener una lista de Estados/Provincias",
+    summary="Get a list of States/Provinces",
 )
 async def read_states_provinces(
     db: AsyncSession = db_dependency,
     skip: int = 0,
     limit: int = 100,
 ) -> Any:
-    """Obtiene una lista paginada de estados y provincias."""
+    """Gets a paginated list of states and provinces."""
     states = await state_province_service.get_states_provinces(
         db, skip=skip, limit=limit
     )
@@ -64,14 +64,14 @@ async def read_states_provinces(
 @router.get(
     "/{state_id}",
     response_model=ApiResponse[StateProvince],
-    summary="Obtener un Estado/Provincia por ID",
+    summary="Get a State/Province by ID",
 )
 async def read_state_province(
     *,
     state_id: uuid.UUID,
     db: AsyncSession = db_dependency,
 ) -> Any:
-    """Obtiene un estado o provincia específico por su ID."""
+    """Gets a specific state or province by its ID."""
     state = await state_province_service.get_state_province(db, state_id=state_id)
     return create_api_response(data=state)
 
@@ -79,7 +79,7 @@ async def read_state_province(
 @router.put(
     "/{state_id}",
     response_model=ApiResponse[StateProvince],
-    summary="Actualizar un Estado/Provincia",
+    summary="Update a State/Province",
 )
 async def update_state_province(
     *,
@@ -88,7 +88,7 @@ async def update_state_province(
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_admin_user_dependency,
 ) -> Any:
-    """Actualiza un estado o provincia por su ID."""
+    """Updates a state or province by its ID."""
     updated_state = await state_province_service.update_state_province(
         db=db,
         state_id=state_id,
@@ -96,14 +96,14 @@ async def update_state_province(
         current_user=current_user,
     )
     return create_api_response(
-        data=updated_state, message="Estado/Provincia actualizado con éxito."
+        data=updated_state, message="State/Province updated successfully."
     )
 
 
 @router.delete(
     "/{state_id}",
     response_model=ApiResponse[StateProvince],
-    summary="Eliminar un Estado/Provincia",
+    summary="Delete a State/Province",
 )
 async def delete_state_province(
     *,
@@ -111,10 +111,10 @@ async def delete_state_province(
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_admin_user_dependency,
 ) -> Any:
-    """Elimina un estado o provincia por su ID."""
+    """Deletes a state or province by its ID."""
     deleted_state = await state_province_service.remove_state_province(
         db, state_id=state_id
     )
     return create_api_response(
-        data=deleted_state, message="Estado/Provincia eliminado con éxito."
+        data=deleted_state, message="State/Province deleted successfully."
     )

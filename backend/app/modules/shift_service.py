@@ -19,7 +19,7 @@ async def open_shift(
     if not terminal or not terminal.is_active:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="La terminal no existe o no está activa.",
+            detail="The terminal does not exist or is not active.",
         )
 
     # 2. Verificar que no haya ya un turno abierto en esa terminal
@@ -29,7 +29,7 @@ async def open_shift(
     if existing_shift:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Ya existe un turno abierto en la terminal '{terminal.name}'.",
+            detail=f"An open shift already exists at terminal '{terminal.name}'.",
         )
 
     # 3. Crear el nuevo turno
@@ -58,13 +58,14 @@ async def close_shift(
     db_shift = await crud_shift.get(db, id=shift_id)
     if not db_shift:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="El turno no existe."
+            status_code=status.HTTP_404_NOT_FOUND, detail="Shift does not exist."
         )
 
     # 2. Validar que el turno esté abierto y que el usuario sea el correcto (o un admin)
     if db_shift.status != ShiftStatus.OPEN:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="El turno ya está cerrado."
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The shift is already closed.",
         )
 
     # (Opcional) Añadir lógica para permitir que solo el propio usuario o un admin cierre el turno

@@ -31,7 +31,7 @@ class ProductService:
             await db.rollback()
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Un producto con este SKU ya existe.",
+                detail="A product with this SKU already exists.",
             )
 
     async def update(

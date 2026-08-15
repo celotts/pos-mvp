@@ -3,7 +3,7 @@ from typing import Any
 
 from api.response_factory import ApiResponse, create_api_response
 from dependencies import get_current_user, get_db
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from models.user import User as UserModel
 from modules.accounts_payable_service import accounts_payable_service
 from schemas.accounts_payable import (
@@ -23,7 +23,7 @@ current_user_dependency = Depends(get_current_user)
     "/",
     response_model=ApiResponse[AccountsPayable],
     status_code=status.HTTP_201_CREATED,
-    summary="Crear una Cuenta por Pagar",
+    summary="Create an Account Payable",
 )
 async def create_account_payable(
     *,
@@ -31,19 +31,19 @@ async def create_account_payable(
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_user_dependency,
 ) -> Any:
-    """Crea un nuevo registro de cuenta por pagar, generalmente asociado a una compra."""
+    """Creates a new accounts payable record, usually associated with a purchase."""
     new_account = await accounts_payable_service.create(db=db, obj_in=account_in)
     return create_api_response(
         data=new_account,
         status_code=status.HTTP_201_CREATED,
-        message="Cuenta por pagar creada con éxito.",
+        message="Account payable created successfully.",
     )
 
 
 @router.get(
     "/",
     response_model=ApiResponse[list[AccountsPayable]],
-    summary="Obtener lista de Cuentas por Pagar",
+    summary="Get list of Accounts Payable",
 )
 async def read_accounts_payable(
     db: AsyncSession = db_dependency,
@@ -51,7 +51,7 @@ async def read_accounts_payable(
     limit: int = 100,
     current_user: UserModel = current_user_dependency,
 ) -> Any:
-    """Obtiene una lista de todas las cuentas por pagar."""
+    """Gets a list of all accounts payable."""
     accounts = await accounts_payable_service.get_all(db, skip=skip, limit=limit)
     return create_api_response(data=accounts)
 
@@ -59,7 +59,7 @@ async def read_accounts_payable(
 @router.get(
     "/{account_id}",
     response_model=ApiResponse[AccountsPayable],
-    summary="Obtener una Cuenta por Pagar por ID",
+    summary="Get an Account Payable by ID",
 )
 async def read_account_payable_by_id(
     *,
@@ -67,7 +67,7 @@ async def read_account_payable_by_id(
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_user_dependency,
 ) -> Any:
-    """Obtiene los detalles de una cuenta por pagar específica."""
+    """Gets the details of a specific account payable."""
     account = await accounts_payable_service.get(db, id=account_id)
     return create_api_response(data=account)
 
@@ -75,7 +75,7 @@ async def read_account_payable_by_id(
 @router.put(
     "/{account_id}",
     response_model=ApiResponse[AccountsPayable],
-    summary="Actualizar una Cuenta por Pagar",
+    summary="Update an Account Payable",
 )
 async def update_account_payable(
     *,
@@ -84,10 +84,32 @@ async def update_account_payable(
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_user_dependency,
 ) -> Any:
-    """Actualiza los datos de una cuenta por pagar (ej. para registrar un pago)."""
+    """Updates the data of an account payable (e.g., to register a payment)."""
     updated_account = await accounts_payable_service.update(
         db=db, id=account_id, obj_in=account_in
     )
+    if not updated_account:
+        raise HTTPException(status_code=404, detail="Account payable not found.")
     return create_api_response(
-        data=updated_account, message="Cuenta por pagar actualizada con éxito."
+        data=updated_account, message="Account payable updated successfully."
+    )
+
+
+@router.delete(
+    "/{account_id}",
+    response_model=ApiResponse[AccountsPayable],
+    summary="Delete an Account Payable",
+)
+async def delete_account_payable(
+    *,
+    account_id: uuid.UUID,
+    db: AsyncSession = db_dependency,
+    current_user: UserModel = current_user_dependency,
+) -> Any:
+    """Deletes an account payable record."""
+    deleted_account = await accounts_payable_service.remove(db, id=account_id)
+    if not deleted_account:
+        raise HTTPException(status_code=404, detail="Account payable not found.")
+    return create_api_response(
+        data=deleted_account, message="Account payable deleted successfully."
     )

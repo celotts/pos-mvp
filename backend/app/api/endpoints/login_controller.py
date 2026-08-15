@@ -16,8 +16,8 @@ form_data_dependency = Depends()
 
 @router.post(
     "/login/access-token",
-    summary="Obtiene un token de acceso JWT",
-    description="Autentica a un usuario con email y contraseña y devuelve un token.",
+    summary="Get a JWT access token",
+    description="Authenticates a user with email and password and returns a token.",
 )
 async def login_access_token(
     db: AsyncSession = db_dependency,
@@ -35,7 +35,7 @@ async def login_access_token(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="El correo electrónico o la contraseña son incorrectos.",
+            detail="Incorrect email or password.",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -46,4 +46,4 @@ async def login_access_token(
         access_token=access_token, token_type="bearer", user=User.from_orm(user)
     )
 
-    return create_api_response(data=token_data, message="Autenticación exitosa")
+    return create_api_response(data=token_data, message="Authentication successful")

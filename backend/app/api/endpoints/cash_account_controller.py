@@ -25,7 +25,7 @@ current_admin_user_dependency = Depends(get_current_admin_user)
     "/",
     response_model=ApiResponse[CashAccount],
     status_code=status.HTTP_201_CREATED,
-    summary="Crear una nueva Cuenta de Caja/Banco",
+    summary="Create a new Cash/Bank Account",
 )
 async def create_cash_account(
     *,
@@ -33,28 +33,28 @@ async def create_cash_account(
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_admin_user_dependency,
 ) -> Any:
-    """Crea una nueva cuenta de caja o banco."""
+    """Creates a new cash or bank account."""
     account = await cash_account_service.create_cash_account(
         db=db, account_in=account_in, current_user=current_user
     )
     return create_api_response(
         data=account,
         status_code=status.HTTP_201_CREATED,
-        message="Cuenta creada con éxito.",
+        message="Account created successfully.",
     )
 
 
 @router.get(
     "/",
     response_model=ApiResponse[list[CashAccount]],
-    summary="Obtener una lista de Cuentas",
+    summary="Get a list of Accounts",
 )
 async def read_cash_accounts(
     db: AsyncSession = db_dependency,
     skip: int = 0,
     limit: int = 100,
 ) -> Any:
-    """Obtiene una lista paginada de cuentas."""
+    """Gets a paginated list of accounts."""
     accounts = await cash_account_service.get_cash_accounts(db, skip=skip, limit=limit)
     return create_api_response(data=accounts)
 
@@ -62,14 +62,14 @@ async def read_cash_accounts(
 @router.get(
     "/{account_id}",
     response_model=ApiResponse[CashAccount],
-    summary="Obtener una Cuenta por ID",
+    summary="Get an Account by ID",
 )
 async def read_cash_account(
     *,
     account_id: uuid.UUID,
     db: AsyncSession = db_dependency,
 ) -> Any:
-    """Obtiene una cuenta específica por su ID."""
+    """Gets a specific account by its ID."""
     account = await cash_account_service.get_cash_account(db, account_id=account_id)
     return create_api_response(data=account)
 
@@ -77,7 +77,7 @@ async def read_cash_account(
 @router.put(
     "/{account_id}",
     response_model=ApiResponse[CashAccount],
-    summary="Actualizar una Cuenta",
+    summary="Update an Account",
 )
 async def update_cash_account(
     *,
@@ -86,19 +86,19 @@ async def update_cash_account(
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_admin_user_dependency,
 ) -> Any:
-    """Actualiza una cuenta por su ID."""
+    """Updates an account by its ID."""
     updated_account = await cash_account_service.update_cash_account(
         db=db, account_id=account_id, account_in=account_in, current_user=current_user
     )
     return create_api_response(
-        data=updated_account, message="Cuenta actualizada con éxito."
+        data=updated_account, message="Account updated successfully."
     )
 
 
 @router.delete(
     "/{account_id}",
     response_model=ApiResponse[CashAccount],
-    summary="Eliminar una Cuenta",
+    summary="Delete an Account",
 )
 async def delete_cash_account(
     *,
@@ -106,10 +106,10 @@ async def delete_cash_account(
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_admin_user_dependency,
 ) -> Any:
-    """Elimina una cuenta por su ID."""
+    """Deletes an account by its ID."""
     deleted_account = await cash_account_service.remove_cash_account(
         db, account_id=account_id
     )
     return create_api_response(
-        data=deleted_account, message="Cuenta eliminada con éxito."
+        data=deleted_account, message="Account deleted successfully."
     )

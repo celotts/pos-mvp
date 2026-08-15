@@ -24,9 +24,7 @@ async def create_country(
     db: AsyncSession = db_dependency,
     current_user: UserModel = admin_user_dependency,
 ) -> ApiResponse[Country]:
-    """
-    Crea un nuevo país. Solo para administradores.
-    """
+    """Create a new country. For administrators only."""
     new_country = await country_service.create_country(
         db=db,
         country_in=country_in,
@@ -35,7 +33,7 @@ async def create_country(
     return create_api_response(
         data=new_country,
         status_code=status.HTTP_201_CREATED,
-        message="País creado con éxito.",
+        message="Country created successfully.",
     )
 
 
@@ -43,9 +41,7 @@ async def create_country(
 async def read_countries(
     db: AsyncSession = db_dependency, skip: int = 0, limit: int = 100
 ) -> ApiResponse[list[Country]]:
-    """
-    Obtiene una lista de países.
-    """
+    """Get a list of countries."""
     all_countries = await country_service.get_countries(db, skip=skip, limit=limit)
     return create_api_response(data=all_countries)
 
@@ -54,9 +50,7 @@ async def read_countries(
 async def read_country(
     *, country_id: uuid.UUID, db: AsyncSession = db_dependency
 ) -> ApiResponse[Country]:
-    """
-    Obtiene un país por su ID.
-    """
+    """Get a country by its ID."""
     return create_api_response(
         data=await country_service.get_country(db, country_id=country_id)
     )
@@ -70,14 +64,12 @@ async def update_country(
     db: AsyncSession = db_dependency,
     current_user: UserModel = admin_user_dependency,
 ) -> ApiResponse[Country]:
-    """
-    Actualiza un país. Solo para administradores.
-    """
+    """Update a country. For administrators only."""
     updated_country = await country_service.update_country(
         db=db, country_id=country_id, country_in=country_in, user_id=current_user.id
     )
     return create_api_response(
-        data=updated_country, message="País actualizado con éxito."
+        data=updated_country, message="Country updated successfully."
     )
 
 
@@ -88,10 +80,8 @@ async def delete_country(
     db: AsyncSession = db_dependency,
     current_user: UserModel = admin_user_dependency,
 ) -> ApiResponse[Country]:
-    """
-    Elimina un país. Solo para administradores.
-    """
+    """Delete a country. For administrators only."""
     deleted_country = await country_service.remove_country(db=db, country_id=country_id)
     return create_api_response(
-        data=deleted_country, message="País eliminado con éxito."
+        data=deleted_country, message="Country deleted successfully."
     )

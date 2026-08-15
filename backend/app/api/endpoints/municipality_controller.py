@@ -25,7 +25,7 @@ current_admin_user_dependency = Depends(get_current_admin_user)
     "/",
     response_model=ApiResponse[Municipality],
     status_code=status.HTTP_201_CREATED,
-    summary="Crear un nuevo Municipio",
+    summary="Create a new Municipality",
 )
 async def create_municipality(
     *,
@@ -33,28 +33,28 @@ async def create_municipality(
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_admin_user_dependency,
 ) -> Any:
-    """Crea un nuevo municipio, asociado a un estado/provincia."""
+    """Creates a new municipality, associated with a state/province."""
     municipality = await municipality_service.create_municipality(
         db=db, municipality_in=municipality_in, current_user=current_user
     )
     return create_api_response(
         data=municipality,
         status_code=status.HTTP_201_CREATED,
-        message="Municipio creado con éxito.",
+        message="Municipality created successfully.",
     )
 
 
 @router.get(
     "/",
     response_model=ApiResponse[list[Municipality]],
-    summary="Obtener una lista de Municipios",
+    summary="Get a list of Municipalities",
 )
 async def read_municipalities(
     db: AsyncSession = db_dependency,
     skip: int = 0,
     limit: int = 100,
 ) -> Any:
-    """Obtiene una lista paginada de municipios."""
+    """Gets a paginated list of municipalities."""
     municipalities = await municipality_service.get_municipalities(
         db, skip=skip, limit=limit
     )
@@ -64,14 +64,14 @@ async def read_municipalities(
 @router.get(
     "/{municipality_id}",
     response_model=ApiResponse[Municipality],
-    summary="Obtener un Municipio por ID",
+    summary="Get a Municipality by ID",
 )
 async def read_municipality(
     *,
     municipality_id: uuid.UUID,
     db: AsyncSession = db_dependency,
 ) -> Any:
-    """Obtiene un municipio específico por su ID."""
+    """Gets a specific municipality by its ID."""
     municipality = await municipality_service.get_municipality(
         db, municipality_id=municipality_id
     )
@@ -81,7 +81,7 @@ async def read_municipality(
 @router.put(
     "/{municipality_id}",
     response_model=ApiResponse[Municipality],
-    summary="Actualizar un Municipio",
+    summary="Update a Municipality",
 )
 async def update_municipality(
     *,
@@ -90,7 +90,7 @@ async def update_municipality(
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_admin_user_dependency,
 ) -> Any:
-    """Actualiza un municipio por su ID."""
+    """Updates a municipality by its ID."""
     updated_municipality = await municipality_service.update_municipality(
         db=db,
         municipality_id=municipality_id,
@@ -98,14 +98,14 @@ async def update_municipality(
         current_user=current_user,
     )
     return create_api_response(
-        data=updated_municipality, message="Municipio actualizado con éxito."
+        data=updated_municipality, message="Municipality updated successfully."
     )
 
 
 @router.delete(
     "/{municipality_id}",
     response_model=ApiResponse[Municipality],
-    summary="Eliminar un Municipio",
+    summary="Delete a Municipality",
 )
 async def delete_municipality(
     *,
@@ -113,10 +113,10 @@ async def delete_municipality(
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_admin_user_dependency,
 ) -> Any:
-    """Elimina un municipio por su ID."""
+    """Deletes a municipality by its ID."""
     deleted_municipality = await municipality_service.remove_municipality(
         db, municipality_id=municipality_id
     )
     return create_api_response(
-        data=deleted_municipality, message="Municipio eliminado con éxito."
+        data=deleted_municipality, message="Municipality deleted successfully."
     )

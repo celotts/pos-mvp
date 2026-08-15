@@ -47,7 +47,7 @@ async def create_product(
     return create_api_response(
         data=product,
         status_code=status.HTTP_201_CREATED,
-        message="Producto creado con éxito.",
+        message="Product created successfully.",
     )
 
 
@@ -82,7 +82,7 @@ async def update_product(
     )
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    return create_api_response(data=product, message="Producto actualizado con éxito.")
+    return create_api_response(data=product, message="Product updated successfully.")
 
 
 @router.delete("/{id}", response_model=ApiResponse[Product])
@@ -98,4 +98,4 @@ async def delete_product(
     product = await product_service.delete(db=db, id=id)
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    return create_api_response(data=product, message="Producto eliminado con éxito.")
+    return create_api_response(data=product, message="Product deleted successfully.")

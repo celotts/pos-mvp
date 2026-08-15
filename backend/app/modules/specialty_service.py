@@ -26,7 +26,7 @@ async def create_specialty(
     except IntegrityError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Una especialidad con este nombre ya existe.",
+            detail="A specialty with this name already exists.",
         )
 
 
@@ -35,7 +35,7 @@ async def get_specialty(db: AsyncSession, *, specialty_id: uuid.UUID) -> Special
     db_specialty = await crud_specialty.get_specialty(db=db, specialty_id=specialty_id)
     if not db_specialty:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Especialidad no encontrada."
+            status_code=status.HTTP_404_NOT_FOUND, detail="Specialty not found."
         )
     return db_specialty
 

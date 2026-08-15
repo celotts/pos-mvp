@@ -25,8 +25,8 @@ from fastapi import APIRouter, FastAPI, HTTPException
 from initial_data import init_db
 
 app = FastAPI(
-    title="Pos-Rag api",
-    description="API para el control de inventario con capacidades de Búsqueda Aumentada por Generación (RAG).",
+    title="POS-RAG API",
+    description="API for inventory control with Retrieval-Augmented Generation (RAG) capabilities.",
     version="0.1.0",
 )
 
@@ -36,7 +36,7 @@ app.add_exception_handler(HTTPException, http_exception_handler)
 
 @app.on_event("startup")
 async def on_startup():
-    """Ejecuta la lógica de inicialización en el arranque."""
+    """Executes the initialization logic on startup."""
     async with async_session_maker() as session:
         await init_db(session)
 
@@ -45,9 +45,9 @@ async def on_startup():
 api_router = APIRouter(prefix="/api/v1")
 
 
-@api_router.get("/", summary="Comprueba el estado de la API")
+@api_router.get("/", summary="Check the API status")
 def read_root():
-    """Endpoint de estado para verificar que la API está funcionando."""
+    """Status endpoint to check if the API is running."""
     return {"status": "ok"}
 
 

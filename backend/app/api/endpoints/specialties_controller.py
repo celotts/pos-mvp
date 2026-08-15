@@ -25,7 +25,7 @@ async def read_specialties(
     """
     specialties = await specialty_service.get_specialties(db, skip=skip, limit=limit)
     return create_api_response(
-        data=specialties, message="Especialidades obtenidas con éxito."
+        data=specialties, message="Specialties retrieved successfully."
     )
 
 
@@ -45,7 +45,7 @@ async def create_specialty(
         db=db, specialty_in=specialty_in, user_id=current_user.id
     )
     return create_api_response(
-        data=specialty, status_code=201, message="Especialidad creada con éxito."
+        data=specialty, status_code=201, message="Specialty created successfully."
     )
 
 
@@ -73,7 +73,7 @@ async def update_specialty_by_id(
         db=db, specialty_id=id, specialty_in=specialty_in, user_id=current_user.id
     )
     return create_api_response(
-        data=specialty, message="Especialidad actualizada con éxito."
+        data=specialty, message="Specialty updated successfully."
     )
 
 
@@ -89,5 +89,5 @@ async def delete_specialty_by_id(
     """
     deleted_specialty = await specialty_service.remove_specialty(db=db, specialty_id=id)
     return create_api_response(
-        data=deleted_specialty, message="Especialidad eliminada con éxito."
+        data=deleted_specialty, message="Specialty deleted successfully."
     )

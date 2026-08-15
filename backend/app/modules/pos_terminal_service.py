@@ -1,6 +1,7 @@
 import uuid
 
-from core import crud_pos_terminal, crud_store
+from core.crud_pos_terminal import crud_pos_terminal
+from core.crud_store import crud_store
 from fastapi import HTTPException, status
 from models import PosTerminal
 from models import User as UserModel
@@ -25,7 +26,7 @@ async def create_pos_terminal(
     if not store:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"La tienda con id '{terminal_in.store_id}' no existe.",
+            detail=f"Store with id '{terminal_in.store_id}' does not exist.",
         )
     try:
         return await crud_pos_terminal.create(
@@ -37,7 +38,7 @@ async def create_pos_terminal(
     except IntegrityError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Una terminal con este nombre ya existe.",
+            detail="A terminal with this name already exists.",
         )
 
 
@@ -46,7 +47,7 @@ async def get_pos_terminal(db: AsyncSession, *, terminal_id: uuid.UUID) -> PosTe
     db_terminal = await crud_pos_terminal.get(db=db, id=terminal_id)
     if not db_terminal:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Terminal no encontrada."
+            status_code=status.HTTP_404_NOT_FOUND, detail="Terminal not found."
         )
     return db_terminal
 

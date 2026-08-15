@@ -26,16 +26,14 @@ async def create_customer(
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_admin_user_dependency,
 ) -> ApiResponse[Customer]:
-    """
-    Crea un nuevo cliente. Solo para administradores.
-    """
+    """Create a new customer. For administrators only."""
     customer = await crud_customer.create_customer(
         db=db, customer_in=customer_in, user_id=current_user.id
     )
     return create_api_response(
         data=customer,
         status_code=status.HTTP_201_CREATED,
-        message="Cliente creado con éxito.",
+        message="Customer created successfully.",
     )
 
 
@@ -46,9 +44,7 @@ async def read_customers(
     skip: int = 0,
     limit: int = 100,
 ) -> ApiResponse[list[Customer]]:
-    """
-    Obtiene una lista de clientes.
-    """
+    """Get a list of customers."""
     customers = await crud_customer.get_customers(db, skip=skip, limit=limit)
     return create_api_response(data=customers)
 
@@ -60,12 +56,10 @@ async def read_customer(
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_user_dependency,
 ) -> ApiResponse[Customer]:
-    """
-    Obtiene un cliente por su ID.
-    """
+    """Get a customer by its ID."""
     customer = await crud_customer.get_customer(db, customer_id=customer_id)
     if not customer:
-        raise HTTPException(status_code=404, detail="Cliente no encontrado.")
+        raise HTTPException(status_code=404, detail="Customer not found.")
     return create_api_response(data=customer)
 
 
@@ -77,16 +71,14 @@ async def update_customer(
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_admin_user_dependency,
 ) -> ApiResponse[Customer]:
-    """
-    Actualiza un cliente. Solo para administradores.
-    """
+    """Update a customer. For administrators only."""
     db_customer = await crud_customer.get_customer(db, customer_id=customer_id)
     if not db_customer:
-        raise HTTPException(status_code=404, detail="Cliente no encontrado.")
+        raise HTTPException(status_code=404, detail="Customer not found.")
     customer = await crud_customer.update_customer(
         db=db, db_customer=db_customer, customer_in=customer_in, user_id=current_user.id
     )
-    return create_api_response(data=customer, message="Cliente actualizado con éxito.")
+    return create_api_response(data=customer, message="Customer updated successfully.")
 
 
 @router.delete("/{customer_id}", response_model=ApiResponse[Customer])
@@ -96,10 +88,8 @@ async def delete_customer(
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_admin_user_dependency,
 ) -> ApiResponse[Customer]:
-    """
-    Elimina un cliente. Solo para administradores.
-    """
+    """Delete a customer. For administrators only."""
     customer = await crud_customer.remove_customer(db, customer_id=customer_id)
     if not customer:
-        raise HTTPException(status_code=404, detail="Cliente no encontrado.")
-    return create_api_response(data=customer, message="Cliente eliminado con éxito.")
+        raise HTTPException(status_code=404, detail="Customer not found.")
+    return create_api_response(data=customer, message="Customer deleted successfully.")

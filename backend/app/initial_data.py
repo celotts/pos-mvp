@@ -24,23 +24,23 @@ async def init_db(db: AsyncSession) -> None:
 
     # 1. Crear el rol de superusuario si no existe
     try:
-        logger.info("Creando rol de Administrador inicial...")
+        logger.info("Creating initial Administrator role...")
         admin_role = Role(
             id=SUPER_ADMIN_ROLE_ID,  # Este es el SUPER_ADMIN
             name="ADMIN",
         )
         db.add(admin_role)
         await db.commit()
-        logger.info("Rol de Administrador creado.")
+        logger.info("Administrator role created.")
     except IntegrityError:
         await db.rollback()
-        logger.info("El rol de Administrador ya existe, omitiendo creación.")
+        logger.info("Administrator role already exists, skipping creation.")
 
     # 2. Crear el superusuario si no existe
     # Se asume que get_multi puede filtrar por email.
     users = await crud_user.get_multi(db, limit=1, email=settings.FIRST_SUPERUSER_EMAIL)
     if not users:
-        logger.info("Creando superusuario inicial...")
+        logger.info("Creating initial superuser...")
         user_in = UserCreate(
             email=settings.FIRST_SUPERUSER_EMAIL,
             password=settings.FIRST_SUPERUSER_PASSWORD,
@@ -48,13 +48,13 @@ async def init_db(db: AsyncSession) -> None:
             role_id=SUPER_ADMIN_ROLE_ID,
         )
         await crud_user.create(db=db, obj_in=user_in)
-        logger.info("Superusuario creado.")
+        logger.info("Superuser created.")
     else:
-        logger.info("El superusuario ya existe, omitiendo creación.")
+        logger.info("Superuser already exists, skipping creation.")
 
 
 async def main() -> None:
-    logger.info("Iniciando la inicialización de la base de datos...")
+    logger.info("Starting database initialization...")
     async with async_session_maker() as session:
         await init_db(session)
-    logger.info("Inicialización de la base de datos completada.")
+    logger.info("Database initialization completed.")

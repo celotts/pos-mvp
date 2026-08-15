@@ -19,7 +19,7 @@ current_user_dependency = Depends(get_current_user)
     "/",
     response_model=ApiResponse[Purchase],
     status_code=status.HTTP_201_CREATED,
-    summary="Crear una nueva Compra",
+    summary="Create a new Purchase",
 )
 async def create_purchase(
     *,
@@ -27,17 +27,17 @@ async def create_purchase(
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_user_dependency,
 ) -> Any:
-    """Crea un nuevo registro de compra a un proveedor."""
+    """Creates a new purchase record from a supplier."""
     new_purchase = await purchase_service.create(db=db, obj_in=purchase_in)
     return create_api_response(
         data=new_purchase,
         status_code=status.HTTP_201_CREATED,
-        message="Compra creada con éxito.",
+        message="Purchase created successfully.",
     )
 
 
 @router.get(
-    "/", response_model=ApiResponse[list[Purchase]], summary="Obtener lista de Compras"
+    "/", response_model=ApiResponse[list[Purchase]], summary="Get list of Purchases"
 )
 async def read_purchases(
     db: AsyncSession = db_dependency,
@@ -45,7 +45,7 @@ async def read_purchases(
     limit: int = 100,
     current_user: UserModel = current_user_dependency,
 ) -> Any:
-    """Obtiene una lista de todas las compras."""
+    """Gets a list of all purchases."""
     purchases = await purchase_service.get_all(db, skip=skip, limit=limit)
     return create_api_response(data=purchases)
 
@@ -53,7 +53,7 @@ async def read_purchases(
 @router.get(
     "/{purchase_id}",
     response_model=ApiResponse[Purchase],
-    summary="Obtener una Compra por ID",
+    summary="Get a Purchase by ID",
 )
 async def read_purchase_by_id(
     *,
@@ -61,7 +61,7 @@ async def read_purchase_by_id(
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_user_dependency,
 ) -> Any:
-    """Obtiene los detalles de una compra específica."""
+    """Gets the details of a specific purchase."""
     purchase = await purchase_service.get(db, id=purchase_id)
     return create_api_response(data=purchase)
 
@@ -69,7 +69,7 @@ async def read_purchase_by_id(
 @router.put(
     "/{purchase_id}",
     response_model=ApiResponse[Purchase],
-    summary="Actualizar una Compra",
+    summary="Update a Purchase",
 )
 async def update_purchase(
     *,
@@ -78,19 +78,19 @@ async def update_purchase(
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_user_dependency,
 ) -> Any:
-    """Actualiza los datos de una compra existente."""
+    """Updates the data of an existing purchase."""
     updated_purchase = await purchase_service.update(
         db=db, id=purchase_id, obj_in=purchase_in
     )
     return create_api_response(
-        data=updated_purchase, message="Compra actualizada con éxito."
+        data=updated_purchase, message="Purchase updated successfully."
     )
 
 
 @router.delete(
     "/{purchase_id}",
     response_model=ApiResponse[Purchase],
-    summary="Eliminar una Compra",
+    summary="Delete a Purchase",
 )
 async def delete_purchase(
     *,
@@ -98,8 +98,8 @@ async def delete_purchase(
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_user_dependency,
 ) -> Any:
-    """Elimina un registro de compra."""
+    """Deletes a purchase record."""
     deleted_purchase = await purchase_service.remove(db, id=purchase_id)
     return create_api_response(
-        data=deleted_purchase, message="Compra eliminada con éxito."
+        data=deleted_purchase, message="Purchase deleted successfully."
     )

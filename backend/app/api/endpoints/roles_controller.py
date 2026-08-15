@@ -22,9 +22,7 @@ async def read_roles(
     skip: int = 0,
     limit: int = 100,
 ) -> ApiResponse[list[Role]]:
-    """
-    Obtiene una lista de roles.
-    """
+    """Get a list of roles."""
     roles = await role_service.get_roles(db, skip=skip, limit=limit)
     return create_api_response(data=roles)
 
@@ -36,9 +34,7 @@ async def create_role(
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_admin_user_dependency,
 ) -> ApiResponse[Role]:
-    """
-    Crea un nuevo rol.
-    """
+    """Create a new role."""
     role = await role_service.create_role(db=db, role_in=role_in)
     return create_api_response(data=role, status_code=status.HTTP_201_CREATED)
 
@@ -51,8 +47,19 @@ async def update_role(
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_admin_user_dependency,
 ) -> ApiResponse[Role]:
-    """
-    Actualiza un rol.
-    """
+    """Update a role."""
     role = await role_service.update_role(db=db, role_id=role_id, role_in=role_in)
     return create_api_response(data=role)
+
+
+@router.delete("/{role_id}", response_model=ApiResponse[Role])
+async def delete_role(
+    *,
+    role_id: uuid.UUID,
+    db: AsyncSession = db_dependency,
+    current_user: UserModel = current_admin_user_dependency,
+) -> ApiResponse[Role]:
+    """Delete a role.
+    Protected roles like 'SUPER_ADMIN' or roles in use cannot be deleted."""
+    deleted_role = await role_service.remove_role(db=db, role_id=role_id)
+    return create_api_response(data=deleted_role, message="Role deleted successfully.")

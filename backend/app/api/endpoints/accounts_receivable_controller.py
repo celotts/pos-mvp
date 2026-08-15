@@ -3,7 +3,7 @@ from typing import Any
 
 from api.response_factory import ApiResponse, create_api_response
 from dependencies import get_current_user, get_db
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from models.user import User as UserModel
 from modules.accounts_receivable_service import accounts_receivable_service
 from schemas.accounts_receivable import (
@@ -23,7 +23,7 @@ current_user_dependency = Depends(get_current_user)
     "/",
     response_model=ApiResponse[AccountsReceivable],
     status_code=status.HTTP_201_CREATED,
-    summary="Crear una Cuenta por Cobrar",
+    summary="Create an Account Receivable",
 )
 async def create_account_receivable(
     *,
@@ -31,19 +31,19 @@ async def create_account_receivable(
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_user_dependency,
 ) -> Any:
-    """Crea un nuevo registro de cuenta por cobrar, generalmente asociado a una venta."""
+    """Creates a new accounts receivable record, usually associated with a sale."""
     new_account = await accounts_receivable_service.create(db=db, obj_in=account_in)
     return create_api_response(
         data=new_account,
         status_code=status.HTTP_201_CREATED,
-        message="Cuenta por cobrar creada con éxito.",
+        message="Account receivable created successfully.",
     )
 
 
 @router.get(
     "/",
     response_model=ApiResponse[list[AccountsReceivable]],
-    summary="Obtener lista de Cuentas por Cobrar",
+    summary="Get list of Accounts Receivable",
 )
 async def read_accounts_receivable(
     db: AsyncSession = db_dependency,
@@ -51,7 +51,7 @@ async def read_accounts_receivable(
     limit: int = 100,
     current_user: UserModel = current_user_dependency,
 ) -> Any:
-    """Obtiene una lista de todas las cuentas por cobrar."""
+    """Gets a list of all accounts receivable."""
     accounts = await accounts_receivable_service.get_all(db, skip=skip, limit=limit)
     return create_api_response(data=accounts)
 
@@ -59,7 +59,7 @@ async def read_accounts_receivable(
 @router.get(
     "/{account_id}",
     response_model=ApiResponse[AccountsReceivable],
-    summary="Obtener una Cuenta por Cobrar por ID",
+    summary="Get an Account Receivable by ID",
 )
 async def read_account_receivable_by_id(
     *,
@@ -67,7 +67,7 @@ async def read_account_receivable_by_id(
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_user_dependency,
 ) -> Any:
-    """Obtiene los detalles de una cuenta por cobrar específica."""
+    """Gets the details of a specific account receivable."""
     account = await accounts_receivable_service.get(db, id=account_id)
     return create_api_response(data=account)
 
@@ -75,7 +75,7 @@ async def read_account_receivable_by_id(
 @router.put(
     "/{account_id}",
     response_model=ApiResponse[AccountsReceivable],
-    summary="Actualizar una Cuenta por Cobrar",
+    summary="Update an Account Receivable",
 )
 async def update_account_receivable(
     *,
@@ -84,19 +84,21 @@ async def update_account_receivable(
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_user_dependency,
 ) -> Any:
-    """Actualiza los datos de una cuenta por cobrar (ej. para registrar un pago)."""
+    """Updates the data of an account receivable (e.g., to register a payment)."""
     updated_account = await accounts_receivable_service.update(
         db=db, id=account_id, obj_in=account_in
     )
+    if not updated_account:
+        raise HTTPException(status_code=404, detail="Account receivable not found.")
     return create_api_response(
-        data=updated_account, message="Cuenta por cobrar actualizada con éxito."
+        data=updated_account, message="Account receivable updated successfully."
     )
 
 
 @router.delete(
     "/{account_id}",
     response_model=ApiResponse[AccountsReceivable],
-    summary="Eliminar una Cuenta por Cobrar",
+    summary="Delete an Account Receivable",
 )
 async def delete_account_receivable(
     *,
@@ -104,8 +106,10 @@ async def delete_account_receivable(
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_user_dependency,
 ) -> Any:
-    """Elimina un registro de cuenta por cobrar."""
+    """Deletes an account receivable record."""
     deleted_account = await accounts_receivable_service.remove(db, id=account_id)
+    if not deleted_account:
+        raise HTTPException(status_code=404, detail="Account receivable not found.")
     return create_api_response(
-        data=deleted_account, message="Cuenta por cobrar eliminada con éxito."
+        data=deleted_account, message="Account receivable deleted successfully."
     )

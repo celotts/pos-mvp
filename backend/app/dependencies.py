@@ -40,6 +40,6 @@ async def get_current_user(
         # se considera un fallo de autenticación.
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token inválido: el usuario ya no existe.",
+            detail="Invalid token: user no longer exists.",
         )
     return user

@@ -20,7 +20,7 @@ async def create_country(
     except IntegrityError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Un país con ese nombre o código ISO ya existe.",
+            detail="A country with that name or ISO code already exists.",
         )
 
 
@@ -35,7 +35,7 @@ async def get_country(db: AsyncSession, *, country_id: uuid.UUID) -> Country:
     """Obtiene un país por ID, manejando el caso de no encontrarlo."""
     db_country = await crud_country.get(db=db, id=country_id)
     if not db_country:
-        raise HTTPException(status_code=404, detail="País no encontrado.")
+        raise HTTPException(status_code=404, detail="Country not found.")
     return db_country
 
 

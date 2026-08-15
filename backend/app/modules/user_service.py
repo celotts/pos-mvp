@@ -22,7 +22,7 @@ async def get_user(db: AsyncSession, *, user_id: uuid.UUID) -> User:
     db_user = await crud_user.get(db, id=user_id)
     if not db_user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado."
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found."
         )
     return db_user
 
@@ -36,7 +36,7 @@ async def create_user_with_logic(db: AsyncSession, *, user_in: UserCreate) -> Us
     if existing_users:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Un usuario con este email ya existe.",
+            detail="A user with this email already exists.",
         )
 
     # 2. Verificar si el rol asignado es válido
@@ -44,7 +44,7 @@ async def create_user_with_logic(db: AsyncSession, *, user_in: UserCreate) -> Us
     if not role:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"El rol con ID '{user_in.role_id}' no fue encontrado.",
+            detail=f"Role with ID '{user_in.role_id}' not found.",
         )
 
     # 3. Crear el usuario
@@ -69,12 +69,12 @@ async def update_user(
         if user_in.is_active is False:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="No puedes desactivar tu propia cuenta.",
+                detail="You cannot deactivate your own account.",
             )
         if user_in.role_id and user_in.role_id != db_user.role_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="No puedes cambiar tu propio rol.",
+                detail="You cannot change your own role.",
             )
 
     return await crud_user.update(db=db, db_obj=db_user, obj_in=user_in)
@@ -89,6 +89,6 @@ async def remove_user(db: AsyncSession, *, user_id: uuid.UUID) -> User:
     deleted_user = await crud_user.remove(db=db, id=db_user.id)
     if not deleted_user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado."
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found."
         )
     return deleted_user

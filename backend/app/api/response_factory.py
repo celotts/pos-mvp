@@ -13,7 +13,7 @@ class ApiResponse(BaseModel, Generic[T]):
     success: bool = Field(True, description="Indica si la operación fue exitosa.")
     status_code: int = Field(200, description="Código de estado HTTP.")
     message: str = Field(
-        "Operación exitosa", description="Mensaje descriptivo de la respuesta."
+        "Operation successful", description="Descriptive message of the response."
     )
     data: T | None = Field(None, description="El contenido de la respuesta (payload).")
 
@@ -22,7 +22,7 @@ def create_api_response(
     *,
     data: T | None = None,
     status_code: int = 200,
-    message: str = "Operación exitosa",
+    message: str = "Operation successful",
     success: bool = True,
 ) -> ApiResponse[Any]:
     """Factory para crear respuestas de API estandarizadas."""

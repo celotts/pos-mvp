@@ -19,7 +19,7 @@ current_user_dependency = Depends(get_current_user)
     "/open",
     response_model=ApiResponse[Shift],
     status_code=status.HTTP_201_CREATED,
-    summary="Abrir un nuevo Turno",
+    summary="Open a new Shift",
 )
 async def open_new_shift(
     *,
@@ -27,20 +27,18 @@ async def open_new_shift(
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_user_dependency,
 ) -> Any:
-    """
-    Inicia un nuevo turno para el usuario actual en una terminal específica,
-    registrando el efectivo inicial.
-    """
+    """Starts a new shift for the current user at a specific terminal,
+    registering the initial cash."""
     new_shift = await shift_service.open_shift(
         db=db, shift_in=shift_in, current_user=current_user
     )
-    return create_api_response(data=new_shift, message="Turno abierto con éxito.")
+    return create_api_response(data=new_shift, message="Shift opened successfully.")
 
 
 @router.put(
     "/{shift_id}/close",
     response_model=ApiResponse[Shift],
-    summary="Cerrar un Turno existente",
+    summary="Close an existing Shift",
 )
 async def close_existing_shift(
     *,
@@ -49,10 +47,8 @@ async def close_existing_shift(
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_user_dependency,
 ) -> Any:
-    """
-    Cierra un turno abierto, registrando el efectivo final.
-    """
+    """Closes an open shift, registering the final cash."""
     closed_shift = await shift_service.close_shift(
         db=db, shift_id=shift_id, shift_in=shift_in, current_user=current_user
     )
-    return create_api_response(data=closed_shift, message="Turno cerrado con éxito.")
+    return create_api_response(data=closed_shift, message="Shift closed successfully.")

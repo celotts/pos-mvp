@@ -1,6 +1,7 @@
 import uuid
 from typing import Any
 
+from api.deps_auth import get_current_admin_user
 from api.response_factory import ApiResponse, create_api_response
 from dependencies import get_current_user, get_db
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -13,6 +14,7 @@ router = APIRouter(tags=["Stores"])
 
 db_dependency = Depends(get_db)
 current_user_dependency = Depends(get_current_user)
+current_admin_user_dependency = Depends(get_current_admin_user)
 
 
 @router.get("/", response_model=ApiResponse[list[Store]])
@@ -36,7 +38,7 @@ async def create_store(
     *,
     db: AsyncSession = db_dependency,
     store_in: StoreCreate,
-    current_user: UserModel = current_user_dependency,
+    current_user: UserModel = current_admin_user_dependency,
 ) -> Any:
     """
     Create new store.
@@ -45,7 +47,7 @@ async def create_store(
     return create_api_response(
         data=store,
         status_code=status.HTTP_201_CREATED,
-        message="Tienda creada con éxito.",
+        message="Store created successfully.",
     )
 
 
@@ -70,7 +72,7 @@ async def update_store(
     db: AsyncSession = db_dependency,
     store_id: uuid.UUID,
     store_in: StoreUpdate,
-    current_user: UserModel = current_user_dependency,
+    current_user: UserModel = current_admin_user_dependency,
 ) -> Any:
     """
     Update a store.
@@ -78,7 +80,7 @@ async def update_store(
     store = await store_service.update(db=db, id=store_id, obj_in=store_in)
     if not store:
         raise HTTPException(status_code=404, detail="Store not found")
-    return create_api_response(data=store, message="Tienda actualizada con éxito.")
+    return create_api_response(data=store, message="Store updated successfully.")
 
 
 @router.delete("/{store_id}", response_model=ApiResponse[Store])
@@ -86,7 +88,7 @@ async def delete_store(
     *,
     db: AsyncSession = db_dependency,
     store_id: uuid.UUID,
-    current_user: UserModel = current_user_dependency,
+    current_user: UserModel = current_admin_user_dependency,
 ) -> Any:
     """
     Delete a store.
@@ -94,4 +96,4 @@ async def delete_store(
     store = await store_service.delete(db=db, id=store_id)
     if not store:
         raise HTTPException(status_code=404, detail="Store not found")
-    return create_api_response(data=store, message="Tienda eliminada con éxito.")
+    return create_api_response(data=store, message="Store deleted successfully.")

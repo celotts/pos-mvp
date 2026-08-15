@@ -35,7 +35,7 @@ class SaleService(CRUDService[Sale, SaleCreate, SaleUpdate]):
         if not sale_in.items:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Una venta debe tener al menos un producto.",
+                detail="A sale must have at least one product.",
             )
 
         # 1. Validar items y calcular totales
@@ -44,7 +44,7 @@ class SaleService(CRUDService[Sale, SaleCreate, SaleUpdate]):
             if not product:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Producto con id {item_in.product_id} no encontrado.",
+                    detail=f"Product with id {item_in.product_id} not found.",
                 )
 
             item_total = product.price * Decimal(item_in.quantity)

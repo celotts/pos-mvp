@@ -18,7 +18,7 @@ current_user_dependency = Depends(get_current_user)
     "/",
     response_model=ApiResponse[Sale],
     status_code=status.HTTP_201_CREATED,
-    summary="Registrar una nueva Venta",
+    summary="Register a new Sale",
 )
 async def create_new_sale(
     *,
@@ -26,11 +26,9 @@ async def create_new_sale(
     db: AsyncSession = db_dependency,
     current_user: UserModel = current_user_dependency,
 ) -> Any:
-    """
-    Crea un nuevo registro de venta.
-    - La venta se asocia automáticamente al turno abierto en la terminal especificada.
-    """
+    """Creates a new sale record.
+    - The sale is automatically associated with the open shift on the specified terminal."""
     new_sale = await sale_service.create_sale(
         db=db, sale_in=sale_in, current_user=current_user
     )
-    return create_api_response(data=new_sale, message="Venta registrada con éxito.")
+    return create_api_response(data=new_sale, message="Sale registered successfully.")

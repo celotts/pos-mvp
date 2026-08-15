@@ -61,7 +61,7 @@ class AIService:
             items_desc = ", ".join(
                 [f"{item.quantity}x '{item.product.name}'" for item in sale.items]
             )
-            content = f"Venta realizada el {sale.created_at.strftime('%Y-%m-%d %H:%M')} en la tienda '{sale.store.name}'. El usuario '{sale.user.full_name}' vendió: {items_desc}. Monto total: {sale.total_amount}."
+            content = f"Sale made on {sale.created_at.strftime('%Y-%m-%d %H:%M')} at store '{sale.store.name}'. User '{sale.user.full_name}' sold: {items_desc}. Total amount: {sale.total_amount}."
 
             embedding = await self.get_embedding(content)
             sale_vector = SalesVector(
@@ -91,22 +91,22 @@ class AIService:
         context_items = result.scalars().all()
 
         if not context_items:
-            return "Lo siento, no encontré información relevante en la base de datos para responder a tu pregunta."
+            return "Sorry, I could not find relevant information in the database to answer your question."
 
         context_str = "\n\n".join(context_items)
 
         # 3. Build the prompt for the LLM
         prompt = f"""
-        Eres un asistente de inteligencia de negocio para un sistema de Punto de Venta (POS).
-        Tu tarea es responder a la pregunta del usuario basándote únicamente en el siguiente contexto extraído de la base de datos de ventas.
-        Sé conciso y directo en tu respuesta.
+        You are a business intelligence assistant for a Point of Sale (POS) system.
+        Your task is to answer the user's question based solely on the following context extracted from the sales database.
+        Be concise and direct in your answer.
 
         Contexto:
         ---
         {context_str}
         ---
 
-        Pregunta del usuario: {query}
+        User question: {query}
 
         Respuesta:
         """
@@ -120,9 +120,9 @@ class AIService:
             response.raise_for_status()
             return response.json()["response"].strip()
         except httpx.RequestError:
-            return "Error: No se pudo conectar con el servicio de IA."
+            return "Error: Could not connect to the AI service."
         except httpx.HTTPStatusError:
-            return "Error: El servicio de IA devolvió un error."
+            return "Error: The AI service returned an error."
 
 
 ai_service = AIService()

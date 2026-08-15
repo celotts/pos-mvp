@@ -112,7 +112,7 @@ async def test_create_sale_no_items(
             background_tasks=mock_background_tasks,
         )
     assert exc_info.value.status_code == 400
-    assert "debe tener al menos un producto" in exc_info.value.detail
+    assert "must have at least one product" in exc_info.value.detail
 
 
 async def test_create_sale_product_not_found(
@@ -134,4 +134,4 @@ async def test_create_sale_product_not_found(
             background_tasks=mock_background_tasks,
         )
     assert exc_info.value.status_code == 404
-    assert "no encontrado" in exc_info.value.detail
+    assert "not found" in exc_info.value.detail

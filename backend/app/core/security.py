@@ -28,12 +28,12 @@ def decode_access_token(token: str) -> str:
 
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="No se pudieron validar las credenciales",
+        detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
     expired_token_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="El token ha expirado",
+        detail="Token has expired",
         headers={"WWW-Authenticate": "Bearer"},
     )
 

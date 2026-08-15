@@ -19,7 +19,7 @@ get_current_admin_user_dependency = Depends(get_current_admin_user)
 @router.get(
     "/",
     response_model=ApiResponse[list[User]],
-    summary="Obtener una lista de usuarios",
+    summary="Get a list of users",
 )
 async def read_users(
     db: AsyncSession = get_db_dependency,
@@ -27,7 +27,7 @@ async def read_users(
     skip: int = 0,
     limit: int = 100,
 ) -> ApiResponse[list[User]]:
-    """Obtiene una lista de usuarios."""
+    """Get a list of users."""
     users = await user_service.get_users(db, skip=skip, limit=limit)
     return create_api_response(data=users)
 
@@ -36,7 +36,7 @@ async def read_users(
     "/",
     response_model=ApiResponse[User],
     status_code=status.HTTP_201_CREATED,
-    summary="Crear un nuevo usuario",
+    summary="Create a new user",
 )
 async def create_user(
     *,
@@ -48,21 +48,21 @@ async def create_user(
     return create_api_response(
         data=user,
         status_code=status.HTTP_201_CREATED,
-        message="Usuario creado con éxito.",
+        message="User created successfully.",
     )
 
 
 @router.get(
     "/{user_id}",
     response_model=ApiResponse[User],
-    summary="Obtener un usuario por su ID",
+    summary="Get a user by ID",
 )
 async def read_user_by_id(
     user_id: uuid.UUID,
     db: AsyncSession = get_db_dependency,
     current_user: UserModel = get_current_user_dependency,
 ) -> ApiResponse[User]:
-    """Obtiene un usuario por su ID."""
+    """Get a user by ID."""
     user = await user_service.get_user(db=db, user_id=user_id)
     return create_api_response(data=user)
 
@@ -70,7 +70,7 @@ async def read_user_by_id(
 @router.put(
     "/{user_id}",
     response_model=ApiResponse[User],
-    summary="Actualizar un usuario existente",
+    summary="Update an existing user",
 )
 async def update_user(
     *,
@@ -79,17 +79,17 @@ async def update_user(
     current_user: UserModel = get_current_user_dependency,
     db: AsyncSession = get_db_dependency,
 ) -> ApiResponse[User]:
-    """Actualiza un usuario."""
+    """Update a user."""
     user = await user_service.update_user(
         db=db, user_id=user_id, user_in=user_in, current_user=current_user
     )
-    return create_api_response(data=user, message="Usuario actualizado con éxito.")
+    return create_api_response(data=user, message="User updated successfully.")
 
 
 @router.delete(
     "/{user_id}",
     response_model=ApiResponse[User],
-    summary="Eliminar un usuario",
+    summary="Delete a user",
 )
 async def delete_user(
     *,
@@ -97,6 +97,6 @@ async def delete_user(
     current_user: UserModel = get_current_admin_user_dependency,
     db: AsyncSession = get_db_dependency,
 ) -> ApiResponse[User]:
-    """Elimina un usuario."""
+    """Delete a user."""
     user = await user_service.remove_user(db=db, user_id=user_id)
-    return create_api_response(data=user, message="Usuario eliminado con éxito.")
+    return create_api_response(data=user, message="User deleted successfully.")

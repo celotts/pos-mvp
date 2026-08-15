@@ -1,6 +1,6 @@
 import uuid
 
-from core import crud_cash_account
+from core.crud_cash_account import crud_cash_account
 from fastapi import HTTPException, status
 from models import CashAccount
 from models import User as UserModel
@@ -30,7 +30,7 @@ async def create_cash_account(
     except IntegrityError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Una cuenta con este nombre ya existe.",
+            detail="An account with this name already exists.",
         )
 
 
@@ -39,7 +39,7 @@ async def get_cash_account(db: AsyncSession, *, account_id: uuid.UUID) -> CashAc
     db_account = await crud_cash_account.get(db=db, id=account_id)
     if not db_account:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Cuenta no encontrada."
+            status_code=status.HTTP_404_NOT_FOUND, detail="Account not found."
         )
     return db_account
 

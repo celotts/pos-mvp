@@ -45,7 +45,7 @@ async def create_supplier(
     return create_api_response(
         data=supplier,
         status_code=status.HTTP_201_CREATED,
-        message="Proveedor creado con éxito.",
+        message="Supplier created successfully.",
     )
 
 
@@ -78,9 +78,7 @@ async def update_supplier(
     supplier = await supplier_service.update(db, id=supplier_id, obj_in=supplier_in)
     if not supplier:
         raise HTTPException(status_code=404, detail="Supplier not found")
-    return create_api_response(
-        data=supplier, message="Proveedor actualizado con éxito."
-    )
+    return create_api_response(data=supplier, message="Supplier updated successfully.")
 
 
 @router.delete("/{supplier_id}", response_model=ApiResponse[Supplier])
@@ -96,4 +94,4 @@ async def delete_supplier(
     supplier = await supplier_service.delete(db, id=supplier_id)
     if not supplier:
         raise HTTPException(status_code=404, detail="Supplier not found")
-    return create_api_response(data=supplier, message="Proveedor eliminado con éxito.")
+    return create_api_response(data=supplier, message="Supplier deleted successfully.")
