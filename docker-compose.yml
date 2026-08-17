@@ -9,9 +9,10 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5438:5432" # Cambiado a 5437 para evitar el conflicto
+      - "5439:5432" # Volvemos a un puerto estable después de liberarlo
     volumes:
       - ./script_data/V1__initial_schema.sql:/docker-entrypoint-initdb.d/init.sql
+      - pos_db_data:/var/lib/postgresql/data # Añadir volumen para persistencia de datos
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
@@ -30,28 +31,19 @@ services:
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     working_dir: /app
     ports:
-      - "8002:8000" # Cambiado a 8002 para evitar conflictos de puerto en la máquina local
+      - "8003:8000" # Cambiado a 8003 para evitar otro conflicto de puerto
     volumes:
       - ./backend/app:/app
     extra_hosts:
       - "host.containers.internal:host-gateway"
       - "host.docker.internal:host-gateway"
     environment:
-      - ENVIRONMENT=development
-
       # Conexión con Ollama en el Host (Linux / Podman / Docker)
       - OLLAMA_BASE_URL=http://host.containers.internal:11434
       - LLM_MODEL=llama3.2:latest
       - EMBEDDING_MODEL=nomic-embed-text:latest
-      # Conexión asíncrona con PostgreSQL (asyncpg)
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pos-db:5432/${POSTGRES_DB}
-      # Credenciales para el primer superusuario (FALTABAN AQUÍ)
-      - FIRST_SUPERUSER_EMAIL=${FIRST_SUPERUSER_EMAIL}
-      - FIRST_SUPERUSER_PASSWORD=${FIRST_SUPERUSER_PASSWORD}
-      - FIRST_SUPERUSER_FULL_NAME=${FIRST_SUPERUSER_FULL_NAME}
-      # Seguridad y Bootstrap
-      - SECRET_KEY=${SECRET_KEY}
-      - ACCESS_TOKEN_EXPIRE_SECONDS=${ACCESS_TOKEN_EXPIRE_SECONDS}
+    env_file:
+      - .env
     depends_on:
       pos-db:
         condition: service_healthy
@@ -61,3 +53,7 @@ services:
 networks: # Corregido para usar la red del proyecto
   pos_network:
     driver: bridge
+
+volumes: # Definir el volumen nombrado
+  pos_db_data:
+    driver: local
