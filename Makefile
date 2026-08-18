@@ -7,12 +7,13 @@ else
 	COMPOSE_CMD ?= podman-compose
 endif
 
-.PHONY: help up down start logs ps clean shell lint format test fix-permissions
+.PHONY: help up down rebuild start logs ps clean shell lint format test fix-permissions
 
 help:
 	@echo "Comandos disponibles:"
 	@echo "\n--- Gestión de Contenedores ---"
 	@echo "  make up              - Levanta y reconstruye los contenedores en segundo plano."
+	@echo "  make rebuild         - Fuerza la reconstrucción de las imágenes sin caché y levanta."
 	@echo "  make down            - Detiene contenedores, elimina redes y volúmenes (-v)."
 	@echo "  make start           - Reinicio limpio: detiene, limpia el sistema y levanta todo."
 	@echo "  make logs            - Muestra los logs de los contenedores en tiempo real."
@@ -33,6 +34,10 @@ up:
 down:
 	@echo "Deteniendo contenedores y eliminando volúmenes..."
 	$(COMPOSE_CMD) down -v
+
+rebuild:
+	@echo "Forzando la reconstrucción de las imágenes sin caché y levantando..."
+	$(COMPOSE_CMD) up -d --build --no-cache
 
 start: clean up
 
