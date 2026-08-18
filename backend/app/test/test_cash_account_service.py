@@ -2,13 +2,12 @@ import uuid
 from unittest.mock import AsyncMock
 
 import pytest
-from fastapi import HTTPException
-from sqlalchemy.exc import IntegrityError
-
 from app.models.cash_account import CashAccount, CashAccountType
 from app.models.user import User
 from app.modules import cash_account_service
 from app.schemas.cash_account import CashAccountCreate
+from fastapi import HTTPException
+from sqlalchemy.exc import IntegrityError
 
 pytestmark = pytest.mark.asyncio
 

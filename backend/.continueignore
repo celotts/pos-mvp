@@ -1,4 +1,7 @@
-# --- Python ---
+# Ignore Patterns
+
+## Python
+
 .venv/
 venv/
 env/
@@ -7,7 +10,8 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 
-# --- Spring Boot (Java) ---
+## Spring Boot (Java)
+
 target/
 .gradle/
 build/
@@ -16,7 +20,8 @@ build/
 .project
 *.class
 
-# --- React / Frontend ---
+## React / Frontend
+
 node_modules/
 dist/
 build/
@@ -24,7 +29,8 @@ build/
 .expo/
 *.log
 
-# --- VS Code e IDEs ---
+## VS Code e IDEs
+
 .vscode/
 .idea/
 *.suo
@@ -32,7 +38,8 @@ build/
 *.njsproj
 *.sln
 
-# --- Archivos de Sistema de Mac y otros ---
+## System Files (Mac and others)
+
 .DS_Store
 .git/
 .env
