@@ -1,7 +1,9 @@
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from collections.abc import AsyncGenerator
+
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
-from core.config import settings
+from .config import settings
 
 # Crea el motor de base de datos asíncrono utilizando la URL de tu configuración.
 # pool_pre_ping=True asegura que la conexión esté viva antes de usarla.
@@ -14,3 +16,9 @@ async_session_maker = async_sessionmaker(engine, autocommit=False, autoflush=Fal
 
 class Base(DeclarativeBase):
     pass
+
+
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """Dependency to get a database session."""
+    async with async_session_maker() as session:
+        yield session

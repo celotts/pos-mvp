@@ -1,0 +1,47 @@
+# Ignore Patterns
+
+## Python
+
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+
+## Spring Boot (Java)
+
+target/
+.gradle/
+build/
+.settings/
+.classpath
+.project
+*.class
+
+## React / Frontend
+
+node_modules/
+dist/
+build/
+.next/
+.expo/
+*.log
+
+## VS Code e IDEs
+
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+## System Files (Mac and others)
+
+.DS_Store
+.git/
+.env
+.env.local
+*.md
