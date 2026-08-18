@@ -1,3 +1,4 @@
+# Importaciones locales de la aplicación, ahora relativas y agrupadas
 from api.endpoints import (
     accounts_payable_controller,
     accounts_receivable_controller,
