@@ -1,11 +1,14 @@
 import uuid
+from functools import lru_cache
 
+from core.config import settings
 from core.crud_user import crud_user
 from core.db import async_session_maker
 from core.security import decode_access_token
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from models.user import User
+from modules.llm_service import LLMAnalysisService
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # Define el esquema de autenticación.
@@ -43,3 +46,15 @@ async def get_current_user(
             detail="Invalid token: user no longer exists.",
         )
     return user
+
+
+@lru_cache
+def get_llm_service() -> LLMAnalysisService:
+    """
+    Crea y devuelve una instancia singleton del servicio de análisis de LLM.
+    Utiliza la configuración de .env y provee un fallback.
+    """
+    return LLMAnalysisService(
+        ollama_base_url=settings.OLLAMA_BASE_URL,
+        model_name=settings.LLM_MODEL or "llama3",
+    )

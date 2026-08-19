@@ -1,60 +1,45 @@
 import logging
-import uuid
+import os
 
-from core import (
-    base,  # noqa: F401 - Importa todos los modelos para que Base los reconozca
-)
-from core.config import settings
-from core.crud_user import crud_user
-from core.db import async_session_maker
-from models.role import Role
-from schemas.user import UserCreate
-from sqlalchemy.exc import IntegrityError
+import aiofiles
 from sqlalchemy.ext.asyncio import AsyncSession
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# ID del rol SUPER_ADMIN definido en V1__initial_schema.sql
-SUPER_ADMIN_ROLE_ID = uuid.UUID("00000000-0000-0000-0000-000000000002")
+logger = logging.getLogger("initial_data")
 
 
-async def init_db(db: AsyncSession) -> None:
-    # Esta función es llamada al iniciar la aplicación para crear el primer superusuario
+async def init_db(db: AsyncSession):
+    """
+    Inicializa la base de datos ejecutando scripts SQL desde el directorio /script_data.
+    """
+    logger.info("Iniciando inicialización de la base de datos...")
+    script_dir = "/script_data"
 
-    # 1. Crear el rol de superusuario si no existe
+    if not os.path.isdir(script_dir):
+        logger.warning(
+            f"Directorio de scripts no encontrado en {script_dir}, omitiendo."
+        )
+        return
+
+    scripts = sorted([f for f in os.listdir(script_dir) if f.endswith(".sql")])
+
+    # Para ejecutar scripts DDL con múltiples sentencias, debemos evitar el
+    # mecanismo de "prepared statements" de SQLAlchemy/asyncpg.
+    # La forma correcta es obtener la conexión "raw" de asyncpg y usar su
+    # método `execute`, que sí maneja scripts completos.
     try:
-        logger.info("Creating initial Administrator role...")
-        admin_role = Role(
-            id=SUPER_ADMIN_ROLE_ID,  # Este es el SUPER_ADMIN
-            name="ADMIN",
-        )
-        db.add(admin_role)
-        await db.commit()
-        logger.info("Administrator role created.")
-    except IntegrityError:
-        await db.rollback()
-        logger.info("Administrator role already exists, skipping creation.")
+        connection = await db.connection()
+        raw_dbapi_connection = await connection.get_raw_connection()
+        asyncpg_connection = raw_dbapi_connection.driver_connection
 
-    # 2. Crear el superusuario si no existe
-    # Se asume que get_multi puede filtrar por email.
-    users = await crud_user.get_multi(db, limit=1, email=settings.FIRST_SUPERUSER_EMAIL)
-    if not users:
-        logger.info("Creating initial superuser...")
-        user_in = UserCreate(
-            email=settings.FIRST_SUPERUSER_EMAIL,
-            password=settings.FIRST_SUPERUSER_PASSWORD,
-            full_name=settings.FIRST_SUPERUSER_FULL_NAME,
-            role_id=SUPER_ADMIN_ROLE_ID,
-        )
-        await crud_user.create(db=db, obj_in=user_in)
-        logger.info("Superuser created.")
-    else:
-        logger.info("Superuser already exists, skipping creation.")
+        for script_name in scripts:
+            script_path = os.path.join(script_dir, script_name)
+            logger.info(f"Ejecutando script: {script_name}")
+            async with aiofiles.open(script_path, "r", encoding="utf-8") as f:
+                script_content = await f.read()
+                await asyncpg_connection.execute(script_content)
 
+    except Exception as e:
+        logger.error(f"Error durante la inicialización de la base de datos: {e}")
+        raise
 
-async def main() -> None:
-    logger.info("Starting database initialization...")
-    async with async_session_maker() as session:
-        await init_db(session)
-    logger.info("Database initialization completed.")
+    logger.info("Inicialización de la base de datos completada.")

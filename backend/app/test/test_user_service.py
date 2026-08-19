@@ -11,9 +11,6 @@ from fastapi import HTTPException
 # Marca todas las pruebas en este archivo para que se ejecuten con asyncio
 pytestmark = pytest.mark.asyncio
 
-# Marca todas las pruebas en este archivo para que se ejecuten con asyncio
-pytestmark = pytest.mark.asyncio
-
 
 @pytest.fixture
 def mock_db() -> AsyncMock:

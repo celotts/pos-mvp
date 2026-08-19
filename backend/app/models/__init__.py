@@ -1,25 +1,46 @@
-from .accounts_payable import AccountsPayable as AccountsPayable
-from .accounts_receivable import AccountsReceivable as AccountsReceivable
-from .cash_account import CashAccount as CashAccount
-from .cash_account import CashAccountType as CashAccountType
-from .cash_transaction import CashTransaction as CashTransaction
-from .cash_transaction import CashTransactionType as CashTransactionType
-from .country import Country as Country
-from .customer import Customer as Customer
-from .municipality import Municipality as Municipality
-from .pos_terminal import PosTerminal as PosTerminal
-from .product import Product as Product
-from .purchase import Purchase as Purchase
-from .purchase import PurchaseItem as PurchaseItem
-from .role import Role as Role
-from .sale import Sale as Sale
-from .sale import SaleItem as SaleItem
-from .sales_vector import SalesVector as SalesVector
-from .shift import Shift as Shift
-from .state_province import StateProvince as StateProvince
-from .store import Store as Store
-from .supplier import Supplier as Supplier
-from .user import User as User
+# This file is used to ensure that all models are imported and registered with
+# SQLAlchemy's declarative base before any of them are used.
 
-# Este archivo asegura que todos los modelos sean conocidos por SQLAlchemy
-# cuando se importa el paquete 'models'.
+__all__ = [
+    "AccountsPayable",
+    "AccountsReceivable",
+    "CashAccount",
+    "CashTransaction",
+    "Country",
+    "Customer",
+    "Municipality",
+    "PosTerminal",
+    "Product",
+    "Purchase",
+    "PurchaseItem",
+    "Role",
+    "Sale",
+    "SaleItem",
+    "SalesVector",
+    "Shift",
+    "Specialty",
+    "StateProvince",
+    "Store",
+    "Supplier",
+    "User",
+]
+
+from .accounts_payable import AccountsPayable
+from .accounts_receivable import AccountsReceivable
+from .cash_account import CashAccount
+from .cash_transaction import CashTransaction
+from .country import Country
+from .customer import Customer
+from .municipality import Municipality
+from .pos_terminal import PosTerminal
+from .product import Product
+from .purchase import Purchase, PurchaseItem
+from .role import Role
+from .sale import Sale, SaleItem
+from .sales_vector import SalesVector
+from .shift import Shift
+from .specialty import Specialty
+from .state_province import StateProvince
+from .store import Store
+from .supplier import Supplier
+from .user import User
