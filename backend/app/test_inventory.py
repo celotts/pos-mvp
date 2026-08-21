@@ -3,7 +3,7 @@ from httpx import AsyncClient
 
 from app.dependencies import get_llm_service
 from app.main import app
-from app.modules.llm_service import LLMAnalysisService
+from app.modules.llm_service import AbstractLLMService
 from app.schemas.inventory import PurchaseSuggestionsAnalysis
 
 # Datos de análisis simulados que devolvería el servicio de inventario
@@ -35,8 +35,8 @@ async def test_get_purchase_suggestions_success_with_ai_summary(
     """
 
     # Creamos un mock del servicio de LLM que devuelve un resumen exitoso
-    class MockLLMService(LLMAnalysisService):
-        async def generate_executive_summary(self, structured_data):
+    class MockLLMService(AbstractLLMService):
+        async def generate_executive_summary(self, structured_data) -> str:
             return "Resumen ejecutivo generado por el mock."
 
     # Sobrescribimos la dependencia en la app para que use nuestro mock
@@ -65,8 +65,8 @@ async def test_get_purchase_suggestions_graceful_degradation_no_ai(
     """
 
     # Mock del servicio de LLM que simula una falla devolviendo None
-    class MockLLMServiceFails(LLMAnalysisService):
-        async def generate_executive_summary(self, structured_data):
+    class MockLLMServiceFails(AbstractLLMService):
+        async def generate_executive_summary(self, structured_data) -> None:
             return None
 
     app.dependency_overrides[get_llm_service] = MockLLMServiceFails

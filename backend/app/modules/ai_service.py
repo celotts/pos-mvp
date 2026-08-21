@@ -1,3 +1,5 @@
+import uuid
+
 import httpx
 from core.config import settings
 from core.db import async_session_maker
@@ -33,7 +35,7 @@ class AIService:
             )
             raise
 
-    async def create_and_store_sale_embedding(self, sale_id: str) -> None:
+    async def create_and_store_sale_embedding(self, sale_id: uuid.UUID) -> None:
         """
         Generates and stores an embedding for a given sale.
         This is designed to be called as a background task after a sale is created.

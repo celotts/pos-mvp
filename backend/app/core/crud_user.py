@@ -16,7 +16,11 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         self.default_loads = [selectinload(self.model.role)]
 
     async def get_by_email(self, db: AsyncSession, *, email: str) -> User | None:
-        result = await db.execute(select(self.model).filter(self.model.email == email))
+        query = select(self.model).filter(self.model.email == email)
+        if self.default_loads:
+            query = query.options(*self.default_loads)
+
+        result = await db.execute(query)
         return result.scalars().first()
 
     async def authenticate(
@@ -49,10 +53,12 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         else:
             update_data = obj_in.model_dump(exclude_unset=True)
 
-        if update_data.get("password"):
-            hashed_password = get_password_hash(update_data["password"])
+        # Si se proporciona una contraseña, la hasheamos.
+        if password := update_data.get("password"):
+            update_data["password"] = get_password_hash(password)
+        # Si la contraseña está en los datos pero está vacía/nula, la eliminamos para no sobreescribir.
+        elif "password" in update_data:
             del update_data["password"]
-            update_data["password"] = hashed_password
 
         return await super().update(db, db_obj=db_obj, obj_in=update_data)
 
@@ -67,6 +73,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         query = select(self.model)
         if email:
             query = query.filter(self.model.email == email)
+        query = query.options(*self.default_loads)
         query = query.offset(skip).limit(limit)
         result = await db.execute(query)
         return list(result.scalars().all())

@@ -23,6 +23,13 @@ class UserLogin(BaseModel):
     password: SecretStr
 
 
+class UserLoginRequest(BaseModel):
+    """Schema for user login via JSON request."""
+
+    username: EmailStr
+    password: SecretStr
+
+
 class UserCreate(UserBootstrapIn):
     """Esquema para crear un usuario con un rol específico."""
 
@@ -32,6 +39,7 @@ class UserCreate(UserBootstrapIn):
 class UserUpdate(UserBase):
     password: SecretStr | None = None
     role_id: uuid.UUID | None = None
+    is_active: bool | None = None
 
 
 class UserInDBBase(UserBase):

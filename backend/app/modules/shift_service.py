@@ -36,9 +36,9 @@ async def open_shift(
     shift_to_create = Shift(
         user_id=current_user.id,
         pos_terminal_id=shift_in.pos_terminal_id,
+        store_id=terminal.store_id,  # Asignar la tienda desde la terminal
         starting_cash=shift_in.starting_cash,
         status=ShiftStatus.OPEN,
-        created_by=current_user.id,
     )
     db.add(shift_to_create)
     await db.commit()
@@ -74,7 +74,6 @@ async def close_shift(
     db_shift.ending_cash = shift_in.ending_cash
     db_shift.end_time = datetime.now(timezone.utc)
     db_shift.status = ShiftStatus.CLOSED
-    db_shift.updated_by = current_user.id
     await db.commit()
     await db.refresh(db_shift)
     return db_shift

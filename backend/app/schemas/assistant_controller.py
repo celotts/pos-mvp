@@ -5,7 +5,7 @@ from dependencies import get_current_user, get_db
 from fastapi import APIRouter, Depends
 from models.user import User as UserModel
 from modules.ai_service import ai_service
-from schemas.assistant import ChatQuery, ChatResponseData
+from schemas.assistant import ChatQuery, ChatResponseData  # Import new schemas
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/assistant", tags=["AI Assistant"])
@@ -16,7 +16,7 @@ current_user_dependency = Depends(get_current_user)
 
 @router.post(
     "/chat",
-    response_model=ApiResponse[ChatResponseData],
+    response_model=ApiResponse[ChatResponseData],  # Specify the response model
     summary="Interact with the Business Intelligence AI Assistant",
     description="""
     Send a question in natural language to get insights about sales data.

@@ -7,7 +7,7 @@ else
 	COMPOSE_CMD ?= podman-compose
 endif
 
-.PHONY: help up down start logs ps clean shell lint format test fix-permissions
+.PHONY: help up down start init clean logs ps shell lint format test fix-permissions pull-models
 
 help:
 	@echo "Comandos disponibles:"
@@ -15,14 +15,16 @@ help:
 	@echo "  make up              - Levanta y reconstruye los contenedores en segundo plano."
 	@echo "  make down            - Detiene contenedores, elimina redes y volúmenes (-v)."
 	@echo "  make start           - Reinicio limpio: detiene, limpia el sistema y levanta todo."
+	@echo "  make init            - Arranque total: levanta contenedores y descarga modelos de IA."
 	@echo "  make logs            - Muestra los logs de los contenedores en tiempo real."
 	@echo "  make ps              - Lista el estado actual de los contenedores."
 	@echo "  make clean           - Detiene todo y limpia el sistema de artefactos (contenedores, imágenes, etc.)."
-	@echo "\n--- Desarrollo y Utilidades ---"
+	@echo "\n--- Desarrollo, Utilidades e IA ---"
+	@echo "  make pull-models     - Descarga los modelos de IA (LLM y embedding) de Ollama definidos en el .env."
 	@echo "  make shell           - Inicia un shell interactivo en el contenedor de la API."
 	@echo "  make lint            - Ejecuta el linter (flake8) sobre el código."
 	@echo "  make format          - Formatea el código con black y isort."
-	@echo "  make test            - Ejecuta las pruebas (pendiente de implementación)."
+	@echo "  make test            - Ejecuta las pruebas con pytest."
 	@echo "  make fix-permissions - Corrige permisos de archivos bloqueados por Podman/Docker."
 	@echo "\nUsando comando de compose: $(COMPOSE_CMD)"
 
@@ -39,9 +41,16 @@ down:
 
 start: clean up
 
+init: up
+	@echo "Esperando a que los servicios se estabilicen (5 segundos)..."
+	@sleep 5
+	@$(MAKE) pull-models
+	@echo "¡Entorno de POS con IA inicializado correctamente!"
+
 logs:
 	@echo "Mostrando los logs de los contenedores..."
-	$(COMPOSE_CMD) logs -f
+	@# Especificamos los servicios explícitamente para evitar un error en podman-compose.
+	$(COMPOSE_CMD) logs -f pos-db pos-api ollama
 
 ps:
 	@echo "Listando los contenedores..."
@@ -58,6 +67,14 @@ clean: down
 		podman system prune -af; \
 	fi
 
+pull-models:
+	@echo "Verificando el estado del servicio Ollama..."
+	@$(COMPOSE_CMD) ps ollama | grep -q "Up" || (echo "Error: El contenedor 'ollama' no está corriendo. Ejecuta 'make up' primero." && exit 1)
+	@echo "Descargando modelos de IA configurados en el .env..."
+	@$(COMPOSE_CMD) exec ollama sh -c "echo 'Pulling LLM model: \$$LLM_MODEL...' && ollama pull \$$LLM_MODEL"
+	@$(COMPOSE_CMD) exec ollama sh -c "echo 'Pulling embedding model: \$$EMBEDDING_MODEL...' && ollama pull \$$EMBEDDING_MODEL"
+	@echo "¡Modelos de IA descargados y listos para operar!"
+
 shell:
 	@echo "Iniciando shell en el contenedor pos-api..."
 	$(COMPOSE_CMD) exec pos-api /bin/sh
@@ -68,7 +85,7 @@ lint:
 
 format:
 	@echo "Formateando el código con black y isort..."
-	$(COMPOSE_CMD) exec pos-api black /app
+	$(COMPOSE_Cmd) exec pos-api black /app
 	$(COMPOSE_CMD) exec pos-api isort /app
 
 test:

@@ -31,9 +31,9 @@ async def create_user_with_logic(db: AsyncSession, *, user_in: UserCreate) -> Us
     """
     Crea un nuevo usuario con validaciones de negocio.
     """
-    # 1. Verificar si el email ya existe
-    existing_users = await crud_user.get_multi(db, limit=1, email=user_in.email)
-    if existing_users:
+    # 1. Verificar si el email ya existe usando el método más específico y eficiente.
+    existing_user = await crud_user.get_by_email(db, email=user_in.email)
+    if existing_user:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="A user with this email already exists.",

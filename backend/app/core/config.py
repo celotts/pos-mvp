@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     FIRST_SUPERUSER_FULL_NAME: str
 
     # IA Settings (made optional to allow tests to run without them)
+    # LLM Provider to use ('ollama', 'stub', etc.)
+    LLM_PROVIDER: str = "ollama"
+
     OLLAMA_BASE_URL: str | None = None
     LLM_MODEL: str | None = None
     EMBEDDING_MODEL: str | None = None
@@ -42,6 +45,9 @@ class Settings(BaseSettings):
     # Clave secreta y tiempo de expiración del token en segundos
     SECRET_KEY: str
     ACCESS_TOKEN_EXPIRE_SECONDS: int = 90000  # 25 horas por defecto
+
+    # System roles that cannot be modified or deleted.
+    PROTECTED_ROLES: set[str] = {"SUPER_ADMIN", "ADMIN"}
 
 
 try:

@@ -1,45 +1,95 @@
 import logging
-import os
 
-import aiofiles
+from core.config import settings
+from core.crud_role import crud_role
+from core.crud_user import crud_user
+from core.db import Base, async_session_maker, engine
+
+# Import all models so that Base knows about them.
+# This is a crucial step to ensure that SQLAlchemy's metadata is populated
+# before `Base.metadata.create_all` is called.
+from schemas.role import RoleCreate
+from schemas.user import UserCreate
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-logger = logging.getLogger("initial_data")
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# --- Definiciones de Datos Iniciales ---
+INITIAL_ROLES = [
+    {
+        "name": "SUPER_ADMIN",
+        "description": "Super administrador con todos los permisos.",
+    },
+    {"name": "ADMIN", "description": "Administrador con la mayoría de los permisos."},
+]
 
 
-async def init_db(db: AsyncSession):
-    """
-    Inicializa la base de datos ejecutando scripts SQL desde el directorio /script_data.
-    """
-    logger.info("Iniciando inicialización de la base de datos...")
-    script_dir = "/script_data"
+async def _create_initial_roles(db: AsyncSession):
+    """Crea los roles fundamentales si no existen."""
+    logger.info("Verificando y creando roles iniciales...")
+    for role_data in INITIAL_ROLES:
+        role = await crud_role.get_by_name(db, name=role_data["name"])
+        if not role:
+            role_in = RoleCreate(**role_data)
+            await crud_role.create(db, obj_in=role_in)
+            logger.info(f"Rol '{role_data['name']}' creado.")
 
-    if not os.path.isdir(script_dir):
-        logger.warning(
-            f"Directorio de scripts no encontrado en {script_dir}, omitiendo."
+
+async def _create_initial_superuser(db: AsyncSession):
+    """Crea el superusuario inicial si no existe."""
+    logger.info("Verificando y creando superusuario inicial...")
+    superuser_email = settings.FIRST_SUPERUSER_EMAIL
+    user = await crud_user.get_by_email(db, email=superuser_email)
+
+    if not user:
+        super_admin_role = await crud_role.get_by_name(db, name="SUPER_ADMIN")
+        if not super_admin_role:
+            logger.error(
+                "Rol 'SUPER_ADMIN' no encontrado. No se puede crear el superusuario."
+            )
+            return
+
+        user_in = UserCreate(
+            email=superuser_email,
+            password=settings.FIRST_SUPERUSER_PASSWORD,
+            full_name=settings.FIRST_SUPERUSER_FULL_NAME,
+            role_id=super_admin_role.id,
         )
-        return
+        await crud_user.create(db, obj_in=user_in)
+        logger.info(
+            f"Superusuario '{settings.FIRST_SUPERUSER_FULL_NAME}' creado exitosamente."
+        )
 
-    scripts = sorted([f for f in os.listdir(script_dir) if f.endswith(".sql")])
 
-    # Para ejecutar scripts DDL con múltiples sentencias, debemos evitar el
-    # mecanismo de "prepared statements" de SQLAlchemy/asyncpg.
-    # La forma correcta es obtener la conexión "raw" de asyncpg y usar su
-    # método `execute`, que sí maneja scripts completos.
+async def init_db():
+    """
+    Initializes the database using SQLAlchemy's metadata to create all tables
+    based on the defined models. This is the most robust and maintainable approach.
+    """
     try:
-        connection = await db.connection()
-        raw_dbapi_connection = await connection.get_raw_connection()
-        asyncpg_connection = raw_dbapi_connection.driver_connection
+        async with engine.begin() as conn:
+            # Extensions and custom ENUM types must be handled carefully.
+            # SQLAlchemy's `create_all` will create ENUMs if defined correctly in models.
+            logger.info("Creating extensions...")
+            await conn.execute(text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp";'))
+            await conn.execute(text('CREATE EXTENSION IF NOT EXISTS "vector";'))
 
-        for script_name in scripts:
-            script_path = os.path.join(script_dir, script_name)
-            logger.info(f"Ejecutando script: {script_name}")
-            async with aiofiles.open(script_path, "r", encoding="utf-8") as f:
-                script_content = await f.read()
-                await asyncpg_connection.execute(script_content)
+            logger.info("Creating database schema from models...")
+            # Use run_sync to execute the synchronous `create_all` method.
+            # This will create all tables, indexes, and ENUM types defined in the models.
+            await conn.run_sync(Base.metadata.create_all)
+            logger.info("Database schema created successfully.")
 
     except Exception as e:
-        logger.error(f"Error durante la inicialización de la base de datos: {e}")
+        logger.critical(
+            f"Error durante la inicialización del esquema: {e}", exc_info=True
+        )
         raise
 
-    logger.info("Inicialización de la base de datos completada.")
+    logger.info("Starting data seeding process...")
+    async with async_session_maker() as db:
+        await _create_initial_roles(db)
+        await _create_initial_superuser(db)
+    logger.info("Data seeding process finished.")

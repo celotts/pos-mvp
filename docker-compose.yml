@@ -30,22 +30,45 @@ services:
       - "8003:8000" # Cambiado a 8003 para evitar otro conflicto de puerto
     volumes:
       - ./backend/app:/app
-      - ./script_data:/script_data # Monta los scripts de BD para que la app los vea
-    extra_hosts:
-      - "host.containers.internal:host-gateway"
-      - "host.docker.internal:host-gateway"
-    environment:
-      # Conexión con Ollama en el Host (Linux / Podman / Docker)
-      - OLLAMA_BASE_URL=http://host.containers.internal:11434
-      - LLM_MODEL=llama3.2:latest
-      - EMBEDDING_MODEL=nomic-embed-text:latest
     env_file:
       - .env
+    environment:
+      # Sobrescribe la URL de Ollama para que apunte al servicio 'ollama' dentro de la red de Docker.
+      - OLLAMA_BASE_URL=http://ollama:11434
+    # Solución para problemas de resolución de DNS dentro del contenedor.
+    # Si el contenedor no puede descargar paquetes (ej. NameResolutionError),
+    # esto fuerza el uso de los DNS públicos de Google.
+    dns:
+      - 8.8.8.8
     depends_on:
       pos-db:
         condition: service_healthy
+      ollama: # La API depende de que Ollama esté disponible
+        condition: service_started
     networks: # Corregido para usar la red del proyecto
       - pos_network
+
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    # Añadimos el env_file para que el contenedor conozca los nombres de los modelos
+    # que se deben descargar con 'make pull-models'.
+    env_file:
+      - .env
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - pos_network
+    # Si tienes una GPU NVIDIA, descomenta las siguientes líneas para una gran mejora de rendimiento.
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
 
 networks: # Corregido para usar la red del proyecto
   pos_network:
@@ -53,4 +76,6 @@ networks: # Corregido para usar la red del proyecto
 
 volumes: # Definir el volumen nombrado
   pos_db_data:
+    driver: local
+  ollama_data: # Volumen para persistir los modelos de Ollama descargados
     driver: local
