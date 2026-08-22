@@ -1,20 +1,23 @@
 from functools import lru_cache
 from typing import Annotated
 
-from core.config import settings
 from core.crud_user import crud_user
 from core.db import get_db
 from core.security import decode_access_token
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from models.user import User
+from modules.inventory_analisis_service import InventoryAnalysisService
 from modules.llm_service import (
     AbstractLLMService,
+    OllamaService,
     llm_service_factory,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/login/access-token")
+
+ollama_service = llm_service_factory()
 
 
 async def get_current_user(
@@ -45,12 +48,26 @@ async def get_current_user(
 def get_llm_service() -> AbstractLLMService:
     """
     Dependencia de FastAPI que proporciona una instancia del servicio LLM.
-
     Utiliza un factory para decidir qué agente de IA instanciar según la configuración
     del entorno (settings.LLM_PROVIDER). `lru_cache` asegura que la factory
     solo se ejecute una vez, creando un singleton del servicio para la aplicación.
     """
-    return llm_service_factory(provider=settings.LLM_PROVIDER, settings=settings)
+    ollama_base_url = "http://localhost:8080"  # Ajusta la URL según tu configuración
+    model_name = "ollama-model"  # Ajusta el nombre del modelo según tu configuración
+    return OllamaService(ollama_base_url, model_name)
 
 
 LLMServiceDep = Annotated[AbstractLLMService, Depends(get_llm_service)]
+
+
+def get_inventory_analysis_service(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    llm_service: LLMServiceDep,
+) -> InventoryAnalysisService:
+    """Construye el servicio de análisis con DB y LLM ya resueltos."""
+    return InventoryAnalysisService(llm_service=llm_service, db=db)
+
+
+InventoryAnalysisServiceDep = Annotated[
+    InventoryAnalysisService, Depends(get_inventory_analysis_service)
+]

@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 
 class PurchaseSuggestionItem(BaseModel):
-    """Representa un único producto dentro de las sugerencias de compra."""
+    model_config = {"from_attributes": True}
 
     product_id: uuid.UUID
     product_name: str
@@ -12,9 +12,6 @@ class PurchaseSuggestionItem(BaseModel):
     classification: str
     days_of_stock_left: float | None
     total_quantity_sold_last_30_days: int
-
-    class Config:
-        from_attributes = True
 
 
 class PurchaseSuggestionsAnalysis(BaseModel):

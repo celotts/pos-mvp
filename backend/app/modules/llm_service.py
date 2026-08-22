@@ -83,3 +83,10 @@ class OllamaService(AbstractLLMService):
         except (httpx.RequestError, httpx.HTTPStatusError) as e:
             logger.error(f"Error de comunicación con Ollama en {self.base_url}: {e}")
             logger.error(f"Error al decodificar la respuesta JSON de Ollama: {e}")
+
+
+def llm_service_factory() -> OllamaService:
+    """Factoría para crear instancias del servicio Ollama."""
+    ollama_base_url = "http://localhost:8080"  # Ajusta la URL según tu configuración
+    model_name = "ollama-model"  # Ajusta el nombre del modelo según tu configuración
+    return OllamaService(ollama_base_url, model_name)

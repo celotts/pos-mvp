@@ -1,11 +1,6 @@
-from typing import Annotated
-
-from dependencies import LLMServiceDep, get_db
-from fastapi import APIRouter, Depends
+from dependencies import InventoryAnalysisServiceDep
+from fastapi import APIRouter
 from schemas.inventory import PurchaseSuggestionsResponse
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from backend.app.modules.inventory_analisis_service import InventoryAnalysisService
 
 router = APIRouter()
 
@@ -25,9 +20,6 @@ router = APIRouter()
     """,
 )
 async def get_purchase_suggestions(
-    db: Annotated[AsyncSession, Depends(get_db)],
-    inventory_service: Annotated[InventoryAnalysisService, Depends()],
-    llm_service: LLMServiceDep,
+    inventory_service: InventoryAnalysisServiceDep,
 ):
-    suggestions = await inventory_service.get_purchase_suggestions(db, llm_service)
-    return suggestions
+    return await inventory_service.get_purchase_suggestions()

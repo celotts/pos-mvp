@@ -1,6 +1,5 @@
 from contextlib import asynccontextmanager
 
-# Importación de todos los controladores de endpoints
 from api.endpoints import (
     accounts_payable_controller,
     accounts_receivable_controller,
@@ -23,8 +22,6 @@ from api.endpoints import (
     supplier_controller,
     users_controller,
 )
-
-# Importaciones de FastAPI y de inicialización
 from fastapi import APIRouter, FastAPI
 from initial_data import init_db
 
@@ -49,13 +46,11 @@ app = FastAPI(
 
 # Router principal con prefijo para versionado de la API
 api_router = APIRouter(prefix="/api/v1")
-
 # --- Inclusión de todos los routers ---
 # Autenticación y Usuarios
 api_router.include_router(login_controller.router, tags=["Bootstrap & Auth"])
 api_router.include_router(users_controller.router, prefix="/users", tags=["Users"])
 api_router.include_router(roles_controller.router, prefix="/roles", tags=["Roles"])
-
 # Entidades Principales (Productos, Clientes, etc.)
 api_router.include_router(
     product_controller.router, prefix="/products", tags=["Products"]
@@ -67,23 +62,19 @@ api_router.include_router(
     supplier_controller.router, prefix="/suppliers", tags=["Suppliers"]
 )
 api_router.include_router(store_controller.router, prefix="/stores", tags=["Stores"])
-
 # Operaciones del Punto de Venta (POS)
 api_router.include_router(
     pos_terminal_controller.router, prefix="/terminals", tags=["POS"]
 )
 api_router.include_router(shift_controller.router, prefix="/shifts", tags=["POS"])
 api_router.include_router(sale_controller.router, prefix="/sales", tags=["POS"])
-
 # Compras e Inventario
 api_router.include_router(
     purchase_controller.router, prefix="/purchases", tags=["Purchases"]
 )
 api_router.include_router(inventory.router, prefix="/inventory", tags=["Inventory"])
-
 # Asistente de IA
 api_router.include_router(assistant_controller.router)  # Ya tiene prefijo y tag
-
 # Localización Geográfica
 api_router.include_router(
     countries_controller.router, prefix="/countries", tags=["Locations"]
@@ -94,7 +85,6 @@ api_router.include_router(
 api_router.include_router(
     municipality_controller.router, prefix="/municipalities", tags=["Locations"]
 )
-
 # Contabilidad
 api_router.include_router(
     cash_account_controller.router, prefix="/cash-accounts", tags=["Accounting"]
@@ -107,10 +97,8 @@ api_router.include_router(
     prefix="/accounts-receivable",
     tags=["Accounting"],
 )
-
 # Otros
 api_router.include_router(
     specialties_controller.router, prefix="/specialties", tags=["Specialties"]
 )
-
 app.include_router(api_router)
