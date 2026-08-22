@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from core.db import Base
 from pgvector.sqlalchemy import VECTOR
-from sqlalchemy import ForeignKey, Text
+from sqlalchemy import ForeignKey, Index, Text
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -27,4 +27,16 @@ class SalesVector(Base):
         VECTOR(768)
     )  # Dimensión para nomic-embed-text
 
-    sale: Mapped[Sale] = relationship()
+    sale: Mapped[Sale] = relationship(back_populates="sales_vectors")
+
+
+# Define the specialized index for pgvector after the class definition.
+# This index is crucial for efficient similarity searches and will be created
+# by `Base.metadata.create_all`.
+Index(
+    "idx_sales_vectors_embedding",
+    SalesVector.embedding,
+    postgresql_using="ivfflat",
+    postgresql_with={"lists": 100},
+    postgresql_ops={"embedding": "vector_l2_ops"},
+)

@@ -1,15 +1,17 @@
 import sys
 
-from pydantic import EmailStr, ValidationError
+from app.utils.logger import logger
+from pydantic import ValidationError
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
     DATABASE_URL: str
 
-    # Credenciales para el primer superusuario
-    FIRST_SUPERUSER_EMAIL: EmailStr
-    FIRST_SUPERUSER_PASSWORD: str
+    # Configuración del proveedor de LLM
+    LLM_PROVIDER: str = "ollama"  # Puede ser 'ollama', 'stub', etc.
+    OLLAMA_BASE_URL: str | None = None
+    LLM_MODEL: str = "llama3"
 
     # Clave secreta y tiempo de expiración del token en segundos
     SECRET_KEY: str
@@ -24,10 +26,12 @@ class Settings(BaseSettings):
 try:
     settings = Settings()
 except ValidationError as e:
-    print("\n❌ Error crítico de configuración:")
-    print("Faltan o son inválidas las siguientes variables en tu archivo .env:")
+    logger.error("\n❌ Error crítico de configuración:")
+    logger.error("Faltan o son inválidas las siguientes variables en tu archivo .env:")
     for error in e.errors():
         field = " -> ".join(str(loc) for loc in error["loc"])
-        print(f"   • {field}: {error['msg']}")
-    print("\nPor favor, actualiza tu archivo .env y vuelve a iniciar la aplicación.\n")
+        logger.error(f"   • {field}: {error['msg']}")
+    logger.error(
+        "\nPor favor, actualiza tu archivo .env y vuelve a iniciar la aplicación.\n"
+    )
     sys.exit(1)

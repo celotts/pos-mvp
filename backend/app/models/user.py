@@ -31,9 +31,6 @@ class User(Base):
     )
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     password: Mapped[str] = mapped_column(String, nullable=False)
-    address: Mapped[str | None] = mapped_column(String(255), default="N/A")
-    phone: Mapped[str | None] = mapped_column(String(255), default="0000000000")
-    phone2: Mapped[str | None] = mapped_column(String(255), default="0000000000")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     role_id: Mapped[uuid.UUID] = mapped_column(

@@ -51,6 +51,6 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 def get_password_hash(password: str) -> str:
-    # El algoritmo bcrypt tiene un límite de 72 bytes. Truncamos la contraseña
-    # para evitar un ValueError con contraseñas largas.
-    return pwd_context.hash(password.encode("utf-8")[:72])
+    # passlib maneja automáticamente las contraseñas de más de 72 caracteres para bcrypt
+    # pre-hasheándolas con SHA256, por lo que no es necesario truncar manualmente.
+    return pwd_context.hash(password)

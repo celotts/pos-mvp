@@ -4,14 +4,9 @@ services:
     container_name: pos-db # Estandarizado a guion medio
     env_file:
       - .env
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5439:5432" # Volvemos a un puerto estable después de liberarlo
     volumes:
-      - ./script_data/V1__initial_schema.sql:/docker-entrypoint-initdb.d/init.sql
       - pos_db_data:/var/lib/postgresql/data # Añadir volumen para persistencia de datos
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
@@ -26,7 +21,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: pos_api
+      pull: true # Always pull the latest base image for security updates
+    container_name: pos-api
     # Ejecuta el script de inicialización correcto y luego inicia el servidor
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     working_dir: /app
@@ -34,21 +30,45 @@ services:
       - "8003:8000" # Cambiado a 8003 para evitar otro conflicto de puerto
     volumes:
       - ./backend/app:/app
-    extra_hosts:
-      - "host.containers.internal:host-gateway"
-      - "host.docker.internal:host-gateway"
-    environment:
-      # Conexión con Ollama en el Host (Linux / Podman / Docker)
-      - OLLAMA_BASE_URL=http://host.containers.internal:11434
-      - LLM_MODEL=llama3.2:latest
-      - EMBEDDING_MODEL=nomic-embed-text:latest
     env_file:
       - .env
+    environment:
+      # Sobrescribe la URL de Ollama para que apunte al servicio 'ollama' dentro de la red de Docker.
+      - OLLAMA_BASE_URL=http://ollama:11434
+    # Solución para problemas de resolución de DNS dentro del contenedor.
+    # Si el contenedor no puede descargar paquetes (ej. NameResolutionError),
+    # esto fuerza el uso de los DNS públicos de Google.
+    dns:
+      - 8.8.8.8
     depends_on:
       pos-db:
         condition: service_healthy
+      ollama: # La API depende de que Ollama esté disponible
+        condition: service_started
     networks: # Corregido para usar la red del proyecto
       - pos_network
+
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    # Añadimos el env_file para que el contenedor conozca los nombres de los modelos
+    # que se deben descargar con 'make pull-models'.
+    env_file:
+      - .env
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - pos_network
+    # Si tienes una GPU NVIDIA, descomenta las siguientes líneas para una gran mejora de rendimiento.
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
 
 networks: # Corregido para usar la red del proyecto
   pos_network:
@@ -56,4 +76,6 @@ networks: # Corregido para usar la red del proyecto
 
 volumes: # Definir el volumen nombrado
   pos_db_data:
+    driver: local
+  ollama_data: # Volumen para persistir los modelos de Ollama descargados
     driver: local

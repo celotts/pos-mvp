@@ -1,27 +1,33 @@
 {
   "models": [
     {
-      "title": "Qwen2.5 Coder 7B (Local)",
+      "title": "Qwen Coder 7B Q4 (Arquitectura)",
       "provider": "ollama",
-      "model": "qwen2.5-coder:7b",
+      "model": "qwen2.5-coder:7b-instruct-q4_K_M",
       "apiBase": "http://localhost:11434",
-      "systemMessage": "Eres un agente de desarrollo autónomo senior experto en Python, Spring Boot (Java) y React. Tus tareas incluyen: 1. Crear nuevas funcionalidades estructurando correctamente los archivos. 2. Refactorizar código aplicando Clean Code y patrones de diseño. 3. Buscar, diagnosticar y corregir errores complejos en todo el espacio de trabajo. 4. Escribir pruebas unitarias e integrales robustas. Cuando sea necesario, propón el uso de herramientas de edición de archivos o comandos de terminal para agilizar el desarrollo."
+      "systemMessage": "Eres un programador senior experto en Python. Resuelves problemas de lógica, algoritmos y bugs aplicando código limpio (Pythonic code), tipado claro (type hints) y manejo estricto de excepciones. Da respuestas directas sin texto introductorio."
+    },
+    {
+      "title": "Qwen Coder 3B (Chat Diario)",
+      "provider": "ollama",
+      "model": "qwen2.5-coder:3b",
+      "apiBase": "http://localhost:11434",
+      "systemMessage": "Eres un asistente de código rápido. Responde de forma concisa y directa."
     }
   ],
   "tabAutocompleteModel": {
-    "title": "Qwen2.5 Coder 1.5B",
+    "title": "Qwen Coder 1.5B (Tab)",
     "provider": "ollama",
-    "model": "qwen2.5-coder:1.5b",
+    "model": "qwen2.5-coder:1.5b-base",
     "apiBase": "http://localhost:11434"
   },
   "embeddingsProvider": {
     "provider": "ollama",
-    "model": "nomic-embed-text",
-    "apiBase": "http://localhost:11434"
+    "model": "nomic-embed-text"
   },
   "contextProviders": [
     {
-      "name": "codebase",
+      "name": "openFiles",
       "options": {}
     },
     {
@@ -29,25 +35,28 @@
       "options": {}
     },
     {
-      "name": "openFiles",
-      "options": {}
+      "name": "codebase",
+      "options": {
+        "nSecondsBetweenIndexing": 1200
+      }
     }
   ],
   "slashCommands": [
     {
       "name": "edit",
-      "description": "Modificar el archivo seleccionado o código actual"
+      "description": "Modificar el código seleccionado"
     },
     {
-      "name": "test",
-      "description": "Generar pruebas unitarias completas para el código seleccionado"
+      "name": "comment",
+      "description": "Añadir comentarios rápidos"
     },
     {
       "name": "fix",
-      "description": "Buscar errores y proponer una solución inmediata para el bloque de código"
+      "description": "Corregir errores de sintaxis o lógica"
     }
   ],
   "experimental": {
     "tools": true
-  }
+  },
+  "allowAnonymousTelemetry": false
 }

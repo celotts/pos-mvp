@@ -1,13 +1,11 @@
 import uuid
 
+from core.config import settings
 from core.crud_role import crud_role
 from fastapi import HTTPException, status
 from models.role import Role
 from schemas.role import RoleCreate, RoleUpdate
 from sqlalchemy.ext.asyncio import AsyncSession
-
-# System roles that cannot be modified or deleted.
-PROTECTED_ROLES = {"SUPER_ADMIN", "ADMIN"}
 
 
 async def get_roles(db: AsyncSession, skip: int = 0, limit: int = 100) -> list[Role]:
@@ -46,7 +44,7 @@ async def update_role(
     db_role = await get_role(db=db, role_id=role_id)
 
     # Protection logic: protected roles cannot be modified.
-    if db_role.name in PROTECTED_ROLES:
+    if db_role.name in settings.PROTECTED_ROLES:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Role '{db_role.name}' is protected and cannot be modified.",
@@ -75,7 +73,7 @@ async def remove_role(db: AsyncSession, *, role_id: uuid.UUID) -> Role:
     db_role = await get_role(db=db, role_id=role_id)
 
     # Protection #1: System roles.
-    if db_role.name in PROTECTED_ROLES:
+    if db_role.name in settings.PROTECTED_ROLES:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Role '{db_role.name}' is protected and cannot be deleted.",
