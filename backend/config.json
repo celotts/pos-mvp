@@ -8,6 +8,13 @@
       "systemMessage": "Eres un programador senior experto en Python. Resuelves problemas de lógica, algoritmos y bugs aplicando código limpio (Pythonic code), tipado claro (type hints) y manejo estricto de excepciones. Da respuestas directas sin texto introductorio."
     },
     {
+      "title": "Qwen 2.5 Coder 14B (Arquitectura Avanzada - Opcional)",
+      "provider": "ollama",
+      "model": "qwen2.5-coder:14b-instruct",
+      "apiBase": "http://localhost:11434",
+      "systemMessage": "Eres un revisor de código experto. Analiza patrones de diseño, inyección de dependencias y rendimiento en APIs."
+    },
+    {
       "title": "Qwen Coder 3B (Chat Diario)",
       "provider": "ollama",
       "model": "qwen2.5-coder:3b",
