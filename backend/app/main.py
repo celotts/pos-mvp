@@ -7,7 +7,7 @@ from api.endpoints import (
     cash_account_controller,
     countries_controller,
     customers_controller,
-    inventory,
+    inventory_controller,
     login_controller,
     municipality_controller,
     pos_terminal_controller,
@@ -72,7 +72,9 @@ api_router.include_router(sale_controller.router, prefix="/sales", tags=["POS"])
 api_router.include_router(
     purchase_controller.router, prefix="/purchases", tags=["Purchases"]
 )
-api_router.include_router(inventory.router, prefix="/inventory", tags=["Inventory"])
+api_router.include_router(
+    inventory_controller.router, prefix="/inventory", tags=["Inventory"]
+)
 # Asistente de IA
 api_router.include_router(assistant_controller.router)  # Ya tiene prefijo y tag
 # Localización Geográfica
