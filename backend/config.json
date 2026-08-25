@@ -1,31 +1,24 @@
 {
   "models": [
     {
-      "title": "Qwen Coder 7B Q4 (Arquitectura)",
+      "title": "Qwen 2.5 Coder 7B (Agente Arquitecto Principal)",
       "provider": "ollama",
-      "model": "qwen2.5-coder:7b-instruct-q4_K_M",
+      "model": "qwen2.5-coder:7b-instruct",
       "apiBase": "http://localhost:11434",
-      "systemMessage": "Eres un programador senior experto en Python. Resuelves problemas de lógica, algoritmos y bugs aplicando código limpio (Pythonic code), tipado claro (type hints) y manejo estricto de excepciones. Da respuestas directas sin texto introductorio."
+      "systemMessage": "Eres un arquitecto de software senior y agente autónomo experto en Python, FastAPI, Clean Architecture y Arquitectura Hexagonal. Tienes la capacidad de analizar dependencias, diseñar patrones y estructurar código limpio (Pythonic). No pidas código al usuario; utiliza las herramientas de contexto del workspace para inspeccionar los módulos, dependencias y esquemas de persistencia por ti mismo."
     },
     {
-      "title": "Qwen 2.5 Coder 14B (Arquitectura Avanzada - Opcional)",
+      "title": "DeepSeek R1 Distill 8B (Razonador Lógico y Bugs)",
       "provider": "ollama",
-      "model": "qwen2.5-coder:14b-instruct",
+      "model": "deepseek-r1:8b",
       "apiBase": "http://localhost:11434",
-      "systemMessage": "Eres un revisor de código experto. Analiza patrones de diseño, inyección de dependencias y rendimiento en APIs."
-    },
-    {
-      "title": "Qwen Coder 3B (Chat Diario)",
-      "provider": "ollama",
-      "model": "qwen2.5-coder:3b",
-      "apiBase": "http://localhost:11434",
-      "systemMessage": "Eres un asistente de código rápido. Responde de forma concisa y directa."
+      "systemMessage": "Eres un agente de razonamiento lógico avanzado. Piensa paso a paso y de forma estructurada antes de proponer refactorizaciones complejas, resolución de errores de concurrencia o validaciones de modelos Pydantic."
     }
   ],
   "tabAutocompleteModel": {
-    "title": "Qwen Coder 1.5B (Tab)",
+    "title": "Qwen 2.5 Coder 1.5B (Autocompletado Rápido)",
     "provider": "ollama",
-    "model": "qwen2.5-coder:1.5b-base",
+    "model": "qwen2.5-coder:1.5b",
     "apiBase": "http://localhost:11434"
   },
   "embeddingsProvider": {
@@ -34,7 +27,7 @@
   },
   "contextProviders": [
     {
-      "name": "openFiles",
+      "name": "open",
       "options": {}
     },
     {
@@ -44,25 +37,28 @@
     {
       "name": "codebase",
       "options": {
-        "nSecondsBetweenIndexing": 1200
+        "nSecondsBetweenIndexing": 600
       }
     }
   ],
   "slashCommands": [
     {
       "name": "edit",
-      "description": "Modificar el código seleccionado"
+      "description": "Modificar el código seleccionado inline"
     },
     {
       "name": "comment",
-      "description": "Añadir comentarios rápidos"
+      "description": "Añadir docstrings y tipado estricto"
     },
     {
       "name": "fix",
-      "description": "Corregir errores de sintaxis o lógica"
+      "description": "Corregir errores lógicos o excepciones de FastAPI/SQLAlchemy"
     }
   ],
   "experimental": {
+    "modelRoles": {
+      "inlineEdit": "qwen2.5-coder:7b-instruct"
+    },
     "tools": true
   },
   "allowAnonymousTelemetry": false
