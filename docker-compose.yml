@@ -5,10 +5,10 @@ services:
     env_file:
       - .env
     ports:
-      - "5440:5432" # <-- Cambiado a 5440 para evitar el conflicto del puerto 5439
+      - "5440:5432"
     volumes:
       - pos_db_data:/var/lib/postgresql/data
-      - ./V1__create_tables.sql:/docker-entrypoint-initdb.d/V1__create_tables.sql
+      - ./V1__initial_schema.sql:/docker-entrypoint-initdb.d/V1__initial_schema.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
@@ -23,17 +23,21 @@ services:
       dockerfile: Dockerfile
       pull: true
     container_name: pos-api
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-    working_dir: /app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    working_dir: /app/backend
     ports:
       - "8003:8000"
     volumes:
-      - ./backend/app:/app
+      - .:/app
     env_file:
       - .env
     environment:
-      # Apunta al Ollama nativo que corre en tu Mac fuera de Docker
-      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - OLLAMA_BASE_URL=http://host.containers.internal:11434
+      - LLM_MODEL=llama3.2:latest
+      - PYTHONPATH=/app:/app/backend:/app/backend/app
+    extra_hosts:
+      - "host.containers.internal:host-gateway"
+      - "host.docker.internal:host-gateway"
     dns:
       - 8.8.8.8
     depends_on:

@@ -1,3 +1,4 @@
+# /backend/app/models/sale_item.py
 from __future__ import annotations
 
 import uuid
@@ -5,17 +6,13 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from core.db import Base
-from sqlalchemy import (
-    ForeignKey,
-    Numeric,
-)
+from sqlalchemy import ForeignKey, Numeric
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .sale import Sale
-
 if TYPE_CHECKING:
     from .product import Product
+    from .sale import Sale
 
 
 class SaleItem(Base):

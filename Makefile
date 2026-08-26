@@ -33,11 +33,8 @@ up:
 	$(COMPOSE_CMD) up -d --build
 
 down:
-	@echo "Deteniendo contenedores y eliminando volúmenes..."
-	@# Se usa 'stop' explícitamente para asegurar una detención ordenada antes de eliminar.
-	@# El '-' al inicio ignora errores si los contenedores ya están detenidos.
-	-$(COMPOSE_CMD) stop
-	-$(COMPOSE_CMD) down -v
+	@echo "Deteniendo contenedores y eliminando volúmenes por completo..."
+	-$(COMPOSE_CMD) down -v --remove-orphans
 
 start: clean up
 
@@ -49,7 +46,6 @@ init: up
 
 logs:
 	@echo "Mostrando los logs de los contenedores..."
-	@# Especificamos los servicios explícitamente para evitar un error en podman-compose.
 	$(COMPOSE_CMD) logs -f pos-db pos-api ollama
 
 ps:
@@ -58,7 +54,7 @@ ps:
 
 clean: down
 	@echo "Limpiando contenedores detenidos y caché de build..."
-	@if command -v docker &> /dev/null; then \
+	@if command -v docker &> /dev/null && docker info &> /dev/null; then \
 		echo "Limpiando artefactos de Docker..."; \
 		docker system prune -af; \
 	fi
@@ -85,7 +81,7 @@ lint:
 
 format:
 	@echo "Formateando el código con black y isort..."
-	$(COMPOSE_Cmd) exec pos-api black /app
+	$(COMPOSE_CMD) exec pos-api black /app
 	$(COMPOSE_CMD) exec pos-api isort /app
 
 test:

@@ -14,6 +14,12 @@ if TYPE_CHECKING:
 
 
 class SalesVector(Base):
+    """
+    Modelo para almacenar embeddings (vectores) de las ventas.
+    Permite realizar búsquedas semánticas y de similitud utilizando pgvector.
+    Está asociado directamente a un registro de venta (Sale) y almacena 
+    tanto el contenido en texto como su representación vectorial.
+    """
     __tablename__ = "sales_vectors"
 
     id: Mapped[uuid.UUID] = mapped_column(

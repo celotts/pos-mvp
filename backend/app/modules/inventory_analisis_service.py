@@ -5,8 +5,10 @@ from typing import Any
 import httpx
 from core.config import settings
 from models.product import Product
+from models.purchase import PurchaseItem
 from models.sale import Sale
-from models.sales_vector import SalesVector  # <- Importado arriba
+from models.sale_item import SaleItem
+from models.sales_vector import SalesVector
 from modules.llm_service import AbstractLLMService
 from schemas.inventory import PurchaseSuggestionsAnalysis, PurchaseSuggestionsResponse
 from schemas.inventory_analysis import (
@@ -28,53 +30,92 @@ class InventoryAnalysisService:
 
     async def get_purchase_suggestions(self) -> PurchaseSuggestionsResponse:
         """Devuelve el análisis estructurado y un resumen ejecutivo opcional."""
-        from models.sale_item import SaleItem  # Importación local o arriba del archivo
-
         thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
 
         try:
-            # Consulta adaptada a tu DDL real (usando SaleItem y stock_quantity)
+            # 1. Subconsulta para compras totales históricas por producto
+            purchased_sub = (
+                select(
+                    PurchaseItem.product_id,
+                    func.coalesce(func.sum(PurchaseItem.quantity), 0).label(
+                        "total_purchased"
+                    ),
+                )
+                .group_by(PurchaseItem.product_id)
+                .subquery()
+            )
+
+            # 2. Subconsulta para ventas totales históricas por producto
+            sold_sub = (
+                select(
+                    SaleItem.product_id,
+                    func.coalesce(func.sum(SaleItem.quantity), 0).label("total_sold"),
+                )
+                .group_by(SaleItem.product_id)
+                .subquery()
+            )
+
+            # 3. Subconsulta para ventas de los últimos 30 días
+            recent_sold_sub = (
+                select(
+                    SaleItem.product_id,
+                    func.coalesce(func.sum(SaleItem.quantity), 0).label("recent_sold"),
+                )
+                .join(Sale, Sale.id == SaleItem.sale_id)
+                .where(Sale.created_at >= thirty_days_ago)
+                .group_by(SaleItem.product_id)
+                .subquery()
+            )
+
+            # 4. Consulta principal uniendo las subconsultas
             stmt = (
                 select(
                     Product.id.label("product_id"),
                     Product.name.label("product_name"),
-                    Product.stock_quantity.label("stock_quantity"),
-                    func.coalesce(func.sum(SaleItem.quantity), 0).label(
+                    (
+                        func.coalesce(purchased_sub.c.total_purchased, 0)
+                        - func.coalesce(sold_sub.c.total_sold, 0)
+                    ).label("stock_quantity"),
+                    func.coalesce(recent_sold_sub.c.recent_sold, 0).label(
                         "total_quantity_sold"
                     ),
                 )
-                .outerjoin(
-                    SaleItem,
-                    SaleItem.product_id == Product.id,
-                )
-                .outerjoin(
-                    Sale,
-                    (Sale.id == SaleItem.sale_id)
-                    & (Sale.created_at >= thirty_days_ago),
-                )
-                .group_by(Product.id, Product.name, Product.stock_quantity)
+                .outerjoin(purchased_sub, Product.id == purchased_sub.c.product_id)
+                .outerjoin(sold_sub, Product.id == sold_sub.c.product_id)
+                .outerjoin(recent_sold_sub, Product.id == recent_sold_sub.c.product_id)
             )
 
             result = await self.db.execute(stmt)
             rows = result.all()
 
+            # ----------------------------------------------------------------
+            # 👇 AQUÍ ESTÁ EL CAMBIO REFACTORIZADO EN EL BUCLE
+            # ----------------------------------------------------------------
             items = []
             for row in rows:
-                total_sold = row.total_quantity_sold
-                avg_daily = total_sold / 30.0
-                days_left = row.stock_quantity / avg_daily if avg_daily > 0 else 999.0
+                total_sold = row.total_quantity_sold or 0
+                stock_qty = row.stock_quantity or 0
 
-                classification = "normal"
-                if days_left < 10:
-                    classification = "high_turnover_risk"
-                elif total_sold == 0:
+                # 1. Evaluar dead_stock primero (sin ventas en 30 días)
+                if total_sold == 0:
                     classification = "dead_stock"
+                    avg_daily = 0.0
+                    days_left = 999.0
+                else:
+                    avg_daily = total_sold / 30.0
+                    days_left = stock_qty / avg_daily if avg_daily > 0 else 999.0
+
+                    # 2. Si tiene ventas y le quedan menos de 10 días de stock
+                    if days_left < 10:
+                        classification = "high_turnover_risk"
+                    else:
+                        classification = "normal"
 
                 items.append(
                     PurchaseSuggestionItem(
                         product_id=row.product_id,
                         product_name=row.product_name,
-                        stock_quantity=row.stock_quantity,
+                        stock_quantity=stock_qty,
                         total_quantity_sold_last_30_days=total_sold,
                         avg_daily_sales_last_30=round(avg_daily, 2),
                         days_of_stock_left=round(days_left, 1),
@@ -89,6 +130,7 @@ class InventoryAnalysisService:
                 seasonal=[],
                 dead_stock=[i for i in items if i.classification == "dead_stock"],
             )
+            # ----------------------------------------------------------------
 
             executive_summary = await self.llm_service.generate_executive_summary(
                 analysis.model_dump()
@@ -147,7 +189,6 @@ class InventoryAnalysisService:
         summary_text = f"Análisis de inventario y ventas: {json.dumps(analysis_data, ensure_ascii=False)}"
 
         try:
-            # Usamos la URL y el modelo definidos en la configuración centralizada
             base_url = settings.OLLAMA_BASE_URL or "http://ollama:11434"
             embed_model = settings.EMBEDDING_MODEL or "nomic-embed-text"
 

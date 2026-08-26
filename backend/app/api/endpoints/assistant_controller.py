@@ -32,3 +32,25 @@ async def handle_chat(
     """Endpoint to interact with the Business Intelligence Assistant."""
     response_text = await ai_service.get_rag_response(db=db, query=query.question)
     return create_api_response(data=ChatResponseData(answer=response_text))
+
+
+@router.post(
+    "/predict-campaign",
+    response_model=ApiResponse[ChatResponseData],
+    summary="Predict Campaign Behavior (Quarterly/Monthly)",
+    description="""
+    Send a strategic question or campaign proposal.
+    The assistant analyzes aggregated historical sales data (by month) 
+    to provide predictions, trends, and strategic advice.
+    """,
+)
+async def handle_predict_campaign(
+    query: ChatQuery,
+    db: AsyncSession = db_dependency,
+    current_user: UserModel = current_user_dependency,
+) -> Any:
+    """Endpoint for strategic and predictive analysis of sales data."""
+    response_text = await ai_service.get_quarterly_prediction_response(
+        db=db, query=query.question
+    )
+    return create_api_response(data=ChatResponseData(answer=response_text))
