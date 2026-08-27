@@ -6,12 +6,12 @@ from api.response_factory import ApiResponse, create_api_response
 from dependencies import get_current_user, get_db
 from fastapi import APIRouter, Depends, status
 from models.user import User as UserModel
-from modules import cash_account_service
 from schemas.cash_account import (
     CashAccount,
     CashAccountCreate,
     CashAccountUpdate,
 )
+from service import cash_account_service
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["Accounting"])

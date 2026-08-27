@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock
 import pytest
 from app.models.role import Role
 from app.models.user import User
-from app.modules import user_service
 from app.schemas.user import UserCreate, UserUpdate
+from app.service import user_service
 from fastapi import HTTPException
 
 # Marca todas las pruebas en este archivo para que se ejecuten con asyncio

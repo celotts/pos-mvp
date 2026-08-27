@@ -5,8 +5,8 @@ from api.response_factory import ApiResponse, create_api_response
 from dependencies import get_db
 from fastapi import APIRouter, Depends, status
 from models.user import User as UserModel
-from modules import country_service
 from schemas.country import Country, CountryCreate, CountryUpdate
+from service import country_service
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["Countries"])

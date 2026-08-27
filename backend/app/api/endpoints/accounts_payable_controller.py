@@ -5,12 +5,12 @@ from api.response_factory import ApiResponse, create_api_response
 from dependencies import get_current_user, get_db
 from fastapi import APIRouter, Depends, HTTPException, status
 from models.user import User as UserModel
-from modules.accounts_payable_service import accounts_payable_service
 from schemas.accounts_payable import (
     AccountsPayable,
     AccountsPayableCreate,
     AccountsPayableUpdate,
 )
+from service.accounts_payable_service import accounts_payable_service
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["Accounting"])

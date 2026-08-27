@@ -5,8 +5,8 @@ from api.response_factory import ApiResponse, create_api_response
 from dependencies import get_current_user, get_db
 from fastapi import APIRouter, Depends, HTTPException, status
 from models.user import User as UserModel
-from modules.supplier_service import supplier_service
 from schemas.supplier import Supplier, SupplierCreate, SupplierUpdate
+from service.supplier_service import supplier_service
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["Suppliers"])

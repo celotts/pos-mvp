@@ -1,16 +1,26 @@
 import logging
 import uuid
+from typing import Any
 
 import httpx
 from core.config import settings
 from core.db import async_session_maker
+from langchain.agents import create_agent
+from langchain_core.messages import SystemMessage
+from langchain_ollama import ChatOllama
 from models.sale import Sale
 from models.sale_item import SaleItem
 from models.sales_vector import SalesVector
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
+
+from .agent_tools import (
+    get_product_kardex,
+    get_purchases_summary,
+    get_sales_summary,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +32,29 @@ class AIService:
         self.llm_model = settings.LLM_MODEL
         self._client: httpx.AsyncClient | None = None
 
+        # Configuración del Agente de Inventario / Sugerencias
+        self.agent_llm = ChatOllama(
+            model=self.llm_model,
+            base_url=self.ollama_base_url,
+            temperature=0,
+        )
+        self.agent_tools: list[Any] = [
+            get_sales_summary,
+            get_purchases_summary,
+            get_product_kardex,
+        ]
+        self.agent_system_prompt = (
+            "Eres un analista de inventarios y compras para un sistema POS. "
+            "DEBES invocar tus herramientas (get_sales_summary, get_purchases_summary, get_product_kardex) "
+            "para consultar la base de datos antes de dar una respuesta o sugerencia de compra."
+        )
+        self.agent_executor = create_agent(
+            model=self.agent_llm,
+            tools=self.agent_tools,
+        )
+
     @property
     def client(self) -> httpx.AsyncClient:
-        """Inicialización perezosa (lazy) del cliente asíncrono para evitar cierres prematuros."""
         if self._client is None or self._client.is_closed:
             self._client = httpx.AsyncClient(
                 base_url=self.ollama_base_url, timeout=60.0
@@ -32,26 +62,46 @@ class AIService:
         return self._client
 
     async def close(self) -> None:
-        """Cierra el cliente HTTP cuando la aplicación finaliza."""
         if self._client and not self._client.is_closed:
             await self._client.aclose()
 
+    # --- MÉTODO DEL AGENTE REFACTORIZADO ---
+    async def get_purchase_suggestion(self, query: str) -> str:
+        """Ejecuta el Agente de Inteligencia para analizar datos de inventario y dar sugerencias."""
+        try:
+            result = await self.agent_executor.ainvoke(
+                {
+                    "messages": [
+                        SystemMessage(content=self.agent_system_prompt),
+                        ("user", query),
+                    ]
+                }
+            )
+            messages = result.get("messages")
+            if not messages:
+                raise KeyError("messages")
+
+            return str(messages[-1].content)
+        except Exception:
+            logger.exception("Error ejecutando el agente de sugerencias")
+            return (
+                "Error: No se pudo generar la sugerencia de inventario en este momento."
+            )
+
+    # --- VECTOR EMBEDDINGS & RAG ---
     async def get_embedding(self, text: str) -> list[float]:
-        """Genera un embedding para el texto provisto utilizando Ollama."""
         try:
             response = await self.client.post(
                 "/api/embeddings",
                 json={"model": self.embedding_model, "prompt": text},
             )
             response.raise_for_status()
-            data = response.json()
-            return data["embedding"]
+            return response.json()["embedding"]
         except (httpx.RequestError, httpx.HTTPStatusError, KeyError) as e:
-            logger.error(f"Error generando embedding en Ollama: {e}")
+            logger.error("Error generando embedding en Ollama: %s", e)
             raise
 
     async def create_and_store_sale_embedding(self, sale_id: uuid.UUID) -> None:
-        """Tarea en segundo plano para generar y guardar el embedding de una venta."""
         try:
             async with async_session_maker() as db:
                 query = (
@@ -67,7 +117,7 @@ class AIService:
                 sale = result.scalars().one_or_none()
 
                 if not sale:
-                    logger.warning(f"Venta ID {sale_id} no encontrada para embedding.")
+                    logger.warning("Venta ID %s no encontrada para embedding.", sale_id)
                     return
 
                 items_desc = ", ".join(
@@ -85,18 +135,15 @@ class AIService:
                 )
                 db.add(sale_vector)
                 await db.commit()
-                logger.info(f"Embedding guardado correctamente para venta {sale_id}")
-        except (httpx.HTTPError, SQLAlchemyError, KeyError) as e:
+                logger.info("Embedding guardado correctamente para venta %s", sale_id)
+        except (httpx.HTTPError, SQLAlchemyError, KeyError):
             logger.exception(
-                f"Error en background task de embedding para la venta {sale_id}: {e}"
+                "Error en background task de embedding para la venta %s", sale_id
             )
 
     async def get_rag_response(self, db: AsyncSession, query: str) -> str:
-        """Pipeline RAG con búsqueda vectorial y generación de respuesta."""
         try:
             query_embedding = await self.get_embedding(query)
-
-            # Usamos cosine_distance para mejor precisión semántica
             context_query = (
                 select(SalesVector.content)
                 .order_by(SalesVector.embedding.cosine_distance(query_embedding))
@@ -123,7 +170,6 @@ Pregunta: {query}
 
 Respuesta:
 """
-
             response = await self.client.post(
                 "/api/generate",
                 json={
@@ -136,67 +182,8 @@ Respuesta:
             return response.json().get("response", "").strip()
 
         except (httpx.HTTPError, SQLAlchemyError, KeyError) as e:
-            logger.error(f"Error en RAG pipeline: {e}")
+            logger.error("Error en RAG pipeline: %s", e)
             return "Error: Ocurrió un fallo al consultar el servicio de Inteligencia Artificial."
-
-    async def get_quarterly_prediction_response(
-        self, db: AsyncSession, query: str
-    ) -> str:
-        """Agrega métricas mensuales y solicita predicciones o análisis estratégico al LLM."""
-        try:
-            agg_query = (
-                select(
-                    func.date_trunc("month", Sale.sale_date).label("month"),
-                    func.count(Sale.id).label("total_sales_count"),
-                    func.sum(Sale.total_amount).label("total_revenue"),
-                )
-                .where(Sale.status == "COMPLETED")
-                .group_by(func.date_trunc("month", Sale.sale_date))
-                .order_by(func.date_trunc("month", Sale.sale_date).desc())
-                .limit(12)
-            )
-
-            result = await db.execute(agg_query)
-            rows = result.all()
-
-            if not rows:
-                return "No hay suficientes datos de ventas completadas para generar una predicción."
-
-            context_lines = [
-                f"- Mes: {row.month.strftime('%Y-%m') if row.month else 'N/A'} | "
-                f"Ventas: {row.total_sales_count} | Ingresos: ${row.total_revenue or 0}"
-                for row in rows
-            ]
-            context_str = "\n".join(context_lines)
-
-            prompt = f"""
-Eres un Analista de Negocios y Estratega de Ventas para un sistema POS.
-Analiza las siguientes métricas históricas agregadas y responde a la consulta ofreciendo recomendaciones accionables.
-
-Datos Históricos Agregados (Últimos meses):
----
-{context_str}
----
-
-Consulta del Usuario: {query}
-
-Análisis y Predicción:
-"""
-
-            response = await self.client.post(
-                "/api/generate",
-                json={
-                    "model": self.llm_model,
-                    "prompt": prompt,
-                    "stream": False,
-                },
-            )
-            response.raise_for_status()
-            return response.json().get("response", "").strip()
-
-        except (httpx.HTTPError, SQLAlchemyError, KeyError) as e:
-            logger.error(f"Error en predicción trimestral: {e}")
-            return "Error: No se pudo procesar la solicitud con el servicio de Inteligencia Artificial."
 
 
 ai_service = AIService()

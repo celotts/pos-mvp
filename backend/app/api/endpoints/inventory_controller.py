@@ -25,6 +25,15 @@ async def get_purchase_suggestions(
     return await inventory_service.get_purchase_suggestions()
 
 
+@router.get("/inventory/purchase-suggestion")
+async def get_purchase_suggestion(
+    inventory_service: InventoryAnalysisServiceDep,
+    query: str = "Analiza las ventas y compras para sugerir reabastecimiento",
+):
+    response = await inventory_service.get_agent_suggestion(query)
+    return {"suggestion": response}
+
+
 @router.post(
     "/vectorize-analysis",
     summary="Vectorizar y almacenar análisis de inventario",
@@ -34,10 +43,7 @@ async def get_purchase_suggestions(
 async def vectorize_inventory_analysis(
     inventory_service: InventoryAnalysisServiceDep,
 ) -> dict:
-    # 1. Obtenemos las sugerencias estructuradas
     suggestions_response = await inventory_service.get_purchase_suggestions()
-
-    # 2. Convertimos el análisis a diccionario y disparamos la generación y almacenamiento del vector
     analysis_dict = suggestions_response.analysis.model_dump()
     await inventory_service.generate_and_store_vector_analysis(analysis_dict)
 

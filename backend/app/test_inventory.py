@@ -3,8 +3,8 @@ from httpx import AsyncClient
 
 from app.dependencies import get_llm_service
 from app.main import app
-from app.modules.llm_service import AbstractLLMService
 from app.schemas.inventory import PurchaseSuggestionsAnalysis
+from app.service.llm_service import AbstractLLMService
 
 # Datos de análisis simulados que devolvería el servicio de inventario
 MOCK_ANALYSIS_DATA = {

@@ -4,9 +4,9 @@ from api.response_factory import ApiResponse, create_api_response
 from dependencies import get_current_user, get_db
 from fastapi import APIRouter, BackgroundTasks, Depends, status
 from models.user import User as UserModel
-from modules import sale_service
-from modules.ai_service import ai_service  # ✅ Import desde modules
 from schemas.sale import Sale, SaleCreate
+from service import sale_service
+from service.ai_service import ai_service  # ✅ Import desde modules
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["POS"])

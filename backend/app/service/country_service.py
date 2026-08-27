@@ -13,9 +13,8 @@ async def create_country(
 ) -> Country:
     """Crea un país y maneja la lógica de negocio, como la duplicidad."""
     try:
-        country = await crud_country.create(
-            db=db, obj_in=country_in, created_by=user_id
-        )
+        # Se elimina `created_by=user_id` ya que el modelo Country no tiene dicho campo
+        country = await crud_country.create(db=db, obj_in=country_in)
         return country
     except IntegrityError:
         raise HTTPException(
@@ -48,9 +47,8 @@ async def update_country(
 ) -> Country:
     """Actualiza un país, verificando primero su existencia."""
     db_country = await get_country(db=db, country_id=country_id)
-    return await crud_country.update(
-        db=db, db_obj=db_country, obj_in=country_in, updated_by=user_id
-    )
+    # Si tampoco tienes updated_by en el modelo, elimínalo de kwargs aquí también:
+    return await crud_country.update(db=db, db_obj=db_country, obj_in=country_in)
 
 
 async def remove_country(db: AsyncSession, *, country_id: uuid.UUID) -> Country:

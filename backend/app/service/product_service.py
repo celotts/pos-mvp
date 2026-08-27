@@ -13,25 +13,36 @@ class ProductService:
         self.crud = crud_product
 
     async def get_all(self, db: AsyncSession, *, skip: int = 0, limit: int = 100):
-        """Obtiene una lista de productos."""
         return await self.crud.get_multi(db, skip=skip, limit=limit)
 
     async def get_by_id(self, db: AsyncSession, *, id: uuid.UUID):
-        """Obtiene un producto por ID."""
         return await self.crud.get(db, id)
 
     async def create(
         self, db: AsyncSession, *, obj_in: ProductCreate, current_user: User
     ):
-        """Crea un nuevo producto."""
         try:
-            # Pasamos el ID del usuario para auditoría
-            return await self.crud.create(db, obj_in=obj_in, created_by=current_user.id)
-        except IntegrityError:
+            return await self.crud.create(db, obj_in=obj_in)
+        except IntegrityError as e:
             await db.rollback()
+            error_msg = str(e.orig).lower()
+
+            # Discriminamos qué restricción de integridad falló realmente
+            if "sku" in error_msg:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="A product with this SKU already exists.",
+                )
+            elif "supplier_id" in error_msg or "foreign key" in error_msg:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Supplier with ID {obj_in.supplier_id} does not exist.",
+                )
+
+            # Si fue otro error de integridad no contemplado
             raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="A product with this SKU already exists.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Database integrity constraint violation.",
             )
 
     async def update(
@@ -42,17 +53,12 @@ class ProductService:
         obj_in: ProductUpdate,
         current_user: User,
     ):
-        """Actualiza un producto existente."""
         db_obj = await self.crud.get(db, id=id)
         if not db_obj:
             return None
-        # Pasamos el ID del usuario para auditoría
-        return await self.crud.update(
-            db, db_obj=db_obj, obj_in=obj_in, updated_by=current_user.id
-        )
+        return await self.crud.update(db, db_obj=db_obj, obj_in=obj_in)
 
     async def delete(self, db: AsyncSession, *, id: uuid.UUID):
-        """Elimina un producto existente."""
         return await self.crud.remove(db=db, id=id)
 
 

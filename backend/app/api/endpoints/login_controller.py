@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Annotated, Any
 
 from api.response_factory import ApiResponse, create_api_response
 from core.crud_user import crud_user
@@ -6,29 +6,33 @@ from core.security import create_access_token
 from dependencies import get_db
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import BaseModel, EmailStr
 from schemas.token import Token, TokenData
 from schemas.user import User as UserSchema
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["Bootstrap & Auth"])
 
-db_dependency = Depends(get_db)
+# Inyección de dependencias limpia para Ruff/FastAPI
+AsyncSessionDep = Annotated[AsyncSession, Depends(get_db)]
+
+
+# Esquema específico para recibir JSON en el login web
+class UserLoginSchema(BaseModel):
+    username: EmailStr
+    password: str
 
 
 @router.post(
     "/login/access-token",
     response_model=ApiResponse[TokenData],
-    summary="Get a JWT access token",
-    description="Authenticates a user with email and password and returns a token.",
+    summary="Get a JWT access token via JSON",
+    description="Authenticates a user via JSON payload and returns a token with user details.",
 )
 async def login_access_token(
-    login_data: OAuth2PasswordRequestForm = Depends(),
-    db: AsyncSession = db_dependency,
+    login_data: UserLoginSchema,  # Lee payload JSON
+    db: AsyncSessionDep,
 ) -> Any:
-    """Authenticates a user and generates an access token.
-    It uses the `response_factory` to return a standardized response
-    that includes the token and user information.
-    """
     user = await crud_user.authenticate(
         db,
         email=login_data.username,
@@ -47,10 +51,6 @@ async def login_access_token(
         )
 
     access_token = create_access_token(subject=str(user.id))
-
-    # Prepara los datos para la respuesta.
-    # Convertimos explícitamente el modelo SQLAlchemy 'user' al esquema Pydantic 'User'
-    # para evitar problemas de serialización con referencias circulares (user -> role -> users).
     user_data = UserSchema.model_validate(user)
     token_data = {
         "access_token": access_token,
@@ -66,15 +66,12 @@ async def login_access_token(
     response_model=Token,
     include_in_schema=True,
     summary="OAuth2 compatible token login for Swagger UI",
-    description="Authenticates a user and returns direct token metadata for Swagger UI Authorize button.",
+    description="Authenticates via x-www-form-urlencoded for Swagger UI Authorize dialog.",
 )
 async def login_swagger(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: AsyncSession = db_dependency,
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],  # Lee Form Data
+    db: AsyncSessionDep,
 ) -> Any:
-    """Authenticates a user and returns a raw JSON payload with access_token and token_type.
-    This fulfills OAuth2 spec requirements to allow Swagger UI's Authorize dialog to work seamlessly.
-    """
     user = await crud_user.authenticate(
         db,
         email=form_data.username,

@@ -6,12 +6,12 @@ from api.response_factory import ApiResponse, create_api_response
 from dependencies import get_current_user, get_db
 from fastapi import APIRouter, Depends, status
 from models.user import User as UserModel
-from modules import pos_terminal_service
 from schemas.pos_terminal import (
     PosTerminal,
     PosTerminalCreate,
     PosTerminalUpdate,
 )
+from service import pos_terminal_service
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["POS"])

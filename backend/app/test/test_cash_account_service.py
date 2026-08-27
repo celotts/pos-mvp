@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock
 import pytest
 from app.models.cash_account import CashAccount, CashAccountType
 from app.models.user import User
-from app.modules import cash_account_service
 from app.schemas.cash_account import CashAccountCreate
+from app.service import cash_account_service
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 

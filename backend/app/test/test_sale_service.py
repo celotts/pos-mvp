@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from app.models.product import Product
 from app.models.user import User
-from app.modules.sale_service import sale_service
 from app.schemas.sale import SaleCreate, SaleItemCreate
+from app.service.sale_service import sale_service
 from fastapi import BackgroundTasks, HTTPException
 
 # Marca todos los tests en este archivo para que se ejecuten con asyncio

@@ -9,12 +9,12 @@ from models.purchase import PurchaseItem
 from models.sale import Sale
 from models.sale_item import SaleItem
 from models.sales_vector import SalesVector
-from modules.llm_service import AbstractLLMService
 from schemas.inventory import PurchaseSuggestionsAnalysis, PurchaseSuggestionsResponse
 from schemas.inventory_analysis import (
     PurchaseSuggestionAnalysisException,
     PurchaseSuggestionItem,
 )
+from service.llm_service import AbstractLLMService
 from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,6 +27,9 @@ class InventoryAnalysisService:
     def __init__(self, llm_service: AbstractLLMService, db: AsyncSession):
         self.llm_service = llm_service
         self.db = db
+
+    async def get_agent_suggestion(self, query: str) -> str:
+        return await self.llm_service.get_purchase_suggestion(query)
 
     async def get_purchase_suggestions(self) -> PurchaseSuggestionsResponse:
         """Devuelve el análisis estructurado y un resumen ejecutivo opcional."""

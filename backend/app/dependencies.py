@@ -8,15 +8,15 @@ from core.security import decode_access_token
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from models.user import User
-from modules.inventory_analisis_service import InventoryAnalysisService
-from modules.llm_service import (
+from service.inventory_analisis_service import InventoryAnalysisService
+from service.llm_service import (
     AbstractLLMService,
     OllamaService,
     llm_service_factory,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/login/access-token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/login/swagger")
 
 ollama_service = llm_service_factory()
 

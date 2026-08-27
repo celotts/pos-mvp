@@ -8,9 +8,9 @@ services:
       - "5440:5432"
     volumes:
       - pos_db_data:/var/lib/postgresql/data
-      - ./V1__initial_schema.sql:/docker-entrypoint-initdb.d/V1__initial_schema.sql
+      - ./sql:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -23,8 +23,8 @@ services:
       dockerfile: Dockerfile
       pull: true
     container_name: pos-api
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-    working_dir: /app/backend
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/backend/app
+    working_dir: /app/backend/app
     ports:
       - "8003:8000"
     volumes:
@@ -34,7 +34,7 @@ services:
     environment:
       - OLLAMA_BASE_URL=http://host.containers.internal:11434
       - LLM_MODEL=llama3.2:latest
-      - PYTHONPATH=/app:/app/backend:/app/backend/app
+      - PYTHONPATH=/app/backend/app:/app/backend:/app
     extra_hosts:
       - "host.containers.internal:host-gateway"
       - "host.docker.internal:host-gateway"
