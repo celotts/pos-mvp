@@ -31,6 +31,7 @@ from api.endpoints import (
 )
 from fastapi import APIRouter, FastAPI
 from initial_data import init_db
+from utils.logger import logger
 
 
 @asynccontextmanager
@@ -39,9 +40,10 @@ async def lifespan(app: FastAPI):
     Gestiona los eventos de inicio y apagado de la aplicación.
     Aquí se ejecuta la inicialización de la base de datos para crear las tablas.
     """
+    logger.info("Iniciando aplicación y comprobando base de datos...")
     await init_db()
     yield
-    # Aquí se puede añadir lógica de limpieza al apagar la aplicación
+    logger.info("Apagando aplicación...")
 
 
 app = FastAPI(

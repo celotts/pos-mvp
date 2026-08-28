@@ -17,9 +17,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from .agent_tools import (
-    get_product_kardex,
-    get_purchases_summary,
-    get_sales_summary,
+    analyze_sales_margins,
+    get_inventory_health_metrics,
 )
 
 logger = logging.getLogger(__name__)
@@ -39,13 +38,12 @@ class AIService:
             temperature=0,
         )
         self.agent_tools: list[Any] = [
-            get_sales_summary,
-            get_purchases_summary,
-            get_product_kardex,
+            analyze_sales_margins,
+            get_inventory_health_metrics,
         ]
         self.agent_system_prompt = (
             "Eres un analista de inventarios y compras para un sistema POS. "
-            "DEBES invocar tus herramientas (get_sales_summary, get_purchases_summary, get_product_kardex) "
+            "DEBES invocar tus herramientas (analyze_sales_margins, get_inventory_health_metrics) "
             "para consultar la base de datos antes de dar una respuesta o sugerencia de compra."
         )
         self.agent_executor = create_agent(
