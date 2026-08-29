@@ -44,7 +44,6 @@ pos-mvp/
         │   ├── db.py
         │   └── security.py
         ├── models/
-        ├── modules/
         ├── schemas/
         ├── dependencies.py
         ├── initial_data.py

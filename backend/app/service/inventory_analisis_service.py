@@ -29,7 +29,8 @@ class InventoryAnalysisService:
         self.db = db
 
     async def get_agent_suggestion(self, query: str) -> str:
-        return await self.llm_service.get_purchase_suggestion(query)
+        # Transfiere self.db a ai_service / OllamaService
+        return await self.llm_service.get_purchase_suggestion(db=self.db, query=query)
 
     async def get_purchase_suggestions(self) -> PurchaseSuggestionsResponse:
         """Devuelve el análisis estructurado y un resumen ejecutivo opcional."""

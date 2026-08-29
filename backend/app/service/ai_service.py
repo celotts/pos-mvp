@@ -64,17 +64,20 @@ class AIService:
             await self._client.aclose()
 
     # --- MÉTODO DEL AGENTE REFACTORIZADO ---
-    async def get_purchase_suggestion(self, query: str) -> str:
-        """Ejecuta el Agente de Inteligencia para analizar datos de inventario y dar sugerencias."""
+    async def get_purchase_suggestion(self, db: AsyncSession, query: str) -> str:
+        """Ejecuta el Agente de Inteligencia pasando la sesión 'db' inyectada a las tools."""
         try:
+            # Pasa 'db' dentro del contexto para que InjectedToolArg la reconozca
             result = await self.agent_executor.ainvoke(
-                {
+                input={
                     "messages": [
                         SystemMessage(content=self.agent_system_prompt),
                         ("user", query),
                     ]
-                }
+                },
+                config={"configurable": {"db": db}},  # Inyección de la sesión activa
             )
+
             messages = result.get("messages")
             if not messages:
                 raise KeyError("messages")

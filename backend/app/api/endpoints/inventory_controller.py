@@ -30,6 +30,7 @@ async def get_purchase_suggestion(
     inventory_service: InventoryAnalysisServiceDep,
     query: str = "Analiza las ventas y compras para sugerir reabastecimiento",
 ):
+    # inventory_service ya incluye self.db gracias a la inyección de dependencias
     response = await inventory_service.get_agent_suggestion(query)
     return {"suggestion": response}
 
