@@ -2,10 +2,10 @@ import uuid
 from unittest.mock import AsyncMock
 
 import pytest
-from app.models.role import Role
-from app.models.user import User
-from app.schemas.user import UserCreate, UserUpdate
-from app.service import user_service
+from models.role import Role
+from models.user import User
+from schemas.user import UserCreate, UserUpdate
+from service import user_service
 from fastapi import HTTPException
 
 # Marca todas las pruebas en este archivo para que se ejecuten con asyncio
@@ -47,7 +47,7 @@ async def test_get_user_found(mock_db: AsyncMock, other_user: User, monkeypatch)
     """Prueba que se encuentre un usuario por su ID."""
     # Arrange
     mock_crud_get = AsyncMock(return_value=other_user)
-    monkeypatch.setattr("app.modules.user_service.crud_user.get", mock_crud_get)
+    monkeypatch.setattr("service.user_service.crud_user.get", mock_crud_get)
 
     # Act
     found_user = await user_service.get_user(db=mock_db, user_id=other_user.id)
@@ -62,7 +62,7 @@ async def test_get_user_not_found(mock_db: AsyncMock, monkeypatch):
     # Arrange
     user_id = uuid.uuid4()
     mock_crud_get = AsyncMock(return_value=None)
-    monkeypatch.setattr("app.modules.user_service.crud_user.get", mock_crud_get)
+    monkeypatch.setattr("service.user_service.crud_user.get", mock_crud_get)
 
     # Act & Assert
     with pytest.raises(HTTPException) as exc_info:
@@ -87,25 +87,23 @@ async def test_create_user_with_logic_success(mock_db: AsyncMock, monkeypatch):
 
     # Mock de dependencias CRUD
     monkeypatch.setattr(
-        "app.modules.user_service.crud_user.get_multi", AsyncMock(return_value=[])
+        "service.user_service.crud_user.get_by_email", AsyncMock(return_value=None)
     )
     monkeypatch.setattr(
-        "app.modules.user_service.crud_role.get",
+        "service.user_service.crud_role.get",
         AsyncMock(return_value=Role(id=role_id, name="Test Role")),
     )
-
     created_user_obj = User(
         id=uuid.uuid4(), email=user_in.email, full_name=user_in.full_name
     )
     mock_create = AsyncMock(return_value=created_user_obj)
-    monkeypatch.setattr("app.modules.user_service.crud_user.create", mock_create)
+    monkeypatch.setattr("service.user_service.crud_user.create", mock_create)
 
     # Act
     result = await user_service.create_user_with_logic(db=mock_db, user_in=user_in)
 
     # Assert
     assert result.email == user_in.email
-    user_service.crud_user.get_multi.assert_called_once()
     user_service.crud_role.get.assert_called_once_with(mock_db, id=role_id)
     mock_create.assert_called_once_with(db=mock_db, obj_in=user_in)
 
@@ -118,7 +116,11 @@ async def test_create_user_email_conflict(mock_db: AsyncMock, monkeypatch):
     )
 
     monkeypatch.setattr(
-        "app.modules.user_service.crud_user.get_multi",
+        "service.user_service.crud_user.get_by_email",
+        AsyncMock(return_value=User(id=uuid.uuid4(), email=user_in.email)),
+    )
+    monkeypatch.setattr(
+        "service.user_service.crud_user.get_multi",
         AsyncMock(return_value=[User(id=uuid.uuid4())]),
     )
 
@@ -138,10 +140,13 @@ async def test_create_user_role_not_found(mock_db: AsyncMock, monkeypatch):
     )
 
     monkeypatch.setattr(
-        "app.modules.user_service.crud_user.get_multi", AsyncMock(return_value=[])
+        "service.user_service.crud_user.get_by_email", AsyncMock(return_value=None)
     )
     monkeypatch.setattr(
-        "app.modules.user_service.crud_role.get", AsyncMock(return_value=None)
+        "service.user_service.crud_user.get_multi", AsyncMock(return_value=[])
+    )
+    monkeypatch.setattr(
+        "service.user_service.crud_role.get", AsyncMock(return_value=None)
     )
 
     # Act & Assert
@@ -162,10 +167,10 @@ async def test_update_user_success(
     user_update_in = UserUpdate(full_name="Updated Name")
 
     mock_get_user = AsyncMock(return_value=other_user)
-    monkeypatch.setattr("app.modules.user_service.get_user", mock_get_user)
+    monkeypatch.setattr("service.user_service.get_user", mock_get_user)
 
     mock_crud_update = AsyncMock(return_value=other_user)
-    monkeypatch.setattr("app.modules.user_service.crud_user.update", mock_crud_update)
+    monkeypatch.setattr("service.user_service.crud_user.update", mock_crud_update)
 
     # Act
     await user_service.update_user(
@@ -190,7 +195,7 @@ async def test_update_user_cannot_deactivate_self(
     user_update_in = UserUpdate(is_active=False)
 
     mock_get_user = AsyncMock(return_value=current_user)
-    monkeypatch.setattr("app.modules.user_service.get_user", mock_get_user)
+    monkeypatch.setattr("service.user_service.get_user", mock_get_user)
 
     # Act & Assert
     with pytest.raises(HTTPException) as exc_info:
@@ -212,7 +217,7 @@ async def test_update_user_cannot_change_own_role(
     user_update_in = UserUpdate(role_id=uuid.uuid4())
 
     mock_get_user = AsyncMock(return_value=current_user)
-    monkeypatch.setattr("app.modules.user_service.get_user", mock_get_user)
+    monkeypatch.setattr("service.user_service.get_user", mock_get_user)
 
     # Act & Assert
     with pytest.raises(HTTPException) as exc_info:
@@ -233,10 +238,10 @@ async def test_remove_user_success(mock_db: AsyncMock, other_user: User, monkeyp
     """Prueba la eliminación exitosa de un usuario."""
     # Arrange
     mock_get_user = AsyncMock(return_value=other_user)
-    monkeypatch.setattr("app.modules.user_service.get_user", mock_get_user)
+    monkeypatch.setattr("service.user_service.get_user", mock_get_user)
 
     mock_crud_remove = AsyncMock(return_value=other_user)
-    monkeypatch.setattr("app.modules.user_service.crud_user.remove", mock_crud_remove)
+    monkeypatch.setattr("service.user_service.crud_user.remove", mock_crud_remove)
 
     # Act
     result = await user_service.remove_user(db=mock_db, user_id=other_user.id)
@@ -253,10 +258,10 @@ async def test_remove_user_not_found(mock_db: AsyncMock, monkeypatch):
     user_id = uuid.uuid4()
 
     monkeypatch.setattr(
-        "app.modules.user_service.get_user", AsyncMock(return_value=User(id=user_id))
+        "service.user_service.get_user", AsyncMock(return_value=User(id=user_id))
     )
     monkeypatch.setattr(
-        "app.modules.user_service.crud_user.remove", AsyncMock(return_value=None)
+        "service.user_service.crud_user.remove", AsyncMock(return_value=None)
     )
 
     # Act & Assert

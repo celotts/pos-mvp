@@ -1,7 +1,7 @@
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from services.ai_service import AIService
+from service.ai_service import AIService
 
 
 @pytest.fixture
@@ -17,6 +17,7 @@ async def test_get_embedding_success(ai_service, monkeypatch):
     mock_response.json.return_value = {"embedding": [0.1, 0.2, 0.3]}
 
     mock_client = AsyncMock()
+    mock_client.is_closed = False
     mock_client.post.return_value = mock_response
 
     monkeypatch.setattr(ai_service, "_client", mock_client)

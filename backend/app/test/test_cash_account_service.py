@@ -2,10 +2,10 @@ import uuid
 from unittest.mock import AsyncMock
 
 import pytest
-from app.models.cash_account import CashAccount, CashAccountType
-from app.models.user import User
-from app.schemas.cash_account import CashAccountCreate
-from app.service import cash_account_service
+from models.cash_account import CashAccount, CashAccountType
+from models.user import User
+from schemas.cash_account import CashAccountCreate
+from service import cash_account_service
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 
@@ -36,7 +36,6 @@ def sample_cash_account(current_user: User) -> CashAccount:
         id=uuid.uuid4(),
         name="Test Bank Account",
         account_type=CashAccountType.BANK,
-        created_by=current_user.id,
     )
 
 
@@ -56,7 +55,7 @@ async def test_create_cash_account_success(
         return_value=CashAccount(id=uuid.uuid4(), **account_in.model_dump())
     )
     monkeypatch.setattr(
-        "app.modules.cash_account_service.crud_cash_account.create",
+        "service.cash_account_service.crud_cash_account.create",
         mock_crud_create,
     )
 
@@ -90,7 +89,7 @@ async def test_create_cash_account_name_conflict(
         side_effect=IntegrityError("mock error", "mock params", "mock orig")
     )
     monkeypatch.setattr(
-        "app.modules.cash_account_service.crud_cash_account.create",
+        "service.cash_account_service.crud_cash_account.create",
         mock_crud_create,
     )
 
@@ -114,7 +113,7 @@ async def test_get_cash_account_found(
     # Arrange
     mock_crud_get = AsyncMock(return_value=sample_cash_account)
     monkeypatch.setattr(
-        "app.modules.cash_account_service.crud_cash_account.get", mock_crud_get
+        "service.cash_account_service.crud_cash_account.get", mock_crud_get
     )
 
     # Act
@@ -133,7 +132,7 @@ async def test_get_cash_account_not_found(mock_db: AsyncMock, monkeypatch):
     non_existent_id = uuid.uuid4()
     mock_crud_get = AsyncMock(return_value=None)
     monkeypatch.setattr(
-        "app.modules.cash_account_service.crud_cash_account.get", mock_crud_get
+        "service.cash_account_service.crud_cash_account.get", mock_crud_get
     )
 
     # Act & Assert

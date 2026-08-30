@@ -22,5 +22,8 @@ class StateProvinceService:
         db_obj = await self.crud.get(db, id)
         return await self.crud.update(db, db_obj=db_obj, obj_in=obj_in)
 
+    async def delete(self, db: Session, *, id: UUID):
+        return await self.crud.remove(db, id=id)
+
 
 state_province_service = StateProvinceService()

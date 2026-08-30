@@ -23,5 +23,8 @@ class MunicipalityService:
             db, db_obj=await self.get_by_id(db, id), obj_in=obj_in
         )
 
+    async def delete(self, db: Session, *, id: UUID):
+        return await self.crud.remove(db, id=id)
+
 
 municipality_service = MunicipalityService()

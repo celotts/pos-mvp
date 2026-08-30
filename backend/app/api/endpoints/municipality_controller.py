@@ -11,7 +11,7 @@ from schemas.municipality import (
     MunicipalityCreate,
     MunicipalityUpdate,
 )
-from service import municipality_service
+from service.municipality_service import municipality_service
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["Municipalities"])
@@ -34,9 +34,7 @@ async def create_municipality(
     current_user: UserModel = current_admin_user_dependency,
 ) -> Any:
     """Creates a new municipality, associated with a state/province."""
-    municipality = await municipality_service.create_municipality(
-        db=db, municipality_in=municipality_in, current_user=current_user
-    )
+    municipality = await municipality_service.create(db=db, obj_in=municipality_in)
     return create_api_response(
         data=municipality,
         status_code=status.HTTP_201_CREATED,
@@ -55,9 +53,7 @@ async def read_municipalities(
     limit: int = 100,
 ) -> Any:
     """Gets a paginated list of municipalities."""
-    municipalities = await municipality_service.get_municipalities(
-        db, skip=skip, limit=limit
-    )
+    municipalities = await municipality_service.get_all(db, skip=skip, limit=limit)
     return create_api_response(data=municipalities)
 
 
@@ -72,8 +68,8 @@ async def read_municipality(
     db: AsyncSession = db_dependency,
 ) -> Any:
     """Gets a specific municipality by its ID."""
-    municipality = await municipality_service.get_municipality(
-        db, municipality_id=municipality_id
+    municipality = await municipality_service.get_by_id(
+        db, id=municipality_id
     )
     return create_api_response(data=municipality)
 
@@ -91,11 +87,8 @@ async def update_municipality(
     current_user: UserModel = current_admin_user_dependency,
 ) -> Any:
     """Updates a municipality by its ID."""
-    updated_municipality = await municipality_service.update_municipality(
-        db=db,
-        municipality_id=municipality_id,
-        municipality_in=municipality_in,
-        current_user=current_user,
+    updated_municipality = await municipality_service.update(
+        db=db, id=municipality_id, obj_in=municipality_in
     )
     return create_api_response(
         data=updated_municipality, message="Municipality updated successfully."
@@ -114,8 +107,8 @@ async def delete_municipality(
     current_user: UserModel = current_admin_user_dependency,
 ) -> Any:
     """Deletes a municipality by its ID."""
-    deleted_municipality = await municipality_service.remove_municipality(
-        db, municipality_id=municipality_id
+    deleted_municipality = await municipality_service.delete(
+        db, id=municipality_id
     )
     return create_api_response(
         data=deleted_municipality, message="Municipality deleted successfully."
