@@ -8,9 +8,8 @@ from pydantic import BaseModel, EmailStr
 class CustomerBase(BaseModel):
     full_name: str | None = None
     email: EmailStr | None = None
-    phone_number: str | None = None
+    phone: str | None = None
     address: str | None = None
-    rfc: str | None = None
 
 
 # Propiedades requeridas al crear un cliente
@@ -26,7 +25,6 @@ class CustomerUpdate(CustomerBase):
 # Propiedades almacenadas en la base de datos
 class CustomerInDBBase(CustomerBase):
     id: uuid.UUID
-    created_at: datetime
 
     class Config:
         from_attributes = True

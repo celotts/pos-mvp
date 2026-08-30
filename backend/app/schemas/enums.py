@@ -21,6 +21,7 @@ class PaymentStatus(str, Enum):
 class PurchaseStatus(str, Enum):
     PENDING = "PENDING"
     RECEIVED = "RECEIVED"
+    COMPLETED = "COMPLETED"
     CANCELLED = "CANCELLED"
 
 

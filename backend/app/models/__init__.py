@@ -36,7 +36,8 @@ from .pos_terminal import PosTerminal
 from .product import Product
 from .purchase import Purchase, PurchaseItem
 from .role import Role
-from .sale import Sale, SaleItem
+from .sale import Sale
+from .sale_item import SaleItem
 from .sales_vector import SalesVector
 from .shift import Shift
 from .specialty import Specialty

@@ -1,3 +1,8 @@
 venv/
 .venv/
 __pycache__/
+*.py[cod]
+.env
+.env.*
+backend/config.json
+probar_api.sh

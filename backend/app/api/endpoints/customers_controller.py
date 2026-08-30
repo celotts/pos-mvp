@@ -2,7 +2,7 @@ import uuid
 
 from api.deps_auth import get_current_admin_user
 from api.response_factory import ApiResponse, create_api_response
-from core import crud_customer
+from core.crud_customer import crud_customer
 from dependencies import get_current_user, get_db
 from fastapi import APIRouter, Depends, HTTPException, status
 from models.user import User as UserModel
@@ -27,9 +27,7 @@ async def create_customer(
     current_user: UserModel = current_admin_user_dependency,
 ) -> ApiResponse[Customer]:
     """Create a new customer. For administrators only."""
-    customer = await crud_customer.create_customer(
-        db=db, customer_in=customer_in, user_id=current_user.id
-    )
+    customer = await crud_customer.create(db=db, obj_in=customer_in)
     return create_api_response(
         data=customer,
         status_code=status.HTTP_201_CREATED,
@@ -45,7 +43,7 @@ async def read_customers(
     limit: int = 100,
 ) -> ApiResponse[list[Customer]]:
     """Get a list of customers."""
-    customers = await crud_customer.get_customers(db, skip=skip, limit=limit)
+    customers = await crud_customer.get_multi(db, skip=skip, limit=limit)
     return create_api_response(data=customers)
 
 
@@ -57,7 +55,7 @@ async def read_customer(
     current_user: UserModel = current_user_dependency,
 ) -> ApiResponse[Customer]:
     """Get a customer by its ID."""
-    customer = await crud_customer.get_customer(db, customer_id=customer_id)
+    customer = await crud_customer.get(db, id=customer_id)
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found.")
     return create_api_response(data=customer)
@@ -72,11 +70,11 @@ async def update_customer(
     current_user: UserModel = current_admin_user_dependency,
 ) -> ApiResponse[Customer]:
     """Update a customer. For administrators only."""
-    db_customer = await crud_customer.get_customer(db, customer_id=customer_id)
+    db_customer = await crud_customer.get(db, id=customer_id)
     if not db_customer:
         raise HTTPException(status_code=404, detail="Customer not found.")
-    customer = await crud_customer.update_customer(
-        db=db, db_customer=db_customer, customer_in=customer_in, user_id=current_user.id
+    customer = await crud_customer.update(
+        db=db, db_obj=db_customer, obj_in=customer_in
     )
     return create_api_response(data=customer, message="Customer updated successfully.")
 
@@ -89,7 +87,7 @@ async def delete_customer(
     current_user: UserModel = current_admin_user_dependency,
 ) -> ApiResponse[Customer]:
     """Delete a customer. For administrators only."""
-    customer = await crud_customer.remove_customer(db, customer_id=customer_id)
+    customer = await crud_customer.remove(db, id=customer_id)
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found.")
     return create_api_response(data=customer, message="Customer deleted successfully.")

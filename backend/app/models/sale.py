@@ -1,19 +1,12 @@
-# /Users/carloslott/develop/python/pos-mvp/backend/app/models/sale.py
+# /backend/app/models/sale.py
 import uuid
 from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING, Optional
 
 from core.db import Base
-from sqlalchemy import (
-    DateTime,
-    ForeignKey,
-    Numeric,
-    func,
-)
-from sqlalchemy import (
-    Enum as SQLAlchemyEnum,
-)
+from sqlalchemy import DateTime, ForeignKey, Numeric, func
+from sqlalchemy import Enum as SQLAlchemyEnum
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -21,7 +14,7 @@ if TYPE_CHECKING:
     from .accounts_receivable import AccountsReceivable
     from .customer import Customer
     from .pos_terminal import PosTerminal
-    from .product import Product
+    from .sale_item import SaleItem  # <-- AGREGADO
     from .sales_vector import SalesVector
     from .shift import Shift
     from .store import Store
@@ -72,7 +65,7 @@ class Sale(Base):
     )
     customer_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("customers.id"), nullable=True
-    )  # A sale can be to an anonymous customer
+    )
     shift_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("shifts.id"), nullable=True
     )
@@ -90,10 +83,8 @@ class Sale(Base):
     items: Mapped[list["SaleItem"]] = relationship(
         "SaleItem", back_populates="sale", cascade="all, delete-orphan"
     )
-    accounts_receivable: Mapped[  # This line was already correct
-        Optional["AccountsReceivable"]
-    ] = (  # This line was already correct
-        relationship("AccountsReceivable", back_populates="sale", uselist=False)
+    accounts_receivable: Mapped[Optional["AccountsReceivable"]] = relationship(
+        "AccountsReceivable", back_populates="sale", uselist=False
     )
     sales_vectors: Mapped[list["SalesVector"]] = relationship(
         "SalesVector", back_populates="sale", cascade="all, delete-orphan"
@@ -103,24 +94,4 @@ class Sale(Base):
         return f"<Sale(id={self.id}, total_amount={self.total_amount})>"
 
 
-class SaleItem(Base):
-    __tablename__ = "sale_items"
-
-    id: Mapped[uuid.UUID] = mapped_column(
-        PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
-    quantity: Mapped[int] = mapped_column(nullable=False)
-    price_at_sale: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
-
-    # Foreign Keys
-    sale_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("sales.id"), nullable=False)
-    product_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("products.id"), nullable=False
-    )
-
-    # Relationships
-    sale: Mapped["Sale"] = relationship("Sale", back_populates="items")
-    product: Mapped["Product"] = relationship("Product", back_populates="sale_items")
-
-    def __repr__(self):
-        return f"<SaleItem(product_id={self.product_id}, quantity={self.quantity})>"
+# SE ELIMINÓ LA CLASE SaleItem DE AQUÍ

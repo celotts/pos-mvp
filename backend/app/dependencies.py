@@ -1,21 +1,22 @@
 from functools import lru_cache
 from typing import Annotated
 
+from core.config import settings
 from core.crud_user import crud_user
 from core.db import get_db
 from core.security import decode_access_token
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from models.user import User
-from modules.inventory_analisis_service import InventoryAnalysisService
-from modules.llm_service import (
+from service.inventory_analisis_service import InventoryAnalysisService
+from service.llm_service import (
     AbstractLLMService,
     OllamaService,
     llm_service_factory,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/login/access-token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/login/swagger")
 
 ollama_service = llm_service_factory()
 
@@ -52,9 +53,9 @@ def get_llm_service() -> AbstractLLMService:
     del entorno (settings.LLM_PROVIDER). `lru_cache` asegura que la factory
     solo se ejecute una vez, creando un singleton del servicio para la aplicación.
     """
-    ollama_base_url = "http://localhost:8080"  # Ajusta la URL según tu configuración
-    model_name = "ollama-model"  # Ajusta el nombre del modelo según tu configuración
-    return OllamaService(ollama_base_url, model_name)
+    return OllamaService(
+        ollama_base_url=settings.OLLAMA_BASE_URL, model_name=settings.LLM_MODEL
+    )
 
 
 LLMServiceDep = Annotated[AbstractLLMService, Depends(get_llm_service)]

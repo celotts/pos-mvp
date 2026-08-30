@@ -1,20 +1,30 @@
+# core/config.py
 import sys
+from pathlib import Path
 
 from pydantic import EmailStr, PostgresDsn, ValidationError, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+ENV_FILE_PATH = BASE_DIR / ".env"
+
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file_encoding="utf-8", case_sensitive=False)
+    model_config = SettingsConfigDict(
+        # Inyecta las variables de entorno del contenedor si .env no está presente
+        env_file=ENV_FILE_PATH if ENV_FILE_PATH.exists() else None,
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
+    )
 
-    # PostgreSQL connection settings from .env
-    POSTGRES_HOST: str
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str
-    POSTGRES_DB: str
+    # PostgreSQL settings
+    POSTGRES_HOST: str = "pos-db"
+    POSTGRES_USER: str = "product"
+    POSTGRES_PASSWORD: str = "product123"
+    POSTGRES_DB: str = "pos_db"
     POSTGRES_PORT: int = 5432
 
-    # Assembled database URL, built from the components above
     @computed_field
     @property
     def DATABASE_URL(self) -> str:
@@ -30,23 +40,22 @@ class Settings(BaseSettings):
         )
 
     # Credenciales para el primer superusuario
-    FIRST_SUPERUSER_EMAIL: EmailStr
-    FIRST_SUPERUSER_PASSWORD: str
-    FIRST_SUPERUSER_FULL_NAME: str
+    FIRST_SUPERUSER_EMAIL: EmailStr = "admin@posAdmin.com"
+    FIRST_SUPERUSER_PASSWORD: str = "PasswordPasAdmin123!"
+    FIRST_SUPERUSER_FULL_NAME: str = "Admin"
 
-    # IA Settings (made optional to allow tests to run without them)
-    # LLM Provider to use ('ollama', 'stub', etc.)
+    # IA Settings (Valores predeterminados corregidos)
     LLM_PROVIDER: str = "ollama"
+    OLLAMA_BASE_URL: str = "http://host.containers.internal:11434"
+    LLM_MODEL: str = "llama3.2:latest"
+    EMBEDDING_MODEL: str = "nomic-embed-text:latest"
+    EMBEDDING_DIM: int = 768  # Dimensión de nomic-embed-text
 
-    OLLAMA_BASE_URL: str | None = None
-    LLM_MODEL: str | None = None
-    EMBEDDING_MODEL: str | None = None
+    # JWT Settings
+    SECRET_KEY: str = "d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5"
+    ACCESS_TOKEN_EXPIRE_SECONDS: int = 90000
 
-    # Clave secreta y tiempo de expiración del token en segundos
-    SECRET_KEY: str
-    ACCESS_TOKEN_EXPIRE_SECONDS: int = 90000  # 25 horas por defecto
-
-    # System roles that cannot be modified or deleted.
+    # System roles
     PROTECTED_ROLES: set[str] = {"SUPER_ADMIN", "ADMIN"}
 
 
@@ -57,6 +66,6 @@ except ValidationError as e:
     print("Faltan o son inválidas las siguientes variables en tu archivo .env:")
     for error in e.errors():
         field = " -> ".join(str(loc) for loc in error["loc"])
-        print(f"   • {field}: {error['msg']}")
+        print(f"    • {field}: {error['msg']}")
     print("\nPor favor, actualiza tu archivo .env y vuelve a iniciar la aplicación.\n")
     sys.exit(1)

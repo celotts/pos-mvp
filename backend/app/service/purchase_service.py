@@ -1,10 +1,13 @@
 from decimal import Decimal
+from typing import Any
 
 from fastapi import HTTPException, status
 from models.product import Product
 from models.purchase import Purchase, PurchaseItem
 from schemas.purchase import PurchaseCreate, PurchaseUpdate
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from .base_service import CRUDService
 
@@ -13,6 +16,27 @@ class PurchaseService(CRUDService[Purchase, PurchaseCreate, PurchaseUpdate]):
     """
     Servicio para las operaciones CRUD de Compras con lógica de negocio extendida.
     """
+
+    async def get(self, db: AsyncSession, id: Any) -> Purchase | None:
+        query = (
+            select(self.model)
+            .where(self.model.id == id)
+            .options(selectinload(Purchase.items))
+        )
+        result = await db.execute(query)
+        return result.scalars().first()
+
+    async def get_all(
+        self, db: AsyncSession, *, skip: int = 0, limit: int = 100
+    ) -> list[Purchase]:
+        query = (
+            select(self.model)
+            .offset(skip)
+            .limit(limit)
+            .options(selectinload(Purchase.items))
+        )
+        result = await db.execute(query)
+        return result.scalars().all()
 
     async def create(self, db: AsyncSession, *, obj_in: PurchaseCreate) -> Purchase:
         """
