@@ -2,15 +2,22 @@
 
 > **DIRECTIVA PRIMARIA PARA EL AGENTE DE IA:**
 >
-> 1. Queda **ESTRICTAMENTE PROHIBIDO** alterar la estructura de carpetas existente, refactorizar archivos funcionando sin autorización explícita o introducir código especulativo/no solicitado.
-> 2. Cada respuesta debe ser directa, certera y alineada 100% con los patrones del proyecto. No agregues "mejoras" fuera del alcance de la solicitud actual.
+> 1. Queda **ESTRICTAMENTE PROHIBIDO** alterar la estructura de carpetas existente,
+>    refactorizar archivos funcionando sin autorización explícita o introducir código
+>    especulativo/no solicitado.
+> 2. Cada respuesta debe ser directa, certera y alineada 100% con los patrones del
+>    proyecto. No agregues "mejoras" fuera del alcance de la solicitud actual.
 >
 >
 > ---
 
 ## 1. Contexto General del Proyecto
 
-**pos-API** es un backend en Python encargado de gestionar las operaciones centrales de un sistema Punto de Venta (POS). Posee un módulo especializado de **IA y Agentes** para interactuar con la base de datos (SQL dinámico/RAG con `pgvector`), generar análisis de inventario/ventas en tiempo real y ejecutar tareas operativas vía llamadas a herramientas (*Tool Calling*).
+**pos-API** es un backend en Python encargado de gestionar las operaciones centrales de un
+sistema Punto de Venta (POS). Posee un módulo especializado de **IA y Agentes** para
+interactuar con la base de datos (SQL dinámico/RAG con `pgvector`), generar análisis de
+inventario/ventas en tiempo real y ejecutar tareas operativas vía llamadas a herramientas
+(*Tool Calling*).
 
 ---
 
@@ -27,7 +34,9 @@
 
 ## 3. Estructura Real del Repositorio (INMUTABLE)
 
-El agente debe **respetar y mantener esta estructura exacta**. Queda prohibido crear carpetas alternativas (como `app/` o `infrastructure/`) o mover archivos de sus directorios actuales.
+El agente debe **respetar y mantener esta estructura exacta**. Queda prohibido crear
+carpetas alternativas (como `app/` o `infrastructure/`) o mover archivos de sus
+directorios actuales.
 
 ```text
 .

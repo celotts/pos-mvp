@@ -7,7 +7,7 @@
 ## A. Configuración que se cambia SOLO al pasar a producción
 
 | # | Tema | Valor actual (dev) | Para producción | Dónde |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | 1 | Expiración de token JWT | 90000 s (≈ 25 h) | 900–3600 s + **refresh token** | `core/config.py` · `core/security.py` |
 | 2 | CORS | sin configurar (proxy del dev server) | Allowlist de dominios del front | `backend/app/main.py` |
 | 3 | Swagger `/docs` | abierto | `docs_url=False` (o protegido con auth) | `backend/app/main.py` |
@@ -31,7 +31,7 @@
 ## C. Mejoras estructurales (hacer en un sprint dedicado antes de producción)
 
 | # | Tema | Beneficio | Esfuerzo |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 1 | **Alembic** (migraciones versionadas) en lugar de `create_all` + parches idempotentes | Cambios de schema seguros sobre datos existentes | Medio |
 | 2 | **RBAC por permiso** (tabla `permissions` + `role_permissions` + guards `can:create:sale`) en vez de solo rol admin vs no-admin | Control fino de acceso | Medio-alto |
 | 3 | **Refresh token** con rotación + revocación (logout server-side / `token_version` por usuario) | Tokens comprometidos limitados a minutos | Medio |

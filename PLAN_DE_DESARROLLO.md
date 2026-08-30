@@ -12,6 +12,7 @@ cross-selling, stock-out) y gestión administrativa, todo guiado por roles.
 usuarios con roles y políticas de seguridad.
 
 ### Entregado
+
 - Modelo de datos completo (usuarios, roles, tiendas, categorías, productos,
   proveedores, clientes, ventas, compras, inventario) en `script_data/`.
 - CRUD genérico (`core/crud_base.py`) + servicios y controllers por entidad.
@@ -23,6 +24,7 @@ usuarios con roles y políticas de seguridad.
 - Suite de tests: **49 passed / 10 skipped / 0 failed**.
 
 ### Verificación
+
 ```bash
 cd backend
 make up          # o podman-compose up -d
@@ -35,6 +37,7 @@ podman-compose exec -T pos-api python -m pytest test/ -q
 con Vite + React 18 + TypeScript + Tailwind CSS.
 
 ### Arquitectura
+
 - **Menú dinámico por rol**: `front/src/menu/menu.json` define las secciones y
   los roles que pueden verlas. El sidebar y las rutas se filtran por el rol del
   usuario; acceso directo por URL a una sección no permitida → página 403.
@@ -44,8 +47,9 @@ con Vite + React 18 + TypeScript + Tailwind CSS.
   desde el JSON; layout responsivo con sidebar plegable en móvil.
 
 ### Componentes
+
 | Ruta | Componente | Estado |
-|---|---|---|
+| --- | --- | --- |
 | `/login` | `LoginPage` | Listo (bloqueo 3 intentos integrado) |
 | `/dashboard` | `DashboardPage` | Listo (resumen) |
 | `/…secciones…` | `SectionPage` (placeholder de formulario) | Esqueleto |
@@ -53,13 +57,15 @@ con Vite + React 18 + TypeScript + Tailwind CSS.
 | `*` | `NotFoundPage` | Listo |
 
 ### Pendiente (Fase 2)
+
 - Reemplazar los `SectionPage` placeholder por formularios reales por módulo
   (listado + alta/edición/baja conectados a la API).
 - Dashboard con métricas reales (ventas hoy, ingresos, compras, catálogo).
 - Módulo de analítica: market basket, cross-selling y detección de stock-out.
 - Integración con el asistente de IA del backend.
 
-### Verificación
+### Verificación (frontend)
+
 ```bash
 cd front
 npm install
@@ -68,9 +74,11 @@ npm run build      # typecheck + bundle de producción
 ```
 
 ## Credenciales de prueba
+
 - Superusuario: `admin@posAdmin.com` / `PasswordPasAdmin123!`
 
 ## Próximos pasos
+
 1. Formularios reales por módulo (empezar por catálogo de productos).
 2. Roles de prueba `ADMIN` para validar el filtrado de menú y los 403.
 3. Compatibilidad del frontend con el despliegue (variables de entorno).
