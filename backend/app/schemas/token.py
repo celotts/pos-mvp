@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from .user import User
+from .user import UserWithRole
 
 
 class Token(BaseModel):
@@ -15,4 +15,4 @@ class TokenData(BaseModel):
 
     access_token: str
     token_type: str
-    user: User
+    user: UserWithRole

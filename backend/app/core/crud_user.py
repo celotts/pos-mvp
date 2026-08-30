@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from core.crud_base import CRUDBase
@@ -34,6 +35,36 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         if not verify_password(password, user.password):
             return None
         return user
+
+    async def register_failed_attempt(
+        self,
+        db: AsyncSession,
+        *,
+        db_obj: User,
+        max_attempts: int,
+        lock_seconds: int,
+    ) -> User:
+        """Incrementa los intentos fallidos y bloquea la cuenta al alcanzar el máximo."""
+        db_obj.failed_login_attempts = (db_obj.failed_login_attempts or 0) + 1
+        if db_obj.failed_login_attempts >= max_attempts:
+            db_obj.locked_until = datetime.now(timezone.utc) + timedelta(
+                seconds=lock_seconds
+            )
+        db.add(db_obj)
+        await db.commit()
+        await db.refresh(db_obj)
+        return db_obj
+
+    async def reset_failed_attempts(
+        self, db: AsyncSession, *, db_obj: User
+    ) -> User:
+        """Limpia los intentos fallidos tras un login correcto."""
+        db_obj.failed_login_attempts = 0
+        db_obj.locked_until = None
+        db.add(db_obj)
+        await db.commit()
+        await db.refresh(db_obj)
+        return db_obj
 
     async def create(self, db: AsyncSession, *, obj_in: UserCreate) -> User:
         db_obj = self.model(

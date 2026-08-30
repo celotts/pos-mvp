@@ -55,6 +55,10 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5"
     ACCESS_TOKEN_EXPIRE_SECONDS: int = 90000
 
+    # Login lockout (bloqueo por intentos fallidos)
+    MAX_LOGIN_ATTEMPTS: int = 3
+    LOGIN_LOCKOUT_SECONDS: int = 3600
+
     # System roles
     PROTECTED_ROLES: set[str] = {"SUPER_ADMIN", "ADMIN"}
 

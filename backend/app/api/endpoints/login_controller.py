@@ -1,14 +1,16 @@
 from typing import Annotated, Any
 
 from api.response_factory import ApiResponse, create_api_response
+from core.config import settings
 from core.crud_user import crud_user
 from core.security import create_access_token
 from dependencies import get_db
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from models.user import User as UserModel
 from pydantic import BaseModel, EmailStr
 from schemas.token import Token, TokenData
-from schemas.user import User as UserSchema
+from schemas.user import UserWithRole
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["Bootstrap & Auth"])
@@ -23,6 +25,68 @@ class UserLoginSchema(BaseModel):
     password: str
 
 
+def _build_user_with_role(user: UserModel) -> UserWithRole:
+    """Convierte un usuario ORM en el esquema enriquecido con su rol."""
+    return UserWithRole(
+        id=user.id,
+        email=user.email,
+        full_name=user.full_name,
+        is_active=user.is_active,
+        role_id=user.role_id,
+        role_name=user.role.name if user.role else "",
+    )
+
+
+def _credentials_error() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Incorrect email or password.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
+def _locked_error() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_423_LOCKED,
+        detail="The account is locked due to multiple failed login attempts.",
+    )
+
+
+async def _authenticate_with_lockout(
+    db: AsyncSession, *, email: str, password: str
+) -> UserModel:
+    """
+    Autentica un usuario aplicando la política de bloqueo por intentos fallidos:
+    - 3 intentos fallidos bloquean la cuenta durante LOGIN_LOCKOUT_SECONDS.
+    - Un login correcto reinicia el contador.
+    """
+    user = await crud_user.get_by_email(db, email=email)
+    if not user:
+        raise _credentials_error()
+    if user.is_locked:
+        raise _locked_error()
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The user account is inactive.",
+        )
+
+    authenticated = await crud_user.authenticate(db, email=email, password=password)
+    if not authenticated:
+        user = await crud_user.register_failed_attempt(
+            db,
+            db_obj=user,
+            max_attempts=settings.MAX_LOGIN_ATTEMPTS,
+            lock_seconds=settings.LOGIN_LOCKOUT_SECONDS,
+        )
+        if user.is_locked:
+            raise _locked_error()
+        raise _credentials_error()
+
+    await crud_user.reset_failed_attempts(db, db_obj=user)
+    return user
+
+
 @router.post(
     "/login/access-token",
     response_model=ApiResponse[TokenData],
@@ -33,29 +97,15 @@ async def login_access_token(
     login_data: UserLoginSchema,  # Lee payload JSON
     db: AsyncSessionDep,
 ) -> Any:
-    user = await crud_user.authenticate(
-        db,
-        email=login_data.username,
-        password=login_data.password,
+    user = await _authenticate_with_lockout(
+        db, email=login_data.username, password=login_data.password
     )
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The user account is inactive.",
-        )
 
     access_token = create_access_token(subject=str(user.id))
-    user_data = UserSchema.model_validate(user)
     token_data = {
         "access_token": access_token,
         "token_type": "bearer",
-        "user": user_data,
+        "user": _build_user_with_role(user),
     }
 
     return create_api_response(data=token_data, message="Authentication successful")
@@ -72,22 +122,9 @@ async def login_swagger(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],  # Lee Form Data
     db: AsyncSessionDep,
 ) -> Any:
-    user = await crud_user.authenticate(
-        db,
-        email=form_data.username,
-        password=form_data.password,
+    user = await _authenticate_with_lockout(
+        db, email=form_data.username, password=form_data.password
     )
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The user account is inactive.",
-        )
 
     access_token = create_access_token(subject=str(user.id))
     return {"access_token": access_token, "token_type": "bearer"}

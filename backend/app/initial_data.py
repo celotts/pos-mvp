@@ -125,6 +125,26 @@ async def _ensure_sales_vector_store_id(conn) -> None:
     logger.info("Columna store_id agregada a sales_vectors.")
 
 
+async def _ensure_login_lock_columns(conn) -> None:
+    """
+    Migración idempotente: agrega las columnas de bloqueo por intentos fallidos
+    de login a `users` en bases que ya existían antes.
+    """
+    await conn.execute(
+        text(
+            "ALTER TABLE users "
+            "ADD COLUMN IF NOT EXISTS failed_login_attempts INTEGER NOT NULL DEFAULT 0;"
+        )
+    )
+    await conn.execute(
+        text(
+            "ALTER TABLE users "
+            "ADD COLUMN IF NOT EXISTS locked_until TIMESTAMPTZ;"
+        )
+    )
+    logger.info("Columnas de bloqueo de login aseguradas en users.")
+
+
 async def init_db():
     """
     Initializes the database using SQLAlchemy's metadata to create all tables
@@ -144,6 +164,7 @@ async def init_db():
             await conn.run_sync(Base.metadata.create_all)
             await _ensure_cosine_vector_index(conn)
             await _ensure_sales_vector_store_id(conn)
+            await _ensure_login_lock_columns(conn)
             logger.info("Database schema created successfully.")
 
     except Exception as e:

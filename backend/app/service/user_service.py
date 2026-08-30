@@ -77,7 +77,15 @@ async def update_user(
                 detail="You cannot change your own role.",
             )
 
-    return await crud_user.update(db=db, db_obj=db_user, obj_in=user_in)
+    updated_user = await crud_user.update(db=db, db_obj=db_user, obj_in=user_in)
+
+    # Al reactivar la cuenta se desbloquea el login (limpia intentos fallidos).
+    if user_in.is_active is True:
+        updated_user = await crud_user.reset_failed_attempts(
+            db, db_obj=updated_user
+        )
+
+    return updated_user
 
 
 async def remove_user(db: AsyncSession, *, user_id: uuid.UUID) -> User:
