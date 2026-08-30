@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 from typing import TYPE_CHECKING
 
+from core.config import settings
 from core.db import Base
 from pgvector.sqlalchemy import VECTOR
 from sqlalchemy import ForeignKey, Index, Text
@@ -25,24 +26,27 @@ class SalesVector(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    sale_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("sales.id", ondelete="CASCADE")
+    sale_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("sales.id", ondelete="CASCADE"), nullable=True
+    )
+    store_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("stores.id", ondelete="SET NULL"), nullable=True
     )
     content: Mapped[str] = mapped_column(Text, nullable=False)
     embedding: Mapped[list[float]] = mapped_column(
-        VECTOR(768)
-    )  # Dimensión para nomic-embed-text
+        VECTOR(settings.EMBEDDING_DIM)
+    )  # Dimensión según configuración (default: nomic-embed-text 768d)
 
     sale: Mapped[Sale] = relationship(back_populates="sales_vectors")
 
 
 # Define the specialized index for pgvector after the class definition.
-# This index is crucial for efficient similarity searches and will be created
-# by `Base.metadata.create_all`.
+# IMPORTANT: the metric is COSINE distance (the queries use `cosine_distance`),
+# so the index MUST use `vector_cosine_ops`; otherwise pgvector cannot use it.
 Index(
     "idx_sales_vectors_embedding",
     SalesVector.embedding,
     postgresql_using="ivfflat",
     postgresql_with={"lists": 100},
-    postgresql_ops={"embedding": "vector_l2_ops"},
+    postgresql_ops={"embedding": "vector_cosine_ops"},
 )

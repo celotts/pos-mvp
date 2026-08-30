@@ -7,7 +7,7 @@ else
 	COMPOSE_CMD ?= podman-compose
 endif
 
-.PHONY: help up down start init clean logs ps shell lint format test fix-permissions pull-models
+.PHONY: help up down start init clean logs ps shell lint format test test-api fix-permissions pull-models
 
 help:
 	@echo "Comandos disponibles:"
@@ -25,6 +25,7 @@ help:
 	@echo "  make lint            - Ejecuta el linter (flake8) sobre el código."
 	@echo "  make format          - Formatea el código con black y isort."
 	@echo "  make test            - Ejecuta las pruebas con pytest."
+	@echo "  make test-api        - Ejecuta la colección de endpoints (auth, productos y Analítica) contra la BD real."
 	@echo "  make fix-permissions - Corrige permisos de archivos bloqueados por Podman/Docker."
 	@echo "\nUsando comando de compose: $(COMPOSE_CMD)"
 
@@ -33,8 +34,8 @@ up:
 	$(COMPOSE_CMD) up -d --build
 
 down:
-	@echo "Deteniendo contenedores y eliminando volúmenes por completo..."
-	-$(COMPOSE_CMD) down -v --remove-orphans
+	@echo "Deteniendo contenedores (los volúmenes de BD se conservan)..."
+	-$(COMPOSE_CMD) down --remove-orphans
 
 start: clean up
 
@@ -87,6 +88,10 @@ format:
 test:
 	@echo "Ejecutando pruebas con pytest..."
 	$(COMPOSE_CMD) exec pos-api pytest
+
+test-api:
+	@echo "Ejecutando colección de endpoints contra la BD real..."
+	$(COMPOSE_CMD) exec -e TEST_API_TOKEN="$(TEST_API_TOKEN)" -e TEST_API_BASE_URL="$(TEST_API_BASE_URL)" pos-api pytest /app/backend/app/test/test_api_endpoints.py -v
 
 fix-permissions:
 	@echo "Reparando permisos de archivos para VS Code..."

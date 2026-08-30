@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 from api.endpoints import (
     accounts_payable_controller,
     accounts_receivable_controller,
+    analytics_controller,
     assistant_controller,
     cash_account_controller,
     countries_controller,
@@ -91,6 +92,9 @@ api_router.include_router(
 
 # Asistente de IA
 api_router.include_router(assistant_controller.router)  # Ya tiene prefijo y tag
+
+# Analítica Comercial (Market Basket + Stockout)
+api_router.include_router(analytics_controller.router)
 
 # Localización Geográfica
 api_router.include_router(

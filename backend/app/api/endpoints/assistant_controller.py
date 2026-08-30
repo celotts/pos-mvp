@@ -1,3 +1,4 @@
+# api/endpoints/assistant_controller.py
 from typing import Any
 
 from api.response_factory import ApiResponse, create_api_response
@@ -34,7 +35,9 @@ async def analyze_inventory_flow(
     Analiza el flujo de inventario y responde consultas utilizando el agente ReAct.
     """
     try:
-        response_text = await ai_service.get_purchase_suggestion(query.message)
+        response_text = await ai_service.get_purchase_suggestion(
+            db=db, query=query.message, store_id=query.context_store_id
+        )
         return create_api_response(data=ChatResponse(answer=response_text))
     except (OutputParserException, HTTPError, ValueError) as exc:
         logger.error(f"Error de ejecución en el agente de IA: {exc!s}", exc_info=True)

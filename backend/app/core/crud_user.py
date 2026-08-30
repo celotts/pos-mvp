@@ -4,7 +4,7 @@ from core.crud_base import CRUDBase
 from core.security import get_password_hash, verify_password
 from models.user import User
 from schemas.user import UserCreate, UserUpdate
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -16,7 +16,9 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         self.default_loads = [selectinload(self.model.role)]
 
     async def get_by_email(self, db: AsyncSession, *, email: str) -> User | None:
-        query = select(self.model).filter(self.model.email == email)
+        query = select(self.model).filter(
+            func.lower(self.model.email) == email.lower()
+        )
         if self.default_loads:
             query = query.options(*self.default_loads)
 

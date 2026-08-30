@@ -1,6 +1,6 @@
 import logging
 import uuid
-from typing import Any
+from typing import Any, TypedDict
 
 import httpx
 from core.config import settings
@@ -8,10 +8,11 @@ from core.db import async_session_maker
 from langchain.agents import create_agent
 from langchain_core.messages import SystemMessage
 from langchain_ollama import ChatOllama
+from sqlalchemy.ext.asyncio import AsyncSession as AsyncSessionType
 from models.sale import Sale
 from models.sale_item import SaleItem
 from models.sales_vector import SalesVector
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
@@ -19,9 +20,16 @@ from sqlalchemy.orm import joinedload
 from .agent_tools import (
     analyze_sales_margins,
     get_inventory_health_metrics,
+    get_sales_summary,
+    get_top_products,
 )
 
 logger = logging.getLogger(__name__)
+
+
+class AgentContext(TypedDict):
+    db: AsyncSessionType
+    store_id: uuid.UUID | None
 
 
 class AIService:
@@ -37,18 +45,36 @@ class AIService:
             base_url=self.ollama_base_url,
             temperature=0,
         )
-        self.agent_tools: list[Any] = [
+        self.inventory_tools: list[Any] = [
             analyze_sales_margins,
             get_inventory_health_metrics,
+            get_sales_summary,
+            get_top_products,
         ]
         self.agent_system_prompt = (
             "Eres un analista de inventarios y compras para un sistema POS. "
-            "DEBES invocar tus herramientas (analyze_sales_margins, get_inventory_health_metrics) "
-            "para consultar la base de datos antes de dar una respuesta o sugerencia de compra."
+            "DEBES invocar tus herramientas para consultar la base de datos "
+            "antes de dar una respuesta o sugerencia de compra."
         )
         self.agent_executor = create_agent(
             model=self.agent_llm,
-            tools=self.agent_tools,
+            tools=self.inventory_tools,
+            context_schema=AgentContext,
+        )
+
+        # Configuración del Agente de Inteligencia de Negocio (BI)
+        self.analyst_system_prompt = (
+            "Eres el Analista de Negocio (BI) de un sistema POS. "
+            "Siempre que te pregunten por ventas, ingresos, productos, márgenes, "
+            "inventario o rendimiento comercial, DEBES invocar tus herramientas "
+            "(get_sales_summary, get_top_products, analyze_sales_margins, "
+            "get_inventory_health_metrics) para responder con cifras EXACTAS "
+            "de la base de datos. No inventes números ni estimaciones."
+        )
+        self.analyst_executor = create_agent(
+            model=self.agent_llm,
+            tools=self.inventory_tools,
+            context_schema=AgentContext,
         )
 
     @property
@@ -63,31 +89,59 @@ class AIService:
         if self._client and not self._client.is_closed:
             await self._client.aclose()
 
-    # --- MÉTODO DEL AGENTE REFACTORIZADO ---
-    async def get_purchase_suggestion(self, db: AsyncSession, query: str) -> str:
-        """Ejecuta el Agente de Inteligencia pasando la sesión 'db' inyectada a las tools."""
-        try:
-            # Pasa 'db' dentro del contexto para que InjectedToolArg la reconozca
-            result = await self.agent_executor.ainvoke(
-                input={
-                    "messages": [
-                        SystemMessage(content=self.agent_system_prompt),
-                        ("user", query),
-                    ]
-                },
-                config={"configurable": {"db": db}},  # Inyección de la sesión activa
+    def _build_messages(self, system_prompt: str, query: str, store_id=None):
+        messages: list[Any] = [SystemMessage(content=system_prompt)]
+        if store_id:
+            query = (
+                f"[Contexto: estás analizando ÚNICAMENTE la tienda con id='{store_id}'. "
+                f"Las herramientas ya reciben esta tienda automáticamente; "
+                f"no ingreses identificadores en las llamadas.]\n{query}"
             )
+        messages.append(("user", query))
+        return messages
 
+    async def _run_agent(self, executor, system_prompt, query, db, store_id=None) -> str:
+        try:
+            result = await executor.ainvoke(
+                input={"messages": self._build_messages(system_prompt, query, store_id)},
+                context={"db": db, "store_id": store_id},
+            )
             messages = result.get("messages")
             if not messages:
                 raise KeyError("messages")
-
             return str(messages[-1].content)
         except Exception:
-            logger.exception("Error ejecutando el agente de sugerencias")
+            logger.exception("Error ejecutando agente de IA")
             return (
-                "Error: No se pudo generar la sugerencia de inventario en este momento."
+                "Error: No se pudo generar el análisis en este momento. "
+                "Verifica que el servicio de IA (Ollama) esté disponible."
             )
+
+    # --- MÉTODO DEL AGENTE DE INVENTARIO (REFACTORIZADO) ---
+    async def get_purchase_suggestion(
+        self, db: AsyncSession, query: str, store_id=None
+    ) -> str:
+        """Ejecuta el Agente de Inventario pasando la sesión 'db' inyectada a las tools."""
+        return await self._run_agent(
+            self.agent_executor,
+            self.agent_system_prompt,
+            query,
+            db,
+            store_id,
+        )
+
+    # --- AGENTE DE INTELIGENCIA DE NEGOCIO (BI CONVERSACIONAL) ---
+    async def get_analyst_response(
+        self, db: AsyncSession, query: str, store_id=None
+    ) -> str:
+        """Ejecuta el agente BI con cifras exactas desde las herramientas."""
+        return await self._run_agent(
+            self.analyst_executor,
+            self.analyst_system_prompt,
+            query,
+            db,
+            store_id,
+        )
 
     # --- VECTOR EMBEDDINGS & RAG ---
     async def get_embedding(self, text: str) -> list[float]:
@@ -132,7 +186,10 @@ class AIService:
 
                 embedding = await self.get_embedding(content)
                 sale_vector = SalesVector(
-                    sale_id=sale.id, content=content, embedding=embedding
+                    sale_id=sale.id,
+                    store_id=sale.store_id,
+                    content=content,
+                    embedding=embedding,
                 )
                 db.add(sale_vector)
                 await db.commit()
@@ -142,7 +199,9 @@ class AIService:
                 "Error en background task de embedding para la venta %s", sale_id
             )
 
-    async def get_rag_response(self, db: AsyncSession, query: str) -> str:
+    async def get_rag_response(
+        self, db: AsyncSession, query: str, store_id=None
+    ) -> str:
         try:
             query_embedding = await self.get_embedding(query)
             context_query = (
@@ -150,6 +209,14 @@ class AIService:
                 .order_by(SalesVector.embedding.cosine_distance(query_embedding))
                 .limit(5)
             )
+            if store_id:
+                # Incluye vectores de la tienda y los históricos sin tienda asignada
+                context_query = context_query.where(
+                    or_(
+                        SalesVector.store_id == store_id,
+                        SalesVector.store_id.is_(None),
+                    )
+                )
             result = await db.execute(context_query)
             context_items = result.scalars().all()
 

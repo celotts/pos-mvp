@@ -63,6 +63,68 @@ async def _create_initial_superuser(db: AsyncSession):
         )
 
 
+async def _ensure_cosine_vector_index(conn) -> None:
+    """
+    Garantiza que el índice sobre `sales_vectors.embedding` use `vector_cosine_ops`.
+
+    Las consultas RAG se ejecutan con `cosine_distance`, por lo que un índice
+    creado con `vector_l2_ops` (metric incorrecta) jamás se usa. `create_all`
+    no altera índices sobre tablas ya existentes, así que los entornos previos
+    se corrigen aquí de forma idempotente (drop + recreate).
+    """
+    index_name = "idx_sales_vectors_embedding"
+    row = await conn.execute(
+        text(
+            "SELECT indexdef FROM pg_indexes "
+            "WHERE schemaname = 'public' AND indexname = :name"
+        ),
+        {"name": index_name},
+    )
+    result = row.first()
+    if result and "vector_cosine_ops" in (result[0] or ""):
+        return
+
+    if result:
+        logger.warning(
+            "Índice %s con métrica incorrecta. Recreando con vector_cosine_ops...",
+            index_name,
+        )
+        await conn.execute(text(f'DROP INDEX IF EXISTS "{index_name}";'))
+
+    await conn.execute(
+        text(
+            f"CREATE INDEX IF NOT EXISTS \"{index_name}\" "
+            "ON sales_vectors USING ivfflat (embedding vector_cosine_ops) "
+            "WITH (lists = 100);"
+        )
+    )
+    logger.info("Índice pgvector %s asegurado con vector_cosine_ops.", index_name)
+
+
+async def _ensure_sales_vector_store_id(conn) -> None:
+    """
+    Migración idempotente: agrega la columna `store_id` a `sales_vectors`
+    para poder filtrar el RAG por sucursal en bases que ya existían antes.
+    """
+    row = await conn.execute(
+        text(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_name = 'sales_vectors' AND column_name = 'store_id'"
+        )
+    )
+    if row.first():
+        return
+
+    logger.info("Agregando columna store_id a sales_vectors (migración)...")
+    await conn.execute(
+        text(
+            "ALTER TABLE sales_vectors "
+            "ADD COLUMN store_id uuid REFERENCES stores(id) ON DELETE SET NULL;"
+        )
+    )
+    logger.info("Columna store_id agregada a sales_vectors.")
+
+
 async def init_db():
     """
     Initializes the database using SQLAlchemy's metadata to create all tables
@@ -80,6 +142,8 @@ async def init_db():
             # Use run_sync to execute the synchronous `create_all` method.
             # This will create all tables, indexes, and ENUM types defined in the models.
             await conn.run_sync(Base.metadata.create_all)
+            await _ensure_cosine_vector_index(conn)
+            await _ensure_sales_vector_store_id(conn)
             logger.info("Database schema created successfully.")
 
     except Exception as e:

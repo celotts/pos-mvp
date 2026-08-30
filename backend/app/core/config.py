@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     OLLAMA_BASE_URL: str = "http://host.containers.internal:11434"
     LLM_MODEL: str = "llama3.2:latest"
     EMBEDDING_MODEL: str = "nomic-embed-text:latest"
+    EMBEDDING_DIM: int = 768  # Dimensión de nomic-embed-text
 
     # JWT Settings
     SECRET_KEY: str = "d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5"

@@ -1,3 +1,4 @@
+import uuid
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -7,8 +8,8 @@ class ChatRequest(BaseModel):
     message: str = Field(
         ..., description="Consulta del usuario o directivo sobre el negocio."
     )
-    context_store_id: int | None = Field(
-        None, description="ID de la tienda para filtrar analíticas."
+    context_store_id: uuid.UUID | None = Field(
+        None, description="ID de la tienda (UUID) para filtrar analíticas."
     )
 
 

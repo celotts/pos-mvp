@@ -29,8 +29,9 @@ class InventoryAnalysisService:
         self.db = db
 
     async def get_agent_suggestion(self, query: str) -> str:
-        # Transfiere self.db a ai_service / OllamaService
-        return await self.llm_service.get_purchase_suggestion(db=self.db, query=query)
+        from service.ai_service import ai_service
+
+        return await ai_service.get_purchase_suggestion(db=self.db, query=query)
 
     async def get_purchase_suggestions(self) -> PurchaseSuggestionsResponse:
         """Devuelve el análisis estructurado y un resumen ejecutivo opcional."""
@@ -136,9 +137,15 @@ class InventoryAnalysisService:
             )
             # ----------------------------------------------------------------
 
-            executive_summary = await self.llm_service.generate_executive_summary(
-                analysis.model_dump()
-            )
+            executive_summary = None
+            try:
+                executive_summary = await self.llm_service.generate_executive_summary(
+                    analysis.model_dump()
+                )
+            except Exception as e:  # noqa: BLE001  (degradación suave)
+                logger.error(
+                    "Resumen ejecutivo omitido (IA no disponible): %s", e
+                )
 
             return PurchaseSuggestionsResponse(
                 analysis=analysis,
@@ -188,8 +195,11 @@ class InventoryAnalysisService:
             logger.error(f"Error al actualizar inventario: {e}")
             return
 
-    async def generate_and_store_vector_analysis(self, analysis_data: dict) -> None:
-        """Genera un resumen textual, obtiene su embedding de Ollama y lo guarda en sales_vectors."""
+    async def generate_and_store_vector_analysis(self, analysis_data: dict) -> bool:
+        """Genera un resumen textual, obtiene su embedding de Ollama y lo guarda en sales_vectors.
+
+        Retorna True si se guardó, False si falló (el detalle queda en los logs).
+        """
         summary_text = f"Análisis de inventario y ventas: {json.dumps(analysis_data, ensure_ascii=False)}"
 
         try:
@@ -206,13 +216,15 @@ class InventoryAnalysisService:
 
             if not embedding_vector:
                 logger.error("Ollama no devolvió un vector de embeddings válido.")
-                return
+                return False
 
             db_vector = SalesVector(content=summary_text, embedding=embedding_vector)
             self.db.add(db_vector)
             await self.db.commit()
             logger.info("Vector de inventario guardado exitosamente en pgvector.")
+            return True
 
         except (httpx.HTTPError, SQLAlchemyError, json.JSONDecodeError) as e:
             logger.error(f"Error al generar o guardar el vector de inventario: {e}")
             await self.db.rollback()
+            return False

@@ -1,5 +1,5 @@
 from dependencies import InventoryAnalysisServiceDep
-from fastapi import APIRouter, status
+from fastapi import APIRouter, HTTPException, status
 from schemas.inventory import PurchaseSuggestionsResponse
 
 router = APIRouter()
@@ -25,7 +25,7 @@ async def get_purchase_suggestions(
     return await inventory_service.get_purchase_suggestions()
 
 
-@router.get("/inventory/purchase-suggestion")
+@router.get("/recommendation")
 async def get_purchase_suggestion(
     inventory_service: InventoryAnalysisServiceDep,
     query: str = "Analiza las ventas y compras para sugerir reabastecimiento",
@@ -46,6 +46,15 @@ async def vectorize_inventory_analysis(
 ) -> dict:
     suggestions_response = await inventory_service.get_purchase_suggestions()
     analysis_dict = suggestions_response.analysis.model_dump()
-    await inventory_service.generate_and_store_vector_analysis(analysis_dict)
+    saved = await inventory_service.generate_and_store_vector_analysis(analysis_dict)
+
+    if not saved:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=(
+                "No se pudo vectorizar y guardar el análisis de inventario. "
+                "Revisa los logs del servicio de IA (Ollama) y la base de datos."
+            ),
+        )
 
     return {"message": "Análisis de inventario vectorizado y guardado exitosamente."}

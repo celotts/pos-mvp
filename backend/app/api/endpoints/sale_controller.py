@@ -6,7 +6,6 @@ from fastapi import APIRouter, BackgroundTasks, Depends, status
 from models.user import User as UserModel
 from schemas.sale import Sale, SaleCreate
 from service import sale_service
-from service.ai_service import ai_service  # ✅ Import desde modules
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["POS"])
@@ -32,12 +31,10 @@ async def create_new_sale(
     - The sale is automatically associated with the open shift on the specified terminal.
     - Dispatches background embedding generation for vector search (RAG)."""
     new_sale = await sale_service.create_sale(
-        db=db, sale_in=sale_in, current_user=current_user
-    )
-
-    # ✅ Programar tarea en segundo plano
-    background_tasks.add_task(
-        ai_service.create_and_store_sale_embedding, sale_id=new_sale.id
+        db=db,
+        sale_in=sale_in,
+        current_user=current_user,
+        background_tasks=background_tasks,
     )
 
     return create_api_response(data=new_sale, message="Sale registered successfully.")
