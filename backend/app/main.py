@@ -33,7 +33,7 @@ from api.endpoints import (
 from contextlib import asynccontextmanager
 
 from core.config import settings
-from fastapi import APIRouter, FastAPI, Request
+from fastapi import APIRouter, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from initial_data import init_db
@@ -75,6 +75,10 @@ app.add_middleware(
 )
 
 # Handlers de error unificados (formato JSON consistente, sin fugas de detalle)
+app.add_exception_handler(
+    HTTPException,
+    exception_handlers.http_exception_handler,
+)
 app.add_exception_handler(
     RequestValidationError,
     exception_handlers.request_validation_exception_handler,

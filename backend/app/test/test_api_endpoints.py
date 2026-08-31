@@ -695,3 +695,31 @@ def test_user_context_exposes_permissions(client: httpx.Client):
     assert set(me.json()["data"]["permissions"]) == set(
         login.json()["data"]["user"]["permissions"]
     )
+
+
+# --- C.5: IntegrityError (duplicado) → HTTP 409, no 500 ---
+
+
+def test_duplicate_sku_returns_409(client: httpx.Client):
+    """Crear dos productos con el mismo SKU debe devolver 409 (IntegrityError), no 500."""
+    headers = _auth_headers(client)
+    sku = f"C5-DUP-{uuid.uuid4().hex[:8].upper()}"
+
+    first = client.post(
+        "/api/v1/products/",
+        headers=headers,
+        json={"name": "Original", "price": 1.0, "sku": sku},
+    )
+    assert first.status_code == 201, first.text
+
+    dup = client.post(
+        "/api/v1/products/",
+        headers=headers,
+        json={"name": "Duplicado", "price": 2.0, "sku": sku},
+    )
+    assert dup.status_code == 409, dup.text
+    body = dup.json()
+    # Formato de error unificado (HTTPException → {success, status_code, message, data})
+    assert body["success"] is False
+    assert body["status_code"] == 409
+    assert isinstance(body["message"], str) and body["message"]
