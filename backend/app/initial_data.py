@@ -1,4 +1,7 @@
 import logging
+import os
+import subprocess
+import sys
 
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,6 +23,50 @@ from schemas.user import UserCreate
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def _run_alembic_upgrade() -> None:
+    """Aplica las migraciones versionadas de Alembic (C.1) antes del arranque.
+
+    Se ejecuta como subproceso separado para no anidar `asyncio.run()` dentro del
+    event loop de FastAPI. Corre en la raíz del backend (donde está alembic.ini)
+    heredando las variables de entorno ya inyectadas por docker-compose (.env).
+    """
+    backend_root = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..")
+    )
+    ini_path = os.path.join(backend_root, "alembic.ini")
+    if not os.path.exists(ini_path):
+        logger.warning(
+            "alembic.ini no encontrado (%s); se omite Alembic (uso create_all).",
+            ini_path,
+        )
+        return
+
+    cmd = [sys.executable, "-m", "alembic", "upgrade", "head"]
+    try:
+        result = subprocess.run(
+            cmd,
+            cwd=backend_root,
+            env={**os.environ, "PYTHONPATH": os.path.join(backend_root, "app")},
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("No se pudo ejecutar Alembic (%s); se continúa con create_all.", exc)
+        return
+
+    if result.returncode != 0:
+        logger.warning(
+            "Alembic upgrade terminó con código %s; se continúa con create_all.\n%s",
+            result.returncode,
+            (result.stderr or result.stdout)[-2000:],
+        )
+        return
+
+    logger.info("Alembic: esquema actualizado a head.")
 
 # --- Definiciones de Datos Iniciales ---
 INITIAL_ROLES = [
@@ -521,9 +568,14 @@ async def _ensure_soft_delete_columns(conn) -> None:
 
 async def init_db():
     """
-    Initializes the database using SQLAlchemy's metadata to create all tables
-    based on the defined models. This is the most robust and maintainable approach.
+    Initializes the database.
+
+    Primero aplica las migraciones versionadas de Alembic (C.1, `upgrade head`)
+    y luego usa `create_all` como respaldo idempotente (no rompe nada: las tablas
+    ya existen y las migraciones `_ensure_*` usan IF NOT EXISTS). El seed de datos
+    (roles, permisos, superuser) se mantiene al final.
     """
+    _run_alembic_upgrade()
     try:
         async with engine.begin() as conn:
             # Extensions and custom ENUM types must be handled carefully.
