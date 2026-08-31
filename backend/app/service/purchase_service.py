@@ -2,12 +2,13 @@ from decimal import Decimal
 from typing import Any
 
 from fastapi import HTTPException, status
-from models.product import Product
-from models.purchase import Purchase, PurchaseItem
-from schemas.purchase import PurchaseCreate, PurchaseUpdate
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+
+from models.product import Product
+from models.purchase import Purchase, PurchaseItem
+from schemas.purchase import PurchaseCreate, PurchaseUpdate
 
 from .base_service import CRUDService
 

@@ -1,8 +1,9 @@
 from uuid import UUID
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from core.crud_store import crud_store
 from schemas.store import StoreCreate, StoreUpdate
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class StoreService:

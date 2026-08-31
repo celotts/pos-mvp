@@ -1,11 +1,12 @@
 import uuid
 
-from core import crud_specialty
 from fastapi import HTTPException, status
-from models.specialty import Specialty
-from schemas.specialty import SpecialtyCreate, SpecialtyUpdate
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from core import crud_specialty
+from models.specialty import Specialty
+from schemas.specialty import SpecialtyCreate, SpecialtyUpdate
 
 
 async def get_specialties(

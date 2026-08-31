@@ -1,11 +1,12 @@
 import uuid
 
-from core.crud_country import crud_country
 from fastapi import HTTPException, status
-from models.country import Country
-from schemas.country import CountryCreate, CountryUpdate
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from core.crud_country import crud_country
+from models.country import Country
+from schemas.country import CountryCreate, CountryUpdate
 
 
 async def create_country(

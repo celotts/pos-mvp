@@ -1,11 +1,12 @@
 import uuid
 
-from core.crud_product import crud_product
 from fastapi import HTTPException, status
-from models import User
-from schemas.product import ProductCreate, ProductUpdate
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from core.crud_product import crud_product
+from models import User
+from schemas.product import ProductCreate, ProductUpdate
 
 
 class ProductService:

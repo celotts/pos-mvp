@@ -2,13 +2,14 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
+from sqlalchemy import func, select
+
 from core.crud_base import CRUDBase
 from models.product import Product
 from models.purchase import PurchaseItem
 from models.sale import Sale
 from models.sale_item import SaleItem
 from schemas.sale import SaleCreate  # Usamos SaleCreate, no hay Update para Sale
-from sqlalchemy import func, select
 
 
 class CRUDSale(CRUDBase[Sale, SaleCreate, SaleCreate]):

@@ -1,11 +1,12 @@
 import uuid
 
+from fastapi import HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from core.crud_role import crud_role
 from core.crud_user import crud_user
-from fastapi import HTTPException, status
 from models.user import User
 from schemas.user import UserCreate, UserUpdate
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def get_users(db: AsyncSession, skip: int = 0, limit: int = 100) -> list[User]:

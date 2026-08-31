@@ -1,5 +1,8 @@
 import logging
 
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from core.config import settings
 from core.crud_role import crud_role
 from core.crud_user import crud_user
@@ -10,8 +13,6 @@ from core.db import Base, async_session_maker, engine
 # before `Base.metadata.create_all` is called.
 from schemas.role import RoleCreate
 from schemas.user import UserCreate
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

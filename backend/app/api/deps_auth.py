@@ -1,6 +1,7 @@
+from fastapi import Depends, HTTPException, status
+
 from core.config import settings
 from dependencies import get_current_user
-from fastapi import Depends, HTTPException, status
 from models.user import User
 
 # Definir las dependencias a nivel de módulo para evitar RuffB008

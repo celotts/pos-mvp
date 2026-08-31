@@ -9,13 +9,13 @@ from collections import Counter, defaultdict
 from datetime import date, datetime, timedelta, timezone
 from typing import Iterable
 
-from models.product import Product
-from models.sale import Sale
-from models.sale_item import SaleItem
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.crud_product import crud_product
+from models.product import Product
+from models.sale import Sale
+from models.sale_item import SaleItem
 
 
 # ---------------------------------------------------------------------------

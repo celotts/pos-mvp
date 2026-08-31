@@ -8,9 +8,11 @@ from api.deps_auth import get_current_admin_user
 from api.response_factory import ApiResponse, create_api_response
 from dependencies import get_current_user, get_db
 from models.user import User as UserModel
-from schemas.accounts_receivable import (AccountsReceivable,
-                                         AccountsReceivableCreate,
-                                         AccountsReceivableUpdate)
+from schemas.accounts_receivable import (
+    AccountsReceivable,
+    AccountsReceivableCreate,
+    AccountsReceivableUpdate,
+)
 from service.accounts_receivable_service import accounts_receivable_service
 
 router = APIRouter(tags=["Accounting"])

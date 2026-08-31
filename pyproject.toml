@@ -1,0 +1,11 @@
+[tool.isort]
+profile = "black"
+src_paths = ["backend", "backend/app"]
+
+[tool.ruff]
+src = ["backend/app"]
+line-length = 88
+
+[tool.ruff.lint]
+[tool.ruff.lint.isort]
+known-first-party = ["api", "core", "dependencies", "models", "schemas", "service", "utils"]

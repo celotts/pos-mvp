@@ -1,8 +1,9 @@
-from core import crud_customer
 from fastapi import HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from core import crud_customer
 from models.customer import Customer
 from schemas.customer import CustomerCreate
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def get_customers(

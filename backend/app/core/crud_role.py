@@ -1,8 +1,9 @@
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from core.crud_base import CRUDBase
 from models.role import Role
 from schemas.role import RoleCreate, RoleUpdate
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class CRUDRole(CRUDBase[Role, RoleCreate, RoleUpdate]):

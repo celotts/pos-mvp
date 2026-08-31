@@ -1,8 +1,9 @@
 from uuid import UUID
 
+from sqlalchemy.orm import Session
+
 from core.crud_municipality import crud_municipality
 from schemas.municipality import MunicipalityCreate, MunicipalityUpdate
-from sqlalchemy.orm import Session
 
 
 class MunicipalityService:

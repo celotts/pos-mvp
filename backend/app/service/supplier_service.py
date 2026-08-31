@@ -1,8 +1,9 @@
 from uuid import UUID
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from core.crud_supplier import crud_supplier
 from schemas.supplier import SupplierCreate, SupplierUpdate
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class SupplierService:

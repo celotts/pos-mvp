@@ -1,7 +1,8 @@
+from sqlalchemy.orm import selectinload
+
 from core.crud_base import CRUDBase
 from models.store import Store
 from schemas.store import StoreCreate, StoreUpdate
-from sqlalchemy.orm import selectinload
 
 
 class CRUDStore(CRUDBase[Store, StoreCreate, StoreUpdate]):

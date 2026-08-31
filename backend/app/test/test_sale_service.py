@@ -3,11 +3,12 @@ from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from fastapi import BackgroundTasks, HTTPException
+
 from models.product import Product
 from models.user import User
 from schemas.sale import SaleCreate, SaleItemCreate
 from service.sale_service import sale_service
-from fastapi import BackgroundTasks, HTTPException
 
 # Marca todos los tests en este archivo para que se ejecuten con asyncio
 pytestmark = pytest.mark.asyncio

@@ -3,19 +3,20 @@ import uuid
 from typing import Any, TypedDict
 
 import httpx
-from core.config import settings
-from core.db import async_session_maker
 from langchain.agents import create_agent
 from langchain_core.messages import SystemMessage
 from langchain_ollama import ChatOllama
-from sqlalchemy.ext.asyncio import AsyncSession as AsyncSessionType
-from models.sale import Sale
-from models.sale_item import SaleItem
-from models.sales_vector import SalesVector
 from sqlalchemy import or_, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession as AsyncSessionType
 from sqlalchemy.orm import joinedload
+
+from core.config import settings
+from core.db import async_session_maker
+from models.sale import Sale
+from models.sale_item import SaleItem
+from models.sales_vector import SalesVector
 
 from .agent_tools import (
     analyze_sales_margins,

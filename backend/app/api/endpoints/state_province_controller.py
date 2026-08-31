@@ -1,10 +1,12 @@
 import uuid
 from typing import Any
 
+from fastapi import APIRouter, Depends, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from api.deps_auth import get_current_admin_user
 from api.response_factory import ApiResponse, create_api_response
 from dependencies import get_current_user, get_db
-from fastapi import APIRouter, Depends, status
 from models.user import User as UserModel
 from schemas.state_province import (
     StateProvince,
@@ -12,7 +14,6 @@ from schemas.state_province import (
     StateProvinceUpdate,
 )
 from service.state_province_service import state_province_service
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["States & Provinces"])
 

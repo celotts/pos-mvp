@@ -8,8 +8,11 @@ from api.deps_auth import get_current_admin_user
 from api.response_factory import ApiResponse, create_api_response
 from dependencies import get_current_user, get_db
 from models.user import User as UserModel
-from schemas.accounts_payable import (AccountsPayable, AccountsPayableCreate,
-                                      AccountsPayableUpdate)
+from schemas.accounts_payable import (
+    AccountsPayable,
+    AccountsPayableCreate,
+    AccountsPayableUpdate,
+)
 from service.accounts_payable_service import accounts_payable_service
 
 router = APIRouter(tags=["Accounting"])

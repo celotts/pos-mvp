@@ -1,8 +1,10 @@
 import uuid
 from typing import Any
 
-from dependencies import get_current_user, get_db
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from dependencies import get_current_user, get_db
 from models.user import User as UserModel
 from schemas.analytics import (
     CrossSellItem,
@@ -12,7 +14,6 @@ from schemas.analytics import (
     StockoutRiskResponse,
 )
 from service.analytics_service import analytics_service
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 

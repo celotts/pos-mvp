@@ -16,6 +16,7 @@ import uuid
 
 import httpx
 import pytest
+
 from core.config import settings
 
 # Dentro del contenedor pos-api la API responde en el 8000.

@@ -1,13 +1,14 @@
 import uuid
 
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from api.deps_auth import get_current_admin_user
 from api.response_factory import ApiResponse, create_api_response
 from core.crud_customer import crud_customer
 from dependencies import get_current_user, get_db
-from fastapi import APIRouter, Depends, HTTPException, status
 from models.user import User as UserModel
 from schemas.customer import Customer, CustomerCreate, CustomerUpdate
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["Customers"])
 

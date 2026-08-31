@@ -3,12 +3,13 @@ from __future__ import annotations
 import uuid
 from typing import TYPE_CHECKING
 
-from core.config import settings
-from core.db import Base
 from pgvector.sqlalchemy import VECTOR
 from sqlalchemy import ForeignKey, Index, Text
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from core.config import settings
+from core.db import Base
 
 if TYPE_CHECKING:
     from .sale import Sale

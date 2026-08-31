@@ -1,8 +1,9 @@
 from uuid import UUID
 
+from sqlalchemy.orm import Session
+
 from core.crud_state_province import crud_state_province
 from schemas.state_province import StateProvinceCreate, StateProvinceUpdate
-from sqlalchemy.orm import Session
 
 
 class StateProvinceService:
