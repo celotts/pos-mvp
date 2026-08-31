@@ -74,23 +74,23 @@ fricción, y con un **Asistente de Negocio** (IA de decisiones, no un chatbot).
 ### Paso 3 — Guard de permisos (reemplazar checks literales de rol)
 - [x] Factory `require_permission("sale:create")` en `dependencies.py`.
 - [x] Sustituir `role == ADMIN`/`is_admin` por guards de permiso en controllers.
-- [ ] `get_current_user` carga el tenant y expone `user.tenant_id`.
-- [ ] Scoping en `crud_base`/crud por entidad: toda query filtra por tenant.
+- [x] `get_current_user` carga el tenant y expone `user.tenant_id`.
+- [x] Scoping en `crud_base`/crud por entidad: toda query filtra por tenant.
 
 ### Paso 4 — Exposición y fin de la escalada
-- [ ] CRUD de roles + asignación de permisos (solo SUPER_ADMIN).
-- [ ] PRUEBA de la escalada: usuario CASHIER → 403 demostrable en admin-only.
-- [ ] Endpoints de lectura de users/analítica revertidos al permiso correspondiente.
+- [x] CRUD de roles + asignación de permisos (solo SUPER_ADMIN).
+- [x] PRUEBA de la escalada: usuario CASHIER → 403 demostrable en admin-only.
+- [x] Endpoints de lectura de users/analítica revertidos al permiso correspondiente.
 
 ### Paso 5 — Tests y verificación
-- [ ] Suite RBAC: CASHIER 403 vs ADMIN 200 vs permiso específico 200.
-- [ ] Suite tenancy: dos tenants no ven datos del otro (mismo seed, otra tienda).
-- [ ] Re-correr suite completa (unit + integración), `ruff check`, py_compile.
-- [ ] Extender el menú dinámico del front a permisos (hoy es por rol).
+- [x] Suite RBAC: CASHIER 403 vs ADMIN 200 vs permiso específico 200.
+- [x] Suite tenancy: dos tenants no ven datos del otro (mismo seed, otra tienda).
+- [x] Re-correr suite completa (unit + integración), `ruff check`, py_compile.
+- [x] Extender el menú dinámico del front a permisos (hoy es por rol).
 
 ### Paso 6 — Cierre
 - [ ] Actualizar docs (`PLAN_DESARROLLO_API.md`, `DEUDA_TECNICA.md` #2).
-- [ ] Decisiones registradas (ADR breve) sobre el modelo de tenancy.
+- [x] Decisiones registradas (ADR breve) sobre el modelo de tenancy.
 
 ## Criterio de aceptación de la Fase 3
 
