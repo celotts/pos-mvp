@@ -91,14 +91,22 @@ backend/
 ## Arquitectura de acceso
 
 - Guard genérico por sesión JWT (`dependencies.py`).
-- Guías por rol: `SUPER_ADMIN`, `ADMIN`, roles protegidos (`PROTECTED_ROLES`).
+- **RBAC por permiso (Fase 3)**: `require_permission("modulo:accion")` en controllers
+  (p. ej. `sale:create`, `product:read`, `role:assign_permissions`). Catálogo de
+  permisos en `initial_data.py` (`PERMISSION_CATALOG`); `SUPER_ADMIN`/`ADMIN`
+  (`PROTECTED_ROLES`) tienen bypass total.
+- **Multi-tenancy por `Company`** (ADR-001): `get_current_user` propaga
+  `user.tenant_id` vía contextvar (`core/tenancy.py`); `crud_base`/servicios
+  filtran `get/get_multi/remove` por tenant y asignan `tenant_id` en `create`.
+- **Admin de roles**: CRUD de roles + asignación de permisos (solo `role:*`),
+  `GET /roles/catalog/permissions` para la UI de administración.
 - Respuestas unificadas: `{ success, status_code, message, data }`.
 
 ## Estado del test
 
 | Suite                    | Resultado                             |
 | ------------------------ | ------------------------------------- |
-| pytest backend (`test/`) | **49 passed / 10 skipped / 0 failed** |
+| pytest backend (`test/`) | **53 passed / 9–10 skipped / 0 failed** |
 
 ## Verificación
 
@@ -119,4 +127,4 @@ podman-compose exec -T pos-api python -m pytest test/ -q
 3. Paginación y filtros estandarizados en las listas.
 4. Auditoría simple de operaciones sensibles (login, altas/bajas).
 5. Pruebas de los endpoints de contabilidad y asistente (hoy cubiertos de forma parcial).
-6. Integración continua (CI) que ejecute pytest y los builds del front.
+6. ~~Integración continua (CI) que ejecute pytest y los builds del front.~~ ✅ Hecho: GitHub Actions (pytest + ruff + build front) en verde por push.

@@ -24,7 +24,7 @@ fricción, y con un **Asistente de Negocio** (IA de decisiones, no un chatbot).
 ## Horizontes
 
 ### H1 — Producto vendible (hacer primero)
-- [ ] **Fase 3: multi-tenant + RBAC por permiso** (plan abajo).
+- [x] **Fase 3: multi-tenant + RBAC por permiso** (plan abajo).
 - [ ] Mobile-first / PWA + modo offline con sincronización.
 - [ ] Importación masiva de productos (Excel/CSV) — “el dolor del cambio de POS”.
 - [ ] Onboarding en 5 min + reportes financieros exportables (PDF).
