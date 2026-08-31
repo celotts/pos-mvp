@@ -53,6 +53,9 @@ class Settings(BaseSettings):
     LLM_MODEL: str = "llama3.2:latest"
     EMBEDDING_MODEL: str = "nomic-embed-text:latest"
     EMBEDDING_DIM: int = 768  # Dimensión de nomic-embed-text
+    # Anthropic (usado cuando LLM_PROVIDER=anthropic)
+    ANTHROPIC_API_KEY: str = ""
+    ANTHROPIC_MODEL: str = ""
 
     # Application
     ENVIRONMENT: str = "development"

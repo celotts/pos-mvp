@@ -40,7 +40,7 @@
 | 5 | ~~**Transacciones seguras en `crud_base`**~~ ✅ Hecho: try/except + rollback en create/update/remove; `IntegrityError` → HTTP 409; errores unificados (`{success, status_code, message, data}`) vía `http_exception_handler` registrado | Errores limpios, sesiones consistentes | Hecho |
 | 6 | ~~**Rate limiting** por IP en `/login`~~ ✅ Hecho con **slowapi** (reemplazó el limiter casero): `@login_limiter.limit` + 429 unificado vía `rate_limit_exceeded_handler` | Frena fuerza bruta distribuida | Hecho |
 | 7 | ~~**DB de test aislada + CI**~~ ✅ Hecho: GitHub Actions (pytest + ruff + build front) en verde | Evita ensuciar datos de dev; valida cada push | Hecho |
-| 8 | `get_llm_service` que respete `LLM_PROVIDER` (hoy hardcodea Ollama) | Coherencia con la config | Bajo |
+| 8 | ~~`get_llm_service` que respete `LLM_PROVIDER`~~ ✅ Hecho: `llm_service_factory` elige Anthropic/**Ollama** según `LLM_PROVIDER`; `get_llm_service` usa el factory (ya no hardcodea Ollama) | Coherencia con la config | Hecho |
 
 ## D. Limpieza de código al migrar (lo que NO debe ir a producción)
 
