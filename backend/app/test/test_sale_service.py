@@ -5,10 +5,10 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from fastapi import BackgroundTasks, HTTPException
 
-from app.models.product import Product
-from app.models.user import User
-from app.modules.sale_service import sale_service
-from app.schemas.sale import SaleCreate, SaleItemCreate
+from models.product import Product
+from models.user import User
+from schemas.sale import SaleCreate, SaleItemCreate
+from service.sale_service import sale_service
 
 # Marca todos los tests en este archivo para que se ejecuten con asyncio
 pytestmark = pytest.mark.asyncio
@@ -91,7 +91,7 @@ async def test_create_sale_success(
     # Verificar que la tarea en segundo plano para la IA fue llamada con los argumentos correctos
     task_args = mock_background_tasks.add_task.call_args[0]
     assert task_args[0].__name__ == "create_and_store_sale_embedding"
-    assert task_args[2] == created_sale.id  # sale_id
+    assert task_args[1] == created_sale.id  # sale_id
 
 
 async def test_create_sale_no_items(

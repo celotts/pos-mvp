@@ -22,3 +22,8 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Dependency to get a database session."""
     async with async_session_maker() as session:
         yield session
+
+
+# --- IMPORTANTE: Importa los modelos aquí al final ---
+# Esto evita importaciones circulares y asegura que Base.metadata
+# registre todas las tablas, columnas y relaciones antes de crear el esquema.

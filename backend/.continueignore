@@ -23,11 +23,13 @@ build/
 ## React / Frontend
 
 node_modules/
-dist/
+.gradle/
 build/
-.next/
-.expo/
+target/
+dist/
+.git/
 *.log
+*.jar
 
 ## VS Code e IDEs
 

@@ -6,7 +6,6 @@ from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from core.db import Base
 from sqlalchemy import (
     DateTime,
     ForeignKey,
@@ -17,6 +16,8 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from core.db import Base
+
 if TYPE_CHECKING:
     from .accounts_payable import AccountsPayable
     from .pos_terminal import PosTerminal
@@ -24,6 +25,7 @@ if TYPE_CHECKING:
     from .role import Role
     from .supplier import Supplier
     from .user import User
+
 from .store import Store  # Ensure Store is available at runtime
 
 

@@ -1,5 +1,7 @@
-from dependencies import get_current_user
 from fastapi import Depends, HTTPException, status
+
+from core.config import settings
+from dependencies import get_current_user
 from models.user import User
 
 # Definir las dependencias a nivel de módulo para evitar RuffB008
@@ -27,10 +29,6 @@ def get_current_admin_user(
     """
     Dependencia que obtiene el usuario activo y verifica si es un SUPER_ADMIN.
     """
-    # Lista de roles con privilegios de administrador.
-    # Ahora, tanto SUPER_ADMIN como ADMIN tendrán acceso.
-    ADMIN_ROLES = {"SUPER_ADMIN", "ADMIN"}
-
     # 1. Verificación de robustez: ¿El rol del usuario existe?
     if not current_user.role:
         raise HTTPException(
@@ -43,7 +41,7 @@ def get_current_admin_user(
     # para evitar problemas sutiles en los datos (ej. ' admin ', 'Admin').
     user_role_normalized = current_user.role.name.strip().upper()
 
-    if user_role_normalized not in ADMIN_ROLES:
+    if user_role_normalized not in settings.PROTECTED_ROLES:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="The user does not have the necessary privileges.",

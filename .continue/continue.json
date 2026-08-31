@@ -1,0 +1,29 @@
+{
+  "models": [
+    {
+      "title": "Qwen 2.5 Coder 7B (Principal)",
+      "provider": "ollama",
+      "model": "qwen2.5-coder:7b-instruct",
+      "apiBase": "http://localhost:11434"
+    },
+    {
+      "title": "DeepSeek R1 8B (Razonamiento)",
+      "provider": "ollama",
+      "model": "deepseek-r1:8b",
+      "apiBase": "http://localhost:11434"
+    },
+    {
+      "title": "Llama 3.1 8B",
+      "provider": "ollama",
+      "model": "llama3.1:8b",
+      "apiBase": "http://localhost:11434"
+    }
+  ],
+  "tabAutocompleteModel": {
+    "title": "Autocomplete Ultrarrápido",
+    "provider": "ollama",
+    "model": "qwen2.5-coder:1.5b-instruct",
+    "apiBase": "http://localhost:11434"
+  },
+  "allowAnonymousTelemetry": false
+}

@@ -1,14 +1,15 @@
 import uuid
 from typing import Any
 
+from fastapi import APIRouter, Depends, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from api.deps_auth import get_current_admin_user
 from api.response_factory import ApiResponse, create_api_response
 from dependencies import get_db
-from fastapi import APIRouter, Depends, status
 from models.user import User as UserModel
-from modules import specialty_service
 from schemas.specialty import Specialty, SpecialtyCreate, SpecialtyUpdate
-from sqlalchemy.ext.asyncio import AsyncSession
+from service import specialty_service
 
 router = APIRouter(tags=["Specialties"])
 

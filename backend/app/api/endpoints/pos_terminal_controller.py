@@ -1,18 +1,19 @@
 import uuid
 from typing import Any
 
+from fastapi import APIRouter, Depends, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from api.deps_auth import get_current_admin_user
 from api.response_factory import ApiResponse, create_api_response
 from dependencies import get_current_user, get_db
-from fastapi import APIRouter, Depends, status
 from models.user import User as UserModel
-from modules import pos_terminal_service
 from schemas.pos_terminal import (
     PosTerminal,
     PosTerminalCreate,
     PosTerminalUpdate,
 )
-from sqlalchemy.ext.asyncio import AsyncSession
+from service import pos_terminal_service
 
 router = APIRouter(tags=["POS"])
 
@@ -53,6 +54,7 @@ async def read_pos_terminals(
     db: AsyncSession = db_dependency,
     skip: int = 0,
     limit: int = 100,
+    _current_user: UserModel = current_user_dependency,
 ) -> Any:
     """Gets a paginated list of POS terminals."""
     terminals = await pos_terminal_service.get_pos_terminals(db, skip=skip, limit=limit)
@@ -68,6 +70,7 @@ async def read_pos_terminal(
     *,
     terminal_id: uuid.UUID,
     db: AsyncSession = db_dependency,
+    _current_user: UserModel = current_user_dependency,
 ) -> Any:
     """Gets a specific terminal by its ID."""
     terminal = await pos_terminal_service.get_pos_terminal(db, terminal_id=terminal_id)

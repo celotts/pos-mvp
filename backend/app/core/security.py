@@ -1,8 +1,10 @@
 from datetime import datetime, timedelta, timezone
 
-from core.config import settings
 from jose import JWTError, jwt
+from jose.exceptions import ExpiredSignatureError
 from passlib.context import CryptContext
+
+from core.config import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -19,8 +21,7 @@ def create_access_token(subject: str | int) -> str:
 
 
 def decode_access_token(token: str) -> str:
-    """
-    Decodifica un token de acceso JWT y devuelve el ID del usuario (subject).
+    """Decodifica un token de acceso JWT y devuelve el ID del usuario (subject).
 
     Lanza una excepción HTTPException si el token es inválido o ha expirado.
     """
@@ -39,10 +40,13 @@ def decode_access_token(token: str) -> str:
 
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
-        return payload.get("sub")
-    except jwt.ExpiredSignatureError:
+        user_id: str | None = payload.get("sub")
+        if user_id is None:
+            raise credentials_exception
+        return user_id
+    except ExpiredSignatureError:
         raise expired_token_exception from None
-    except (JWTError, AttributeError, ValueError):
+    except JWTError:
         raise credentials_exception from None
 
 
@@ -51,6 +55,4 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 def get_password_hash(password: str) -> str:
-    # El algoritmo bcrypt tiene un límite de 72 bytes. Truncamos la contraseña
-    # para evitar un ValueError con contraseñas largas.
-    return pwd_context.hash(password.encode("utf-8")[:72])
+    return pwd_context.hash(password)

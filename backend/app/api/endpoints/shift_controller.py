@@ -1,13 +1,14 @@
 import uuid
 from typing import Any
 
+from fastapi import APIRouter, Depends, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from api.response_factory import ApiResponse, create_api_response
 from dependencies import get_current_user, get_db
-from fastapi import APIRouter, Depends, status
 from models.user import User as UserModel
-from modules import shift_service
 from schemas.shift import Shift, ShiftClose, ShiftOpen
-from sqlalchemy.ext.asyncio import AsyncSession
+from service import shift_service
 
 router = APIRouter(tags=["POS"])
 

@@ -6,7 +6,6 @@ from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from core.db import Base
 from sqlalchemy import (
     DateTime,
     Enum,
@@ -17,16 +16,19 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from core.db import Base
+
 if TYPE_CHECKING:
     from .cash_transaction import CashTransaction
     from .pos_terminal import PosTerminal
+    from .sale import Sale
     from .store import Store
     from .user import User
 
 
 class ShiftStatus(enum.Enum):
-    OPEN = "open"
-    CLOSED = "closed"
+    OPEN = "OPEN"
+    CLOSED = "CLOSED"
 
 
 class Shift(Base):
@@ -45,7 +47,9 @@ class Shift(Base):
     ending_cash: Mapped[Decimal | None] = mapped_column(Numeric(18, 2), nullable=True)
     notes: Mapped[str | None] = mapped_column()
     status: Mapped[ShiftStatus] = mapped_column(
-        Enum(ShiftStatus), default=ShiftStatus.OPEN, nullable=False
+        Enum(ShiftStatus, name="shift_status", create_type=False),
+        default=ShiftStatus.OPEN,
+        nullable=False,
     )
 
     # Foreign Keys
@@ -62,6 +66,7 @@ class Shift(Base):
     cash_transactions: Mapped[list[CashTransaction]] = relationship(
         back_populates="shift"
     )
+    sales: Mapped[list[Sale]] = relationship(back_populates="shift")
 
     def __repr__(self):
         return (

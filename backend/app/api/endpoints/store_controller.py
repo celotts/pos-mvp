@@ -1,14 +1,15 @@
 import uuid
 from typing import Any
 
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from api.deps_auth import get_current_admin_user
 from api.response_factory import ApiResponse, create_api_response
 from dependencies import get_current_user, get_db
-from fastapi import APIRouter, Depends, HTTPException, status
 from models.user import User as UserModel
-from modules.store_service import store_service
 from schemas.store import Store, StoreCreate, StoreUpdate
-from sqlalchemy.ext.asyncio import AsyncSession
+from service.store_service import store_service
 
 router = APIRouter(tags=["Stores"])
 

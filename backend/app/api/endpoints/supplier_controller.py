@@ -1,18 +1,21 @@
 import uuid
 from typing import Any
 
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from api.deps_auth import get_current_admin_user
 from api.response_factory import ApiResponse, create_api_response
 from dependencies import get_current_user, get_db
-from fastapi import APIRouter, Depends, HTTPException, status
 from models.user import User as UserModel
-from modules.supplier_service import supplier_service
 from schemas.supplier import Supplier, SupplierCreate, SupplierUpdate
-from sqlalchemy.ext.asyncio import AsyncSession
+from service.supplier_service import supplier_service
 
 router = APIRouter(tags=["Suppliers"])
 
 db_dependency = Depends(get_db)
 current_user_dependency = Depends(get_current_user)
+get_current_admin_user_dependency = Depends(get_current_admin_user)
 
 
 @router.get("/", response_model=ApiResponse[list[Supplier]])
@@ -36,7 +39,7 @@ async def create_supplier(
     *,
     db: AsyncSession = db_dependency,
     supplier_in: SupplierCreate,
-    current_user: UserModel = current_user_dependency,
+    current_user: UserModel = get_current_admin_user_dependency,
 ) -> Any:
     """
     Create new supplier.
@@ -70,7 +73,7 @@ async def update_supplier(
     db: AsyncSession = db_dependency,
     supplier_id: uuid.UUID,
     supplier_in: SupplierUpdate,
-    current_user: UserModel = current_user_dependency,
+    current_user: UserModel = get_current_admin_user_dependency,
 ) -> Any:
     """
     Update a supplier.
@@ -86,7 +89,7 @@ async def delete_supplier(
     *,
     db: AsyncSession = db_dependency,
     supplier_id: uuid.UUID,
-    current_user: UserModel = current_user_dependency,
+    current_user: UserModel = get_current_admin_user_dependency,
 ) -> Any:
     """
     Delete a supplier.

@@ -1,6 +1,13 @@
 from pydantic import BaseModel
 
-from .user import User
+from .user import UserWithRole
+
+
+class Token(BaseModel):
+    """Esquema OAuth2 estándar requerido por Swagger UI."""
+
+    access_token: str
+    token_type: str
 
 
 class TokenData(BaseModel):
@@ -8,4 +15,4 @@ class TokenData(BaseModel):
 
     access_token: str
     token_type: str
-    user: User
+    user: UserWithRole

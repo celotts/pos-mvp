@@ -1,0 +1,28 @@
+import uuid
+from typing import Any
+
+from pydantic import BaseModel, Field
+
+
+class ChatRequest(BaseModel):
+    message: str = Field(
+        ...,
+        min_length=1,
+        max_length=4000,
+        description="Consulta del usuario o directivo sobre el negocio.",
+    )
+    context_store_id: uuid.UUID | None = Field(
+        None, description="ID de la tienda (UUID) para filtrar analíticas."
+    )
+
+
+class InsightRecommendation(BaseModel):
+    category: str = Field(..., description="Categoría: INVENTORY, SALES, MARGIN, RISK")
+    action_item: str = Field(..., description="Acción concreta sugerida")
+    impact_level: str = Field(..., description="HIGH, MEDIUM, LOW")
+
+
+class ChatResponse(BaseModel):
+    answer: str = Field(..., description="Análisis ejecutivo o respuesta a la consulta")
+    insights: list[InsightRecommendation] = Field(default_factory=list)
+    raw_metrics: dict[str, Any] | None = Field(default=None)

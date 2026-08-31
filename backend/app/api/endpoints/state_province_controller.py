@@ -1,18 +1,19 @@
 import uuid
 from typing import Any
 
+from fastapi import APIRouter, Depends, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from api.deps_auth import get_current_admin_user
 from api.response_factory import ApiResponse, create_api_response
 from dependencies import get_current_user, get_db
-from fastapi import APIRouter, Depends, status
 from models.user import User as UserModel
-from modules import state_province_service
 from schemas.state_province import (
     StateProvince,
     StateProvinceCreate,
     StateProvinceUpdate,
 )
-from sqlalchemy.ext.asyncio import AsyncSession
+from service.state_province_service import state_province_service
 
 router = APIRouter(tags=["States & Provinces"])
 
@@ -34,9 +35,7 @@ async def create_state_province(
     current_user: UserModel = current_admin_user_dependency,
 ) -> Any:
     """Creates a new state or province, associated with a country."""
-    state = await state_province_service.create_state_province(
-        db=db, state_in=state_in, current_user=current_user
-    )
+    state = await state_province_service.create(db=db, obj_in=state_in)
     return create_api_response(
         data=state,
         status_code=status.HTTP_201_CREATED,
@@ -55,9 +54,7 @@ async def read_states_provinces(
     limit: int = 100,
 ) -> Any:
     """Gets a paginated list of states and provinces."""
-    states = await state_province_service.get_states_provinces(
-        db, skip=skip, limit=limit
-    )
+    states = await state_province_service.get_all(db, skip=skip, limit=limit)
     return create_api_response(data=states)
 
 
@@ -72,7 +69,7 @@ async def read_state_province(
     db: AsyncSession = db_dependency,
 ) -> Any:
     """Gets a specific state or province by its ID."""
-    state = await state_province_service.get_state_province(db, state_id=state_id)
+    state = await state_province_service.get_by_id(db, id=state_id)
     return create_api_response(data=state)
 
 
@@ -89,11 +86,8 @@ async def update_state_province(
     current_user: UserModel = current_admin_user_dependency,
 ) -> Any:
     """Updates a state or province by its ID."""
-    updated_state = await state_province_service.update_state_province(
-        db=db,
-        state_id=state_id,
-        state_in=state_in,
-        current_user=current_user,
+    updated_state = await state_province_service.update(
+        db=db, id=state_id, obj_in=state_in
     )
     return create_api_response(
         data=updated_state, message="State/Province updated successfully."
@@ -112,9 +106,7 @@ async def delete_state_province(
     current_user: UserModel = current_admin_user_dependency,
 ) -> Any:
     """Deletes a state or province by its ID."""
-    deleted_state = await state_province_service.remove_state_province(
-        db, state_id=state_id
-    )
+    deleted_state = await state_province_service.delete(db, id=state_id)
     return create_api_response(
         data=deleted_state, message="State/Province deleted successfully."
     )
