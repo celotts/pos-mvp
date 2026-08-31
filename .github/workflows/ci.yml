@@ -62,7 +62,17 @@ jobs:
           done
           echo "La API no respondió a tiempo"; docker compose logs --tail=100 pos-api; exit 1
       - name: Sembrar datos demo
-        run: docker compose exec -T pos-api python -m seed_demo
+        run: |
+          for i in 1 2 3; do
+            echo "Intento ${i}/3"
+            if docker compose exec -T pos-api python -u -m seed_demo; then
+              echo "Seed completado"; exit 0
+            fi
+            sleep 5
+          done
+          echo "Seed falló tras 3 intentos."
+          docker compose logs --tail=60 pos-api
+          exit 1
       - name: Tests unitarios
         run: docker compose exec -T pos-api pytest -q
       - name: Tests de integración (endpoints)

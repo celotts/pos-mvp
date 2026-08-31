@@ -7,6 +7,7 @@ Pensado para entornos frescos (CI, demos): ``python -m seed_demo``.
 
 import asyncio
 import random
+import traceback
 from datetime import datetime, timedelta
 
 from sqlalchemy import select
@@ -243,4 +244,15 @@ async def seed_demo_data() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(seed_demo_data())
+    try:
+        asyncio.run(seed_demo_data())
+    except Exception as exc:  # noqa: BLE001  (reintento ante flakes transitorios)
+        print(f"Error sembrando datos ({type(exc).__name__}): {exc}")
+        traceback.print_exc()
+        print("Reintentando una vez (el seed es idempotente)...")
+        try:
+            asyncio.run(seed_demo_data())
+            print("Seed completado en el segundo intento.")
+        except Exception as exc2:
+            print(f"Error al reintentar ({type(exc2).__name__}): {exc2}")
+            raise
