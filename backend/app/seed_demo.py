@@ -184,7 +184,6 @@ async def _generate_sales(db, store, products: list, customers: list, user, *, t
                     product_id=product.id,
                     quantity=quantity,
                     price_at_sale=product.price,
-                    tenant_id=tenant_id,
                 )
             )
 
@@ -262,8 +261,9 @@ async def seed_demo_data() -> None:
         await _generate_sales(
             db, store, products, customers, user, tenant_id=tenant_id
         )
+        store_name = store.name
         await db.commit()
-        print(f"Se sembraron {SALES_COUNT} ventas demo en '{store.name}'.")
+        print(f"Se sembraron {SALES_COUNT} ventas demo en '{store_name}'.")
 
 
 if __name__ == "__main__":

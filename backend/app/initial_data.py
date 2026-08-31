@@ -70,6 +70,10 @@ async def _create_initial_superuser(db: AsyncSession):
             logger.error("Sin compañía por defecto. No se puede crear el superusuario.")
             return
 
+        # El atributo se lee antes del commit interno de crud_user.create
+        # (que expira los objetos de la sesión y dispararía lazy-load síncrono).
+        company_id = company.id
+
         user_in = UserCreate(
             email=superuser_email,
             password=settings.FIRST_SUPERUSER_PASSWORD,
@@ -77,7 +81,7 @@ async def _create_initial_superuser(db: AsyncSession):
             role_id=super_admin_role.id,
         )
         user = await crud_user.create(db, obj_in=user_in)
-        user.tenant_id = company.id
+        user.tenant_id = company_id
         db.add(user)
         await db.commit()
         logger.info(
