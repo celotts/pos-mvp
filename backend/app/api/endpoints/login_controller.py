@@ -6,13 +6,14 @@ from pydantic import BaseModel, EmailStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.response_factory import ApiResponse, create_api_response
+from core import refresh_token as rt
 from core.config import settings
 from core.crud_user import crud_user
-from core.rate_limit import login_limiter
+from core.rate_limit import client_ip, login_limiter
 from core.security import create_access_token
 from dependencies import get_db
 from models.user import User as UserModel
-from schemas.token import Token, TokenData
+from schemas.token import RefreshRequest, RefreshResponse, Token, TokenData
 from schemas.user import UserWithRole
 
 router = APIRouter(tags=["Bootstrap & Auth"])
@@ -107,12 +108,20 @@ async def login_access_token(
     user = await _authenticate_with_lockout(
         db, email=login_data.username, password=login_data.password
     )
+    # Se construye el payload del usuario (con rol/permisos) ANTES del commit
+    # del refresh token para evitar lazy-loading tras el expire del commit.
+    user_payload = _build_user_with_role(user)
 
     access_token = create_access_token(subject=str(user.id))
+    refresh_token = await rt.issue_refresh_token(
+        db, user_id=user.id, ip=client_ip(request)
+    )
+    await db.commit()
     token_data = {
         "access_token": access_token,
+        "refresh_token": refresh_token,
         "token_type": "bearer",
-        "user": _build_user_with_role(user),
+        "user": user_payload,
     }
 
     return create_api_response(data=token_data, message="Authentication successful")
@@ -136,4 +145,82 @@ async def login_swagger(
     )
 
     access_token = create_access_token(subject=str(user.id))
+    await rt.issue_refresh_token(db, user_id=user.id, ip=client_ip(request))
+    await db.commit()
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.post(
+    "/login/refresh",
+    response_model=ApiResponse[RefreshResponse],
+    summary="Refresh the session (rotate tokens)",
+    description=(
+        "Recibe un refresh token, valida que no esté revocado ni expirado y "
+        "rota: revoca el token actual y emite uno nuevo (access + refresh). "
+        "Un refresh token reutilizado queda invalidado (rotación)."
+    ),
+)
+@login_limiter.limit(f"{settings.LOGIN_RATE_LIMIT_PER_MINUTE}/minute")
+async def login_refresh(
+    request: Request,
+    body: RefreshRequest,
+    db: AsyncSessionDep,
+) -> Any:
+    try:
+        new_refresh, user_id, _row = await rt.rotate_refresh_token(
+            db, token=body.refresh_token, ip=client_ip(request)
+        )
+    except ValueError as e:
+        mapping = {
+            "refresh_invalid": (
+                status.HTTP_401_UNAUTHORIZED,
+                "Invalid refresh token.",
+            ),
+            "refresh_expired": (
+                status.HTTP_401_UNAUTHORIZED,
+                "Refresh token has expired.",
+            ),
+            "refresh_revoked": (
+                status.HTTP_401_UNAUTHORIZED,
+                "Refresh token has been revoked. Please login again.",
+            ),
+        }
+        http_code, message = mapping.get(str(e), (status.HTTP_401_UNAUTHORIZED, "Invalid refresh token."))
+        raise HTTPException(status_code=http_code, detail=message)
+
+    user = await crud_user.get(db, id=user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found."
+        )
+
+    access_token = create_access_token(subject=str(user_id))
+    await db.commit()
+    return create_api_response(
+        data={
+            "access_token": access_token,
+            "refresh_token": new_refresh,
+            "token_type": "bearer",
+        },
+        message="Token refreshed successfully",
+    )
+
+
+@router.post(
+    "/logout",
+    response_model=ApiResponse[None],
+    summary="Logout and revoke the refresh token",
+    description="Revoca el refresh token de la sesión para invalidar la re-autenticación.",
+)
+@login_limiter.limit(f"{settings.LOGIN_RATE_LIMIT_PER_MINUTE}/minute")
+async def logout(
+    request: Request,
+    body: RefreshRequest,
+    db: AsyncSessionDep,
+) -> Any:
+    revoked = await rt.revoke_refresh_token(db, token=body.refresh_token)
+    await db.commit()
+    message = "Logged out successfully" if revoked else "Nothing to revoke"
+    return create_api_response(
+        data=None, message=message, status_code=status.HTTP_200_OK
+    )

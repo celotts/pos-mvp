@@ -16,6 +16,7 @@ __all__ = [
     "Product",
     "Purchase",
     "PurchaseItem",
+    "RefreshToken",
     "Role",
     "Sale",
     "SaleItem",
@@ -41,6 +42,7 @@ from .permission import Permission
 from .pos_terminal import PosTerminal
 from .product import Product
 from .purchase import Purchase, PurchaseItem
+from .refresh_token import RefreshToken
 from .role import Role
 from .sale import Sale
 from .sale_item import SaleItem

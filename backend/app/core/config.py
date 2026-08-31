@@ -66,6 +66,9 @@ class Settings(BaseSettings):
     # o variable de entorno. Generar con: openssl rand -hex 32
     SECRET_KEY: str
     ACCESS_TOKEN_EXPIRE_SECONDS: int = 90000
+    # Refresh tokens (C.3): rotación + revocación. Reusa SECRET_KEY para la firma;
+    # la vida del refresh es mayor que la del access para re-autenticar sin pedir creds.
+    REFRESH_TOKEN_EXPIRE_SECONDS: int = 604800  # 7 días
 
     # Login lockout (bloqueo por intentos fallidos)
     MAX_LOGIN_ATTEMPTS: int = 3
