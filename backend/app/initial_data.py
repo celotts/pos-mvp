@@ -2,12 +2,15 @@ import logging
 
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from core.config import settings
 from core.crud_role import crud_role
 from core.crud_user import crud_user
 from core.db import Base, async_session_maker, engine
 from models.company import Company
+from models.permission import Permission
+from models.role import Role
 
 # Import all models so that Base knows about them.
 # This is a crucial step to ensure that SQLAlchemy's metadata is populated
@@ -25,6 +28,10 @@ INITIAL_ROLES = [
         "description": "Super administrador con todos los permisos.",
     },
     {"name": "ADMIN", "description": "Administrador con la mayoría de los permisos."},
+    {
+        "name": "CASHIER",
+        "description": "Cajero: permisos mínimos operativos para la prueba de escalada.",
+    },
 ]
 
 
@@ -205,6 +212,210 @@ async def _create_default_company(db: AsyncSession) -> None:
     logger.info("Compañía por defecto '%s' creada.", DEFAULT_COMPANY_NAME)
 
 
+# --- Fase 3, P1: unicidades re-escopadas por tenant ---
+# Índices únicos globales legacy (esquema de un solo tenant) que se eliminan y
+# sus equivalentes compuestos (tenant_id, columna) que se crean en su lugar.
+LEGACY_UNIQUE_INDEXES = [
+    "ix_products_sku",
+    "ix_suppliers_email",
+    "ix_customers_email",
+]
+
+LEGACY_UNIQUE_CONSTRAINTS = {
+    "pos_terminals": "pos_terminals_name_key",
+    "specialties": "specialties_name_key",
+    "cash_accounts": "cash_accounts_name_key",
+}
+
+TENANT_UNIQUE_INDEXES = [
+    (
+        "CREATE UNIQUE INDEX IF NOT EXISTS uq_products_tenant_sku "
+        "ON products (tenant_id, sku) WHERE sku IS NOT NULL;"
+    ),
+    (
+        "CREATE UNIQUE INDEX IF NOT EXISTS uq_suppliers_tenant_email "
+        "ON suppliers (tenant_id, email) WHERE email IS NOT NULL;"
+    ),
+    (
+        "CREATE UNIQUE INDEX IF NOT EXISTS uq_customers_tenant_email "
+        "ON customers (tenant_id, email) WHERE email IS NOT NULL;"
+    ),
+    (
+        "CREATE UNIQUE INDEX IF NOT EXISTS uq_pos_terminals_tenant_name "
+        "ON pos_terminals (tenant_id, name) WHERE name IS NOT NULL;"
+    ),
+    (
+        "CREATE UNIQUE INDEX IF NOT EXISTS uq_specialties_tenant_name "
+        "ON specialties (tenant_id, name) WHERE name IS NOT NULL;"
+    ),
+    (
+        "CREATE UNIQUE INDEX IF NOT EXISTS uq_cash_accounts_tenant_name "
+        "ON cash_accounts (tenant_id, name) WHERE name IS NOT NULL;"
+    ),
+]
+
+
+async def _ensure_tenant_uniqueness(conn) -> None:
+    """
+    Migración idempotente (Fase 3, P1): elimina las restricciones únicas globales
+    de BD existentes y deja únicamente los índices únicos compuestos por tenant.
+    En BD nuevas, `create_all` crea directamente los compuestos (sin globales).
+    """
+    for index_name in LEGACY_UNIQUE_INDEXES:
+        await conn.execute(text(f'DROP INDEX IF EXISTS "{index_name}";'))
+    for table, constraint_name in LEGACY_UNIQUE_CONSTRAINTS.items():
+        await conn.execute(
+            text(
+                f'ALTER TABLE "{table}" DROP CONSTRAINT IF EXISTS "{constraint_name}";'
+            )
+        )
+    for ddl in TENANT_UNIQUE_INDEXES:
+        await conn.execute(text(ddl))
+    logger.info("Unicidades re-escopadas por tenant (SKU, email, nombres) aseguradas.")
+
+
+async def _backfill_tenant_id(db: AsyncSession) -> None:
+    """
+    Fase 3, P1: asigna la compañía por defecto a todo dato existente que aún
+    no tenga tenant (migración de un solo tenant a multi-tenant). Idempotente.
+    """
+    company = (
+        (await db.execute(select(Company).order_by(Company.created_at).limit(1)))
+        .scalars()
+        .first()
+    )
+    if not company:
+        return
+    company_name = company.name
+    for table in TENANT_TABLES:
+        await db.execute(
+            text(f"UPDATE {table} SET tenant_id = :company_id WHERE tenant_id IS NULL"),
+            {"company_id": company.id},
+        )
+    await db.commit()
+    logger.info(
+        "Backfill de tenant_id a '%s' aplicado a %d tablas.",
+        company_name,
+        len(TENANT_TABLES),
+    )
+
+
+# --- Fase 3, P2: catálogo de permisos por módulo (seed idempotente) ---
+PERMISSION_CATALOG = {
+    "product": {
+        "product:create": "Crear productos",
+        "product:read": "Leer productos",
+        "product:update": "Actualizar productos",
+        "product:delete": "Eliminar productos",
+    },
+    "sale": {
+        "sale:create": "Registrar ventas",
+        "sale:read": "Leer ventas",
+        "sale:update": "Actualizar ventas",
+        "sale:cancel": "Cancelar ventas",
+    },
+    "purchase": {
+        "purchase:create": "Registrar compras",
+        "purchase:read": "Leer compras",
+        "purchase:update": "Actualizar compras",
+    },
+    "customer": {
+        "customer:create": "Crear clientes",
+        "customer:read": "Leer clientes",
+        "customer:update": "Actualizar clientes",
+        "customer:delete": "Eliminar clientes",
+    },
+    "supplier": {
+        "supplier:create": "Crear proveedores",
+        "supplier:read": "Leer proveedores",
+        "supplier:update": "Actualizar proveedores",
+    },
+    "inventory": {
+        "inventory:read": "Consultar inventario",
+        "inventory:adjust": "Ajustar inventario",
+    },
+    "shift": {
+        "shift:open": "Abrir turnos",
+        "shift:close": "Cerrar turnos",
+        "shift:read": "Leer turnos",
+    },
+    "cash": {
+        "cash:create": "Registrar movimientos de caja",
+        "cash:read": "Consultar caja",
+        "cash:close": "Cerrar caja",
+    },
+    "analytics": {"analytics:read": "Consultar analítica"},
+    "user": {
+        "user:read": "Leer usuarios",
+        "user:update": "Actualizar usuarios",
+        "user:delete": "Eliminar usuarios",
+    },
+    "assistant": {"assistant:use": "Usar el asistente IA"},
+}
+
+# Permisos mínimos del rol operativo CASHIER (para poder demostrar el 403).
+CASHIER_PERMISSIONS = [
+    "sale:create",
+    "sale:read",
+    "customer:create",
+    "customer:read",
+    "product:read",
+    "inventory:read",
+    "shift:open",
+    "shift:close",
+    "cash:create",
+    "cash:read",
+    "assistant:use",
+]
+
+# Roles que se mantienen al día con todo el catálogo.
+FULL_ACCESS_ROLES = ["SUPER_ADMIN", "ADMIN"]
+
+
+async def _ensure_permission_catalog(db: AsyncSession) -> dict[str, Permission]:
+    """Asegura el catálogo de permisos (idempotente) y devuelve code -> Permission."""
+    existing = {p.code: p for p in (await db.scalars(select(Permission))).all()}
+    missing = [
+        Permission(code=code, description=description, module=module)
+        for module, codes in PERMISSION_CATALOG.items()
+        for code, description in codes.items()
+        if code not in existing
+    ]
+    if missing:
+        db.add_all(missing)
+        await db.flush()
+        logger.info("Catálogo de permisos: %d nuevos creados.", len(missing))
+        for perm in missing:
+            existing[perm.code] = perm
+    return existing
+
+
+async def _assign_permissions_to_roles(db: AsyncSession) -> None:
+    """Asigna permisos a SUPER_ADMIN/ADMIN (todo) y CASHIER (mínimos). Idempotente."""
+    permission_by_code = await _ensure_permission_catalog(db)
+    all_codes = list(permission_by_code)
+    role_map: dict[str, list[str]] = {}
+    for role_name in FULL_ACCESS_ROLES:
+        role_map[role_name] = all_codes
+    role_map["CASHIER"] = CASHIER_PERMISSIONS
+
+    for role_name, codes in role_map.items():
+        role = await db.scalar(
+            select(Role)
+            .where(Role.name == role_name)
+            .options(selectinload(Role.permissions))
+        )
+        if not role:
+            logger.warning("Rol '%s' no existe; no se asignaron permisos.", role_name)
+            continue
+        granted = {p.code for p in role.permissions}
+        for code in codes:
+            if code not in granted and code in permission_by_code:
+                role.permissions.append(permission_by_code[code])
+        await db.commit()
+        logger.info("Rol '%s': %d permisos asegurados.", role_name, len(codes))
+
+
 async def init_db():
     """
     Initializes the database using SQLAlchemy's metadata to create all tables
@@ -226,6 +437,7 @@ async def init_db():
             await _ensure_sales_vector_store_id(conn)
             await _ensure_login_lock_columns(conn)
             await _ensure_tenant_columns(conn)
+            await _ensure_tenant_uniqueness(conn)
             logger.info("Database schema created successfully.")
 
     except Exception as e:
@@ -237,6 +449,8 @@ async def init_db():
     logger.info("Starting data seeding process...")
     async with async_session_maker() as db:
         await _create_default_company(db)
+        await _backfill_tenant_id(db)
         await _create_initial_roles(db)
+        await _assign_permissions_to_roles(db)
         await _create_initial_superuser(db)
     logger.info("Data seeding process finished.")

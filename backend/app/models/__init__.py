@@ -10,6 +10,7 @@ __all__ = [
     "Country",
     "Customer",
     "Municipality",
+    "Permission",
     "PosTerminal",
     "Product",
     "Purchase",
@@ -34,6 +35,7 @@ from .company import Company
 from .country import Country
 from .customer import Customer
 from .municipality import Municipality
+from .permission import Permission
 from .pos_terminal import PosTerminal
 from .product import Product
 from .purchase import Purchase, PurchaseItem

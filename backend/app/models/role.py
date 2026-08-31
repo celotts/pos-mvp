@@ -7,7 +7,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.db import Base
 
+from .permission import role_permissions
+
 if TYPE_CHECKING:
+    from .permission import Permission
     from .pos_terminal import PosTerminal
     from .user import User
 
@@ -24,6 +27,10 @@ class Role(Base):
     description: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     users: Mapped[list["User"]] = relationship("User", back_populates="role")
+
+    permissions: Mapped[list["Permission"]] = relationship(
+        "Permission", secondary=role_permissions, back_populates="roles"
+    )
 
     # Relationships to PosTerminal for audit trails
     role_created_pos_terminals: Mapped[list["PosTerminal"]] = relationship(
