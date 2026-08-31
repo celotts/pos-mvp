@@ -61,6 +61,8 @@ jobs:
             sleep 2
           done
           echo "La API no respondió a tiempo"; docker compose logs --tail=100 pos-api; exit 1
+      - name: Sembrar datos demo
+        run: docker compose exec -T pos-api python -m seed_demo
       - name: Tests unitarios
         run: docker compose exec -T pos-api pytest -q
       - name: Tests de integración (endpoints)

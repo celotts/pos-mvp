@@ -27,6 +27,15 @@ BASE_URL = os.environ.get("TEST_API_BASE_URL") or "http://localhost:8000"
 TEST_API_TOKEN = os.environ.get("TEST_API_TOKEN")
 
 
+def _ollama_available() -> bool:
+    """True si Ollama responde en settings.OLLAMA_BASE_URL."""
+    try:
+        resp = httpx.get(f"{settings.OLLAMA_BASE_URL}/api/tags", timeout=3)
+        return resp.status_code == 200
+    except (httpx.HTTPError, ValueError):
+        return False
+
+
 @pytest.fixture()
 def client():
     with httpx.Client(base_url=BASE_URL, timeout=60) as c:
@@ -282,9 +291,7 @@ def test_customer_crud_full(client: httpx.Client):
         json={"full_name": f"Cliente TEST-{tag}-actualizado"},
     )
     assert updated.status_code == 200, updated.text
-    assert (
-        updated.json()["data"]["full_name"] == f"Cliente TEST-{tag}-actualizado"
-    )
+    assert updated.json()["data"]["full_name"] == f"Cliente TEST-{tag}-actualizado"
 
     deleted = client.delete(f"{base}/{customer_id}", headers=headers)
     assert deleted.status_code == 200, deleted.text
@@ -346,10 +353,13 @@ def test_inventory_recommendation(client: httpx.Client):
     assert "suggestion" in resp.json()
 
 
+@pytest.mark.skipif(not _ollama_available(), reason="Ollama no disponible (embeddings)")
 def test_inventory_vectorize_analysis(client: httpx.Client):
     """POST /inventory/vectorize-analysis: analiza, embebe y persiste (201)."""
     headers = _auth_headers(client)
-    resp = client.post("/api/v1/inventory/vectorize-analysis", headers=headers, timeout=180)
+    resp = client.post(
+        "/api/v1/inventory/vectorize-analysis", headers=headers, timeout=180
+    )
     assert resp.status_code == 201, resp.text
     assert "message" in resp.json()
 
