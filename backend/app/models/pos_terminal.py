@@ -9,6 +9,7 @@ from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.db import Base
+from core.soft_delete import SoftDeleteMixin
 
 if TYPE_CHECKING:
     from .purchase import Purchase
@@ -18,7 +19,7 @@ if TYPE_CHECKING:
     from .user import User
 
 
-class PosTerminal(Base):
+class PosTerminal(Base, SoftDeleteMixin):
     __tablename__ = "pos_terminals"
 
     __table_args__ = (

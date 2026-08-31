@@ -8,12 +8,13 @@ from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.db import Base
+from core.soft_delete import SoftDeleteMixin
 
 if TYPE_CHECKING:
     from .sale import Sale
 
 
-class Customer(Base):
+class Customer(Base, SoftDeleteMixin):
     __tablename__ = "customers"
 
     __table_args__ = (

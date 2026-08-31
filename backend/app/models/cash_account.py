@@ -19,6 +19,7 @@ from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.db import Base
+from core.soft_delete import SoftDeleteMixin
 
 
 class CashAccountType(enum.Enum):
@@ -26,7 +27,7 @@ class CashAccountType(enum.Enum):
     BANK = "BANK"
 
 
-class CashAccount(Base):
+class CashAccount(Base, SoftDeleteMixin):
     __tablename__ = "cash_accounts"
 
     __table_args__ = (

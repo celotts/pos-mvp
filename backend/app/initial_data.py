@@ -468,6 +468,57 @@ async def _assign_permissions_to_roles(db: AsyncSession) -> None:
         logger.info("Rol '%s': %d permisos asegurados.", role_name, len(codes))
 
 
+# C.4: tablas que siguen soft-delete (mixin SoftDeleteMixin).
+SOFT_DELETE_TABLES = [
+    "companies",
+    "users",
+    "roles",
+    "products",
+    "suppliers",
+    "customers",
+    "stores",
+    "pos_terminals",
+    "cash_accounts",
+]
+
+
+async def _ensure_soft_delete_columns(conn) -> None:
+    """
+    Migración idempotente (C.4): agrega columnas de soft-delete a las tablas que
+    ahora usan `SoftDeleteMixin`. Tanto en BD nuevas (tras `create_all`) como en
+    BD existentes (ALTER TABLE ... ADD COLUMN IF NOT EXISTS).
+    """
+    for table in SOFT_DELETE_TABLES:
+        await conn.execute(
+            text(
+                f"ALTER TABLE {table} "
+                "ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN NOT NULL DEFAULT FALSE;"
+            )
+        )
+        await conn.execute(
+            text(
+                f"CREATE INDEX IF NOT EXISTS ix_{table}_is_deleted "
+                f"ON {table} (is_deleted);"
+            )
+        )
+        await conn.execute(
+            text(
+                f"ALTER TABLE {table} "
+                "ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;"
+            )
+        )
+        await conn.execute(
+            text(
+                f"ALTER TABLE {table} "
+                "ADD COLUMN IF NOT EXISTS deleted_by UUID;"
+            )
+        )
+    logger.info(
+        "Columnas de soft-delete (is_deleted/deleted_at/deleted_by) aseguradas en %d tablas.",
+        len(SOFT_DELETE_TABLES),
+    )
+
+
 async def init_db():
     """
     Initializes the database using SQLAlchemy's metadata to create all tables
@@ -490,6 +541,7 @@ async def init_db():
             await _ensure_login_lock_columns(conn)
             await _ensure_tenant_columns(conn)
             await _ensure_tenant_uniqueness(conn)
+            await _ensure_soft_delete_columns(conn)
             logger.info("Database schema created successfully.")
 
     except Exception as e:

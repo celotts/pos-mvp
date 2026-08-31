@@ -6,6 +6,7 @@ from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.db import Base
+from core.soft_delete import SoftDeleteMixin
 
 from .permission import role_permissions
 
@@ -15,7 +16,7 @@ if TYPE_CHECKING:
     from .user import User
 
 
-class Role(Base):
+class Role(Base, SoftDeleteMixin):
     __tablename__ = "roles"
 
     id: Mapped[uuid.UUID] = mapped_column(

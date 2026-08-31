@@ -5,9 +5,10 @@ from sqlalchemy import Boolean, DateTime, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.db import Base
+from core.soft_delete import SoftDeleteMixin
 
 
-class Company(Base):
+class Company(Base, SoftDeleteMixin):
     __tablename__ = "companies"
 
     id: Mapped[uuid.UUID] = mapped_column("id", primary_key=True, default=uuid.uuid4)

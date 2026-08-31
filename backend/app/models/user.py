@@ -9,6 +9,7 @@ from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship  # type: ignore
 
 from core.db import Base
+from core.soft_delete import SoftDeleteMixin
 
 # Esto solo lo lee el IDE para el autocompletado y los tipos,
 # evitando importaciones circulares en ejecución.
@@ -22,7 +23,7 @@ if TYPE_CHECKING:
 from .purchase import Purchase  # Needed at runtime for foreign_keys
 
 
-class User(Base):
+class User(Base, SoftDeleteMixin):
     __tablename__ = "users"
 
     id: Mapped[uuid.UUID] = mapped_column(

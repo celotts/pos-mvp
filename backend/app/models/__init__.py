@@ -4,6 +4,7 @@
 __all__ = [
     "AccountsPayable",
     "AccountsReceivable",
+    "AuditLog",
     "CashAccount",
     "CashTransaction",
     "Company",
@@ -29,6 +30,7 @@ __all__ = [
 
 from .accounts_payable import AccountsPayable
 from .accounts_receivable import AccountsReceivable
+from .audit_log import AuditLog
 from .cash_account import CashAccount
 from .cash_transaction import CashTransaction
 from .company import Company
