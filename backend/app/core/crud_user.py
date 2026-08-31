@@ -8,6 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from core.crud_base import CRUDBase, sanitize_pagination
 from core.security import get_password_hash, verify_password
+from core.tenancy import get_current_tenant
 from models.role import Role
 from models.user import User
 from schemas.user import UserCreate, UserUpdate
@@ -74,6 +75,10 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             password=get_password_hash(obj_in.password.get_secret_value()),
             role_id=obj_in.role_id,
         )
+        # Write-path: el usuario hereda el tenant del request.
+        tenant_id = get_current_tenant()
+        if tenant_id:
+            db_obj.tenant_id = tenant_id
         db.add(db_obj)
         try:
             await db.commit()
@@ -110,6 +115,9 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
     ) -> list[User]:
         skip, limit = sanitize_pagination(skip, limit)
         query = select(self.model)
+        tenant_id = get_current_tenant()
+        if tenant_id:
+            query = query.where(self.model.tenant_id == tenant_id)
         if email:
             query = query.filter(self.model.email == email)
         query = query.options(*self.default_loads)

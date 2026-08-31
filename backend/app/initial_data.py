@@ -60,13 +60,26 @@ async def _create_initial_superuser(db: AsyncSession):
             )
             return
 
+        # El superusuario pertenece a la compañía por defecto (Fase 3 tenancy).
+        company = (
+            (await db.execute(select(Company).order_by(Company.created_at).limit(1)))
+            .scalars()
+            .first()
+        )
+        if not company:
+            logger.error("Sin compañía por defecto. No se puede crear el superusuario.")
+            return
+
         user_in = UserCreate(
             email=superuser_email,
             password=settings.FIRST_SUPERUSER_PASSWORD,
             full_name=settings.FIRST_SUPERUSER_FULL_NAME,
             role_id=super_admin_role.id,
         )
-        await crud_user.create(db, obj_in=user_in)
+        user = await crud_user.create(db, obj_in=user_in)
+        user.tenant_id = company.id
+        db.add(user)
+        await db.commit()
         logger.info(
             f"Superusuario '{settings.FIRST_SUPERUSER_FULL_NAME}' creado exitosamente."
         )

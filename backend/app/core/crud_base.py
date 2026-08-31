@@ -8,6 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.db import Base
+from core.tenancy import get_current_tenant
 
 ModelType = TypeVar("ModelType", bound=Base)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
@@ -35,11 +36,19 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         self.model = model
         self.default_loads = []
 
+    def _scope_by_tenant(self, statement):
+        """Aplica el filtro de tenant del request cuando el modelo lo soporta."""
+        tenant_id = get_current_tenant()
+        if tenant_id is not None and hasattr(self.model, "tenant_id"):
+            return statement.where(self.model.tenant_id == tenant_id)
+        return statement
+
     async def get(self, db: AsyncSession, id: Any) -> ModelType | None:
         query = select(self.model)
         if self.default_loads:
             query = query.options(*self.default_loads)
         query = query.filter(self.model.id == id)
+        query = self._scope_by_tenant(query)
         result = await db.execute(query)
         return result.scalars().first()
 
@@ -50,6 +59,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         query = select(self.model).offset(skip).limit(limit)
         if self.default_loads:
             query = query.options(*self.default_loads)
+        query = self._scope_by_tenant(query)
         result = await db.execute(query)
         return result.scalars().all()
 
@@ -57,6 +67,11 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         self, db: AsyncSession, *, obj_in: CreateSchemaType, **kwargs
     ) -> ModelType:
         obj_in_data = jsonable_encoder(obj_in)
+        # Write-path: asigna el tenant del request si el modelo lo requiere.
+        if hasattr(self.model, "tenant_id") and "tenant_id" not in kwargs:
+            tenant_id = get_current_tenant()
+            if tenant_id:
+                kwargs = {**kwargs, "tenant_id": tenant_id}
         # Combina los datos del schema con cualquier kwarg adicional (como created_by)
         db_obj = self.model(**obj_in_data, **kwargs)
         db.add(db_obj)

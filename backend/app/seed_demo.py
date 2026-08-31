@@ -15,6 +15,7 @@ from sqlalchemy import select
 from core.config import settings
 from core.crud_user import crud_user
 from core.db import async_session_maker
+from models.company import Company
 from models.customer import Customer
 from models.product import Product
 from models.sale import Sale
@@ -85,18 +86,20 @@ SALES_COUNT = 50
 LOOKBACK_DAYS = 30
 
 
-async def _get_or_create_store(db) -> Store:
+async def _get_or_create_store(db, *, tenant_id) -> Store:
     result = await db.execute(
-        select(Store).where(Store.name == DEMO_STORE_NAME).limit(1)
+        select(Store)
+        .where(Store.name == DEMO_STORE_NAME)
+        .limit(1)
     )
     store = result.scalars().first()
     if not store:
-        store = Store(name=DEMO_STORE_NAME, address="Centro")
+        store = Store(name=DEMO_STORE_NAME, address="Centro", tenant_id=tenant_id)
         db.add(store)
     return store
 
 
-async def _get_or_create_supplier(db) -> Supplier:
+async def _get_or_create_supplier(db, *, tenant_id) -> Supplier:
     result = await db.execute(
         select(Supplier).where(Supplier.name == DEMO_SUPPLIER_NAME).limit(1)
     )
@@ -108,12 +111,15 @@ async def _get_or_create_supplier(db) -> Supplier:
             phone="+52 555 0200",
             email="proveedor.demo@example.com",
             address="Zona Industrial",
+            tenant_id=tenant_id,
         )
         db.add(supplier)
     return supplier
 
 
-async def _get_or_create_products(db, supplier: Supplier) -> list[Product]:
+async def _get_or_create_products(
+    db, supplier: Supplier, *, tenant_id
+) -> list[Product]:
     products_by_sku = {
         row.sku: row
         for row in (await db.execute(select(Product))).scalars().all()
@@ -127,13 +133,14 @@ async def _get_or_create_products(db, supplier: Supplier) -> list[Product]:
                 description=data["description"],
                 price=data["price"],
                 supplier_id=supplier.id,
+                tenant_id=tenant_id,
             )
             db.add(product)
             products_by_sku[data["sku"]] = product
     return [products_by_sku[data["sku"]] for data in DEMO_PRODUCTS]
 
 
-async def _get_or_create_customers(db) -> list[Customer]:
+async def _get_or_create_customers(db, *, tenant_id) -> list[Customer]:
     emails = {data["email"] for data in DEMO_CUSTOMERS}
     existing = {
         row.email: row
@@ -142,7 +149,7 @@ async def _get_or_create_customers(db) -> list[Customer]:
     }
     for data in DEMO_CUSTOMERS:
         if data["email"] not in existing:
-            customer = Customer(**data)
+            customer = Customer(**data, tenant_id=tenant_id)
             db.add(customer)
             existing[data["email"]] = customer
     return [existing[data["email"]] for data in DEMO_CUSTOMERS]
@@ -156,7 +163,7 @@ async def _has_recent_sales(db, store: Store, days: int) -> bool:
     return result.first() is not None
 
 
-async def _generate_sales(db, store, products: list, customers: list, user) -> None:
+async def _generate_sales(db, store, products: list, customers: list, user, *, tenant_id) -> None:
     now = datetime.now()
     for _ in range(SALES_COUNT):
         days_ago = random.randint(0, LOOKBACK_DAYS - 1)
@@ -177,6 +184,7 @@ async def _generate_sales(db, store, products: list, customers: list, user) -> N
                     product_id=product.id,
                     quantity=quantity,
                     price_at_sale=product.price,
+                    tenant_id=tenant_id,
                 )
             )
 
@@ -190,6 +198,7 @@ async def _generate_sales(db, store, products: list, customers: list, user) -> N
             payment_status="PAID",
             store_id=store.id,
             user_id=user.id,
+            tenant_id=tenant_id,
             created_at=sale_date,
             customer_id=(
                 random.choice(available_customers).id if available_customers else None
@@ -210,6 +219,7 @@ async def _generate_sales(db, store, products: list, customers: list, user) -> N
             SalesVector(
                 sale_id=sale.id,
                 store_id=store.id,
+                tenant_id=tenant_id,
                 content=content,
                 embedding=[0.0] * settings.EMBEDDING_DIM,
             )
@@ -226,19 +236,32 @@ async def seed_demo_data() -> None:
             )
             return
 
-        store = await _get_or_create_store(db)
-        supplier = await _get_or_create_supplier(db)
+        # El demo se siembra bajo la compañía por defecto (Fase 3 tenancy).
+        company = (
+            (await db.execute(select(Company).order_by(Company.created_at).limit(1)))
+            .scalars()
+            .first()
+        )
+        if not company:
+            print("Sin compañía por defecto. Corre initial_data.py primero.")
+            return
+        tenant_id = company.id
+
+        store = await _get_or_create_store(db, tenant_id=tenant_id)
+        supplier = await _get_or_create_supplier(db, tenant_id=tenant_id)
         await db.flush()
 
-        products = await _get_or_create_products(db, supplier)
-        customers = await _get_or_create_customers(db)
+        products = await _get_or_create_products(db, supplier, tenant_id=tenant_id)
+        customers = await _get_or_create_customers(db, tenant_id=tenant_id)
         await db.flush()
 
         if await _has_recent_sales(db, store, LOOKBACK_DAYS):
             print(f"Ventas demo ya sembradas en '{store.name}'. Nada que hacer.")
             return
 
-        await _generate_sales(db, store, products, customers, user)
+        await _generate_sales(
+            db, store, products, customers, user, tenant_id=tenant_id
+        )
         await db.commit()
         print(f"Se sembraron {SALES_COUNT} ventas demo en '{store.name}'.")
 

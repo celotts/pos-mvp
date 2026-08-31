@@ -5,8 +5,9 @@ from decimal import Decimal
 from sqlalchemy import func, select
 
 from core.crud_base import CRUDBase
+from core.tenancy import get_current_tenant
 from models.product import Product
-from models.purchase import PurchaseItem
+from models.purchase import Purchase, PurchaseItem
 from models.sale import Sale
 from models.sale_item import SaleItem
 from schemas.sale import SaleCreate  # Usamos SaleCreate, no hay Update para Sale
@@ -20,11 +21,20 @@ class CRUDSale(CRUDBase[Sale, SaleCreate, SaleCreate]):
         since = datetime.now(timezone.utc) - timedelta(days=days)
         return Sale.sale_date >= since
 
+    def _tenant_filter(self):
+        tenant_id = get_current_tenant()
+        if tenant_id:
+            return Sale.tenant_id == tenant_id
+        return None
+
     async def get_sales_summary(
         self, db, days: int = 30, store_id: uuid.UUID | None = None
     ) -> dict:
         """Totales de ventas del periodo (ingresos, tickets, ticket promedio, impuestos, descuentos)."""
         filters = [self._date_filter(days)]
+        tenant = self._tenant_filter()
+        if tenant:
+            filters.append(tenant)
         if store_id:
             filters.append(Sale.store_id == store_id)
         stmt = select(
@@ -51,6 +61,9 @@ class CRUDSale(CRUDBase[Sale, SaleCreate, SaleCreate]):
     ) -> list[dict]:
         """Top N productos por ingresos y unidades del periodo."""
         filters = [self._date_filter(days)]
+        tenant = self._tenant_filter()
+        if tenant:
+            filters.append(tenant)
         if store_id:
             filters.append(Sale.store_id == store_id)
         stmt = (
@@ -81,6 +94,9 @@ class CRUDSale(CRUDBase[Sale, SaleCreate, SaleCreate]):
     ) -> dict:
         """Productos con mayor y menor margen real (precio de venta vs costo de compra)."""
         filters = [self._date_filter(days)]
+        tenant = self._tenant_filter()
+        if tenant:
+            filters.append(tenant)
         if store_id:
             filters.append(Sale.store_id == store_id)
 
@@ -103,7 +119,10 @@ class CRUDSale(CRUDBase[Sale, SaleCreate, SaleCreate]):
         cost_stmt = select(
             PurchaseItem.product_id,
             func.coalesce(func.avg(PurchaseItem.price_at_purchase), 0).label("cost"),
-        ).group_by(PurchaseItem.product_id)
+        ).join(Purchase, Purchase.id == PurchaseItem.purchase_id).group_by(PurchaseItem.product_id)
+        tenant_id = get_current_tenant()
+        if tenant_id and hasattr(Purchase, "tenant_id"):
+            cost_stmt = cost_stmt.where(Purchase.tenant_id == tenant_id)
         cost_rows = (await db.execute(cost_stmt)).all()
         avg_cost = {r.product_id: Decimal(str(r.cost)) for r in cost_rows}
 

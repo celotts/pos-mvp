@@ -11,13 +11,20 @@ y los endpoints de agente de IA, inventario y POS faltantes.
 Requiere que el stack esté arriba (make up).
 """
 
+import asyncio
 import os
 import uuid
 
 import httpx
 import pytest
+from sqlalchemy import select
 
 from core.config import settings
+from core.db import async_session_maker
+from core.security import get_password_hash
+from models.company import Company
+from models.role import Role
+from models.user import User
 
 # Dentro del contenedor pos-api la API responde en el 8000.
 # En el host se publica en el 8003 (sobreescribir con TEST_API_BASE_URL).
@@ -42,14 +49,18 @@ def client():
         yield c
 
 
-def _auth_headers(client: httpx.Client) -> dict:
+def _auth_headers(
+    client: httpx.Client,
+    username: str | None = None,
+    password: str | None = None,
+) -> dict:
     if TEST_API_TOKEN:
         return {"Authorization": f"Bearer {TEST_API_TOKEN}"}
     resp = client.post(
         "/api/v1/login/access-token",
         json={
-            "username": settings.FIRST_SUPERUSER_EMAIL,
-            "password": settings.FIRST_SUPERUSER_PASSWORD,
+            "username": username or settings.FIRST_SUPERUSER_EMAIL,
+            "password": password or settings.FIRST_SUPERUSER_PASSWORD,
         },
     )
     assert resp.status_code == 200, resp.text
@@ -510,3 +521,84 @@ def test_rbac_cashier_escalation(client: httpx.Client):
         json={"full_name": "Cliente CASHIER"},
     )
     assert resp.status_code == 201, resp.text
+
+
+# --- AISLAMIENTO MULTITENANT (F3) ---
+
+
+def _create_foreign_tenant_user() -> tuple[str, str]:
+    """Crea una segunda compañía + admin (vía DB directa) y devuelve (company_id, email)."""
+
+    async def _inner():
+        async with async_session_maker() as db:
+            role = (
+                (await db.execute(select(Role).where(Role.name == "ADMIN")))
+                .scalars()
+                .first()
+            )
+            assert role, "Rol ADMIN no encontrado para el tenant foráneo"
+            company = Company(name=f"Tenant aislado {uuid.uuid4().hex[:6]}")
+            db.add(company)
+            await db.flush()
+            email = f"admin.foreign.{uuid.uuid4().hex[:8]}@example.com"
+            user = User(
+                email=email,
+                full_name="Admin Foráneo",
+                password=get_password_hash("ForeignPass1"),
+                role_id=role.id,
+                tenant_id=company.id,
+            )
+            db.add(user)
+            company_id = str(company.id)
+            await db.commit()
+            return company_id, email
+
+    return asyncio.run(_inner())
+
+
+def test_cross_tenant_isolation(client: httpx.Client):
+    """Un tenant no puede leer ni listar datos(productos) de otro tenant."""
+    admin_headers = _auth_headers(client)
+
+    sku = f"TEN-ISO-{uuid.uuid4().hex[:8]}".upper()
+    created = client.post(
+        "/api/v1/products/",
+        headers=admin_headers,
+        json={"name": f"Producto tenancy {sku}", "price": 10.5, "sku": sku},
+    )
+    assert created.status_code == 201, created.text
+    product_id = created.json()["data"]["id"]
+
+    # El tenant A (súperusuario) sí ve su producto.
+    assert (
+        client.get(f"/api/v1/products/{product_id}", headers=admin_headers).status_code
+        == 200
+    )
+
+    company_b_id, email_b = _create_foreign_tenant_user()
+    headers_b = _auth_headers(
+        client, username=email_b, password="ForeignPass1"
+    )
+
+    # El tenant B no ve el producto de A en su listado.
+    products_b = client.get("/api/v1/products/", headers=headers_b).json()["data"]
+    assert all(p["id"] != product_id for p in products_b)
+
+    # Y obtenerlo por id devuelve 404 (scoping de lectura).
+    assert (
+        client.get(f"/api/v1/products/{product_id}", headers=headers_b).status_code
+        == 404
+    )
+
+    # Un producto creado por B no contamina el tenant A.
+    sku_b = f"TEN-B-{company_b_id[:8].upper()}"
+    created_b = client.post(
+        "/api/v1/products/",
+        headers=headers_b,
+        json={"name": "Producto de tenant B", "price": 1.0, "sku": sku_b},
+    )
+    assert created_b.status_code == 201, created_b.text
+    product_b_id = created_b.json()["data"]["id"]
+
+    products_a = client.get("/api/v1/products/", headers=admin_headers).json()["data"]
+    assert all(p["id"] != product_b_id for p in products_a)

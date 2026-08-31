@@ -9,6 +9,7 @@ from core.config import settings
 from core.crud_user import crud_user
 from core.db import get_db
 from core.security import decode_access_token
+from core.tenancy import set_current_tenant
 from models.user import User
 from service.inventory_analisis_service import InventoryAnalysisService
 from service.llm_service import (
@@ -43,6 +44,8 @@ async def get_current_user(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="The user account is inactive.",
         )
+    # Propaga el tenant del usuario al request en curso (scoping de datos).
+    set_current_tenant(user.tenant_id)
     return user
 
 
