@@ -442,3 +442,71 @@ def test_sale_create_http(client: httpx.Client):
     data = resp.json()["data"]
     assert data["total_amount"] is not None
     assert data["items"][0]["product_id"] == product_id
+
+
+# --- FASE 3: RBAC — prueba de la escalada de privilegios ---
+
+def _create_cashier(client: httpx.Client, headers: dict) -> dict:
+    """Crea un usuario con rol CASHIER y devuelve sus headers autenticados."""
+    resp = client.get("/api/v1/roles/", headers=headers)
+    assert resp.status_code == 200, resp.text
+    roles = resp.json()["data"]
+    cashier_role = next(r for r in roles if r["name"] == "CASHIER")
+
+    email = f"cashier_{uuid.uuid4().hex[:8]}@test.com"
+    resp = client.post(
+        "/api/v1/users/",
+        headers=headers,
+        json={
+            "email": email,
+            "password": "CashierPass123!",
+            "full_name": "Cajera de Prueba",
+            "role_id": str(cashier_role["id"]),
+        },
+    )
+    assert resp.status_code == 201, resp.text
+
+    resp = client.post(
+        "/api/v1/login/access-token",
+        json={"username": email, "password": "CashierPass123!"},
+    )
+    assert resp.status_code == 200, resp.text
+    token = resp.json()["data"]["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+def test_rbac_cashier_escalation(client: httpx.Client):
+    """Un CASHIER no puede escalar: 403 en admin-only, 200 en lo mínimo."""
+    admin_headers = _auth_headers(client)
+    cashier_headers = _create_cashier(client, admin_headers)
+
+    # CASHIER NO puede crear productos (requiere product:create).
+    resp = client.post(
+        "/api/v1/products/",
+        headers=cashier_headers,
+        json={"name": "Intento CASHIER", "price": 10.0, "sku": f"ESC-{uuid.uuid4().hex[:6]}"},
+    )
+    assert resp.status_code == 403, resp.text
+
+    # La operación sí funciona con SUPER_ADMIN (la autorización se aplica antes).
+    resp = client.post(
+        "/api/v1/products/",
+        headers=admin_headers,
+        json={"name": "Admin TB-OK", "price": 20.0, "sku": f"ADM-{uuid.uuid4().hex[:6]}"},
+    )
+    assert resp.status_code in (200, 201), resp.text
+
+    # CASHIER NO puede leer analítica (requiere analytics:read; no lo tiene).
+    resp = client.get("/api/v1/analytics/bundles", headers=cashier_headers)
+    assert resp.status_code == 403, resp.text
+
+    # CASHIER SÍ puede leer productos y crear clientes (permisos que sí tiene).
+    resp = client.get("/api/v1/products/", headers=cashier_headers)
+    assert resp.status_code == 200, resp.text
+
+    resp = client.post(
+        "/api/v1/customers/",
+        headers=cashier_headers,
+        json={"full_name": "Cliente CASHIER"},
+    )
+    assert resp.status_code == 201, resp.text

@@ -318,6 +318,7 @@ PERMISSION_CATALOG = {
         "purchase:create": "Registrar compras",
         "purchase:read": "Leer compras",
         "purchase:update": "Actualizar compras",
+        "purchase:delete": "Eliminar compras",
     },
     "customer": {
         "customer:create": "Crear clientes",
@@ -329,6 +330,7 @@ PERMISSION_CATALOG = {
         "supplier:create": "Crear proveedores",
         "supplier:read": "Leer proveedores",
         "supplier:update": "Actualizar proveedores",
+        "supplier:delete": "Eliminar proveedores",
     },
     "inventory": {
         "inventory:read": "Consultar inventario",
@@ -346,11 +348,36 @@ PERMISSION_CATALOG = {
     },
     "analytics": {"analytics:read": "Consultar analítica"},
     "user": {
+        "user:create": "Crear usuarios",
         "user:read": "Leer usuarios",
         "user:update": "Actualizar usuarios",
         "user:delete": "Eliminar usuarios",
     },
     "assistant": {"assistant:use": "Usar el asistente IA"},
+    "store": {
+        "store:create": "Crear tiendas",
+        "store:read": "Leer tiendas",
+        "store:update": "Actualizar tiendas",
+        "store:delete": "Eliminar tiendas",
+    },
+    "pos_terminal": {
+        "pos_terminal:create": "Crear terminales POS",
+        "pos_terminal:read": "Leer terminales POS",
+        "pos_terminal:update": "Actualizar terminales POS",
+        "pos_terminal:delete": "Eliminar terminales POS",
+    },
+    "specialty": {
+        "specialty:create": "Crear especialidades",
+        "specialty:read": "Leer especialidades",
+        "specialty:update": "Actualizar especialidades",
+        "specialty:delete": "Eliminar especialidades",
+    },
+    "accounts": {
+        "accounts:read": "Consultar cuentas por cobrar/pagar",
+        "accounts:update": "Actualizar cuentas por cobrar/pagar",
+        "accounts:create": "Registrar cuentas por cobrar/pagar",
+        "accounts:delete": "Eliminar cuentas por cobrar/pagar",
+    },
 }
 
 # Permisos mínimos del rol operativo CASHIER (para poder demostrar el 403).

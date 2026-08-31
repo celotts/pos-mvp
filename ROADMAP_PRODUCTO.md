@@ -59,21 +59,21 @@ fricción, y con un **Asistente de Negocio** (IA de decisiones, no un chatbot).
       `tenant_id` sobre datos existentes (asignar tenant por defecto).
 
 ### Paso 1 — Datos: permisos y tenancy
-- [ ] Tabla `permissions` (código, descripción, módulo) y `role_permissions`.
-- [ ] `users.tenant_id` (y/o `store_id` scoping según Paso 0).
-- [ ] Añadir `tenant_id`/`store_id` a las entidades que lo requieran.
-- [ ] Unicidades (SKU, email, NFC) re-escopadas **dentro del tenant**.
+- [x] Tabla `permissions` (código, descripción, módulo) y `role_permissions`.
+- [x] `users.tenant_id` (y/o `store_id` scoping según Paso 0).
+- [x] Añadir `tenant_id`/`store_id` a las entidades que lo requieran.
+- [x] Unicidades (SKU, email, NFC) re-escopadas **dentro del tenant**.
 
 ### Paso 2 — Permisos por rol (seed idempotente en `initial_data.py`)
-- [ ] Catálogo base de permisos por módulo: product, sale, purchase,
+- [x] Catálogo base de permisos por módulo: product, sale, purchase,
       customer, supplier, inventory, shift, cash, analytics, user, assistant.
-- [ ] `SUPER_ADMIN` y `ADMIN` → todos los permisos.
-- [ ] Crear rol operativo `CASHIER` (o `SELLER`) con permisos mínimos
+- [x] `SUPER_ADMIN` y `ADMIN` → todos los permisos.
+- [x] Crear rol operativo `CASHIER` (o `SELLER`) con permisos mínimos
       (sale:create, sale:read, shift:open/close…) para que el 403 sea real.
 
 ### Paso 3 — Guard de permisos (reemplazar checks literales de rol)
-- [ ] Factory `require_permission("sale:create")` en `dependencies.py`.
-- [ ] Sustituir `role == ADMIN`/`is_admin` por guards de permiso en controllers.
+- [x] Factory `require_permission("sale:create")` en `dependencies.py`.
+- [x] Sustituir `role == ADMIN`/`is_admin` por guards de permiso en controllers.
 - [ ] `get_current_user` carga el tenant y expone `user.tenant_id`.
 - [ ] Scoping en `crud_base`/crud por entidad: toda query filtra por tenant.
 

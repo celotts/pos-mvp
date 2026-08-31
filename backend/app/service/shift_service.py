@@ -70,10 +70,14 @@ async def close_shift(
             detail="The shift is already closed.",
         )
 
-    # 3. Solo el dueño del turno o un usuario con rol protegido (ADMIN/SUPER_ADMIN) puede cerrarlo
+    # 3. Solo el dueño del turno o un usuario con permiso shift:close (o rol
+    #    protegido ADMIN/SUPER_ADMIN) puede cerrarlo
     is_owner = db_shift.user_id == current_user.id
     role_name = current_user.role.name.strip().upper() if current_user.role else ""
-    if not is_owner and role_name not in settings.PROTECTED_ROLES:
+    has_close_permission = any(
+        p.code == "shift:close" for p in (current_user.role.permissions or [])
+    )
+    if not is_owner and role_name not in settings.PROTECTED_ROLES and not has_close_permission:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only close your own shifts.",

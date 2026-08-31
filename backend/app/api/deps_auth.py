@@ -47,3 +47,38 @@ def get_current_admin_user(
             detail="The user does not have the necessary privileges.",
         )
     return current_user
+
+
+def require_permission(permission_code: str):
+    """
+    Fábrica de dependencias RBAC (Fase 3).
+
+    Devuelve una dependencia que verifica que el usuario activo tenga el
+    permiso solicitado (p. ej. `"sale:create"`). Los roles protegidos
+    (SUPER_ADMIN/ADMIN) tienen acceso total. El rol del usuario y sus
+    permisos llegan pre-cargados por `crud_user` (selectinload).
+    """
+
+    def permission_guard(
+        current_user: User = get_current_active_user_dependency,
+    ) -> User:
+        role = current_user.role
+        if not role:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="The user does not have a valid role assigned or the role has been deleted.",
+            )
+
+        # Roles protegidos: acceso total (bypass de permisos granulares).
+        if role.name.strip().upper() in settings.PROTECTED_ROLES:
+            return current_user
+
+        permitted_codes = {p.code for p in role.permissions}
+        if permission_code not in permitted_codes:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="The user does not have the necessary privileges.",
+            )
+        return current_user
+
+    return permission_guard

@@ -8,6 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from core.crud_base import CRUDBase, sanitize_pagination
 from core.security import get_password_hash, verify_password
+from models.role import Role
 from models.user import User
 from schemas.user import UserCreate, UserUpdate
 
@@ -15,8 +16,10 @@ from schemas.user import UserCreate, UserUpdate
 class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
     def __init__(self, model: type[User]):
         super().__init__(model)
-        # Asegura que la relación con el rol se cargue eficientemente
-        self.default_loads = [selectinload(self.model.role)]
+        # Asegura que el rol y sus permisos se carguen eficientemente (RBAC).
+        self.default_loads = [
+            selectinload(self.model.role).selectinload(Role.permissions)
+        ]
 
     async def get_by_email(self, db: AsyncSession, *, email: str) -> User | None:
         query = select(self.model).filter(func.lower(self.model.email) == email.lower())
