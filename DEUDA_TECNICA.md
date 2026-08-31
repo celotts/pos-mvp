@@ -33,7 +33,7 @@
 
 | # | Tema | Beneficio | Esfuerzo |
 | --- | --- | --- | --- |
-| 1 | **Alembic** (migraciones versionadas) en lugar de `create_all` + parches idempotentes | Cambios de schema seguros sobre datos existentes | Medio |
+| 1 | ~~**Alembic** (migraciones versionadas) en lugar de `create_all` + parches idempotentes~~ ✅ Hecho (commit `5d55ad7`): `alembic.ini` + `migrations/` (async), baseline `e6ea85421946` con equivalencia 100% (26 tablas / 243 columnas), BD dev en `stamp head`, e `init_db` ejecuta `alembic upgrade head` antes de `create_all` (fallback seguro) | Cambios de schema seguros sobre datos existentes | Hecho |
 | 2 | ~~**RBAC por permiso**~~ ✅ Implementado en Fase 3 (`permissions` + `role_permissions` + guards `require_permission` + multi-tenancy por `Company`) | Control fino de acceso | Hecho |
 | 3 | ~~**Refresh token** con rotación + revocación (logout server-side / `token_version` por usuario)~~ ✅ Hecho (commit `f54a37c`): tabla `refresh_tokens` (guardando solo hash SHA-256 del `jti`), `/login` emite `access`+`refresh`, `/login/refresh` rota (revoca el anterior + emite nuevos) y `/logout` revoca; token reutilizado → 401 | Tokens comprometidos limitados a minutos | Hecho |
 | 4 | ~~**Soft-delete** (`is_deleted`, `deleted_at`, `deleted_by`) + tabla `audit_log`~~ ✅ Hecho (commit `03a4685`): `SoftDeleteMixin` en modelos maestros (Company, User, Role, Product, Supplier, Customer, Store, PosTerminal, CashAccount); CRUDBase hace soft-delete en `remove` y filtra `is_deleted=False` en `get`/`get_multi`; `AuditLog` registra create/update/delete; migración idempotente `_ensure_soft_delete_columns` | Datos recuperables y trazables | Hecho |
