@@ -602,3 +602,96 @@ def test_cross_tenant_isolation(client: httpx.Client):
 
     products_a = client.get("/api/v1/products/", headers=admin_headers).json()["data"]
     assert all(p["id"] != product_b_id for p in products_a)
+
+
+# --- ADMIN: CRUD DE ROLES + ASIGNACIÓN DE PERMISOS (F3-P4) ---
+
+
+def test_admin_role_crud_and_permission_assignment(client: httpx.Client):
+    """SUPER_ADMIN crea un rol, le asigna permisos, y un CASHIER recibe 403."""
+    admin_headers = _auth_headers(client)
+
+    # Listar catálogo de permisos.
+    perms = client.get(
+        "/api/v1/roles/catalog/permissions", headers=admin_headers
+    )
+    assert perms.status_code == 200, perms.text
+    catalog = perms.json()["data"]
+    assert any(p["code"] == "product:read" for p in catalog)
+
+    # CASHIER NO puede listar el catálogo de permisos (requiere permission:read).
+    cashier_headers = _create_cashier(client, admin_headers)
+    resp = client.get(
+        "/api/v1/roles/catalog/permissions", headers=cashier_headers
+    )
+    assert resp.status_code == 403, resp.text
+
+    # Crear rol personalizado.
+    name = f"RBAC_{uuid.uuid4().hex[:6].upper()}"
+    created = client.post(
+        "/api/v1/roles/",
+        headers=admin_headers,
+        json={"name": name, "description": "Rol de prueba"},
+    )
+    assert created.status_code == 201, created.text
+    role_id = created.json()["data"]["id"]
+
+    # Asignar permisos específicos.
+    assigned = client.put(
+        f"/api/v1/roles/{role_id}/permissions",
+        headers=admin_headers,
+        json={"permission_codes": ["product:read", "sale:create"]},
+    )
+    assert assigned.status_code == 200, assigned.text
+    assert set(assigned.json()["data"]["permissions"]) == {
+        "product:read",
+        "sale:create",
+    }
+
+    # Los roles protegidos no se pueden modificar (403).
+    sa_id = next(
+        r["id"]
+        for r in client.get("/api/v1/roles/", headers=admin_headers).json()["data"]
+        if r["name"] == "SUPER_ADMIN"
+    )
+    protected = client.put(
+        f"/api/v1/roles/{sa_id}/permissions",
+        headers=admin_headers,
+        json={"permission_codes": ["product:read"]},
+    )
+    assert protected.status_code == 403, protected.text
+
+    # CASHIER no puede crear roles (requiere role:create).
+    resp = client.post(
+        "/api/v1/roles/",
+        headers=cashier_headers,
+        json={"name": "ESC_ROLE"},
+    )
+    assert resp.status_code == 403, resp.text
+
+    # Eliminar el rol de prueba.
+    deleted = client.delete(f"/api/v1/roles/{role_id}", headers=admin_headers)
+    assert deleted.status_code == 200, deleted.text
+
+
+def test_user_context_exposes_permissions(client: httpx.Client):
+    """El login y /users/me exponen los códigos de permiso para el menú dinámico."""
+    admin_headers = _auth_headers(client)
+
+    # El superusuario tiene todos los permisos en el payload de login y en /me.
+    login = client.post(
+        "/api/v1/login/access-token",
+        json={
+            "username": settings.FIRST_SUPERUSER_EMAIL,
+            "password": settings.FIRST_SUPERUSER_PASSWORD,
+        },
+    )
+    assert login.status_code == 200, login.text
+    assert "sale:create" in login.json()["data"]["user"]["permissions"]
+
+    me = client.get("/api/v1/users/me", headers=admin_headers)
+    assert me.status_code == 200, me.text
+    assert "permissions" in me.json()["data"]
+    assert set(me.json()["data"]["permissions"]) == set(
+        login.json()["data"]["user"]["permissions"]
+    )

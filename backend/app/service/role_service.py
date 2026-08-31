@@ -4,6 +4,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
+from core.crud_permission import crud_permission
 from core.crud_role import crud_role
 from models.role import Role
 from schemas.role import RoleCreate, RoleUpdate
@@ -93,3 +94,38 @@ async def remove_role(db: AsyncSession, *, role_id: uuid.UUID) -> Role:
     if not deleted_role:
         raise HTTPException(status_code=404, detail="Role not found to delete.")
     return deleted_role
+
+
+async def get_permissions(db: AsyncSession) -> list:
+    """Lista todos los permisos del catálogo (para la UI de administración)."""
+    return await crud_permission.get_all(db)
+
+
+async def assign_permissions_to_role(
+    db: AsyncSession, *, role_id: uuid.UUID, permission_codes: list[str]
+) -> Role:
+    """Reemplaza el conjunto de permisos de un rol por los códigos indicados.
+
+    Solo aplicable a roles no protegidos (SUPER_ADMIN/ADMIN quedan intactos).
+    """
+    db_role = await get_role(db=db, role_id=role_id)
+    if db_role.name in settings.PROTECTED_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Role '{db_role.name}' is protected and cannot be modified.",
+        )
+
+    # Validamos que todos los códigos existan en el catálogo; los ignorados se rechazan.
+    existing = {p.code: p for p in await crud_permission.get_all(db)}
+    unknown = [c for c in permission_codes if c not in existing]
+    if unknown:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unknown permission codes: {unknown}",
+        )
+
+    db_role.permissions = [existing[c] for c in set(permission_codes)]
+    db.add(db_role)
+    await db.commit()
+    await db.refresh(db_role)
+    return db_role

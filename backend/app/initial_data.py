@@ -395,6 +395,14 @@ PERMISSION_CATALOG = {
         "accounts:create": "Registrar cuentas por cobrar/pagar",
         "accounts:delete": "Eliminar cuentas por cobrar/pagar",
     },
+    "role": {
+        "role:read": "Ver roles",
+        "role:create": "Crear roles",
+        "role:update": "Actualizar roles",
+        "role:delete": "Eliminar roles",
+        "role:assign_permissions": "Asignar permisos a roles",
+        "permission:read": "Ver permisos",
+    },
 }
 
 # Permisos mínimos del rol operativo CASHIER (para poder demostrar el 403).

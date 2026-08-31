@@ -23,12 +23,12 @@ require_user_delete = Depends(require_permission("user:delete"))
 @router.get(
     "/me",
     response_model=ApiResponse[UserWithRole],
-    summary="Get the current logged-in user with its role",
+    summary="Get the current logged-in user with its role and permissions",
 )
 async def read_me(
     current_user: UserModel = get_current_user_dependency,
 ) -> ApiResponse[UserWithRole]:
-    """Returns the authenticated user enriched with its role (for dynamic menus)."""
+    """Returns the authenticated user enriched with role and permissions (for dynamic menus)."""
     return create_api_response(
         data=UserWithRole(
             id=current_user.id,
@@ -37,6 +37,11 @@ async def read_me(
             is_active=current_user.is_active,
             role_id=current_user.role_id,
             role_name=current_user.role.name if current_user.role else "",
+            permissions=sorted(
+                {p.code for p in current_user.role.permissions}
+                if current_user.role
+                else []
+            ),
         )
     )
 

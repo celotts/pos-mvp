@@ -28,7 +28,7 @@ class UserLoginSchema(BaseModel):
 
 
 def _build_user_with_role(user: UserModel) -> UserWithRole:
-    """Convierte un usuario ORM en el esquema enriquecido con su rol."""
+    """Convierte un usuario ORM en el esquema enriquecido con rol y permisos."""
     return UserWithRole(
         id=user.id,
         email=user.email,
@@ -36,6 +36,9 @@ def _build_user_with_role(user: UserModel) -> UserWithRole:
         is_active=user.is_active,
         role_id=user.role_id,
         role_name=user.role.name if user.role else "",
+        permissions=sorted(
+            {p.code for p in user.role.permissions} if user.role else []
+        ),
     )
 
 

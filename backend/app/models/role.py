@@ -32,6 +32,10 @@ class Role(Base):
         "Permission", secondary=role_permissions, back_populates="roles"
     )
 
+    @property
+    def permission_codes(self) -> list[str]:
+        return sorted({p.code for p in self.permissions})
+
     # Relationships to PosTerminal for audit trails
     role_created_pos_terminals: Mapped[list["PosTerminal"]] = relationship(
         "PosTerminal",
