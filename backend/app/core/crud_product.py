@@ -110,9 +110,9 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
             for r in (await db.execute(cost_stmt)).all()
         }
 
-        total = Decimal("0")
+        total = Decimal(0)
         for pid in dead_ids:
-            total += avg_cost.get(pid, Decimal("0")) * levels[pid]
+            total += avg_cost.get(pid, Decimal(0)) * levels[pid]
         return float(total)
 
 

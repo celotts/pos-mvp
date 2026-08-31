@@ -36,7 +36,7 @@ class CRUDSale(CRUDBase[Sale, SaleCreate, SaleCreate]):
         row = (await db.execute(stmt)).one()
         revenue = Decimal(str(row.revenue or 0))
         tickets = int(row.tickets or 0)
-        avg_ticket = (revenue / Decimal(tickets)) if tickets else Decimal("0")
+        avg_ticket = (revenue / Decimal(tickets)) if tickets else Decimal(0)
         return {
             "days": days,
             "revenue": float(revenue),
@@ -111,10 +111,10 @@ class CRUDSale(CRUDBase[Sale, SaleCreate, SaleCreate]):
         for r in sold_rows:
             revenue = Decimal(str(r.revenue or 0))
             qty = int(r.qty or 0)
-            unit_cost = avg_cost.get(r.id, Decimal("0"))
+            unit_cost = avg_cost.get(r.id, Decimal(0))
             cost = unit_cost * qty
             margin = revenue - cost
-            margin_pct = (margin / revenue * 100) if revenue else Decimal("0")
+            margin_pct = (margin / revenue * 100) if revenue else Decimal(0)
             by_product[r.id] = {
                 "product": r.name,
                 "revenue": float(revenue),

@@ -37,7 +37,7 @@ def test_compute_cross_sell_ranks_by_lift():
 
 def test_compute_cross_sell_min_support_filters_noise():
     transactions = [{A, B}] * 5 + [{C}] * 95
-    total, recs = compute_cross_sell(transactions, A, min_support=0.1)
+    _, recs = compute_cross_sell(transactions, A, min_support=0.1)
     assert recs == []
 
 

@@ -7,5 +7,10 @@ src = ["backend/app"]
 line-length = 88
 
 [tool.ruff.lint]
+ignore = ["B008"]
+
+[tool.ruff.lint.per-file-ignores]
+"backend/app/generate_sales.py" = ["DTZ005"]
+
 [tool.ruff.lint.isort]
 known-first-party = ["api", "core", "dependencies", "models", "schemas", "service", "utils"]

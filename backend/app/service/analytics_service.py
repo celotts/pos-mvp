@@ -6,8 +6,8 @@ testearla de forma determinística; las consultas a BD están aisladas.
 import math
 import uuid
 from collections import Counter, defaultdict
+from collections.abc import Iterable
 from datetime import date, datetime, timedelta, timezone
-from typing import Iterable
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
