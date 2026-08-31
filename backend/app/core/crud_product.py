@@ -5,6 +5,7 @@ from decimal import Decimal
 from sqlalchemy import func, select
 
 from core.crud_base import CRUDBase
+from core.tenancy import get_current_tenant
 from models.product import Product
 from models.purchase import Purchase, PurchaseItem
 from models.sale import Sale
@@ -26,16 +27,21 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
         purchased_stmt = select(
             PurchaseItem.product_id,
             func.coalesce(func.sum(PurchaseItem.quantity), 0).label("qty"),
-        )
+        ).join(Purchase, Purchase.id == PurchaseItem.purchase_id)
         sold_stmt = select(
             SaleItem.product_id,
             func.coalesce(func.sum(SaleItem.quantity), 0).label("qty"),
         ).join(Sale, Sale.id == SaleItem.sale_id)
 
+        tenant_id = get_current_tenant()
+        if tenant_id:
+            purchased_stmt = purchased_stmt.where(
+                Purchase.tenant_id == tenant_id
+            )
+            sold_stmt = sold_stmt.where(Sale.tenant_id == tenant_id)
+
         if store_id:
-            purchased_stmt = purchased_stmt.join(
-                Purchase, Purchase.id == PurchaseItem.purchase_id
-            ).where(Purchase.store_id == store_id)
+            purchased_stmt = purchased_stmt.where(Purchase.store_id == store_id)
             sold_stmt = sold_stmt.where(Sale.store_id == store_id)
 
         purchased_stmt = purchased_stmt.group_by(PurchaseItem.product_id)
@@ -110,9 +116,9 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
             for r in (await db.execute(cost_stmt)).all()
         }
 
-        total = Decimal("0")
+        total = Decimal(0)
         for pid in dead_ids:
-            total += avg_cost.get(pid, Decimal("0")) * levels[pid]
+            total += avg_cost.get(pid, Decimal(0)) * levels[pid]
         return float(total)
 
 

@@ -4,7 +4,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.deps_auth import get_current_admin_user
+from api.deps_auth import require_permission
 from api.response_factory import ApiResponse, create_api_response
 from dependencies import get_current_user, get_db
 from models.user import User as UserModel
@@ -15,7 +15,9 @@ router = APIRouter(tags=["Products"])
 
 db_dependency = Depends(get_db)
 current_user_dependency = Depends(get_current_user)
-get_current_admin_user_dependency = Depends(get_current_admin_user)
+require_product_create = Depends(require_permission("product:create"))
+require_product_update = Depends(require_permission("product:update"))
+require_product_delete = Depends(require_permission("product:delete"))
 
 
 @router.get("/", response_model=ApiResponse[list[Product]])
@@ -38,9 +40,9 @@ async def read_products(
 async def create_product(
     *,
     db: AsyncSession = db_dependency,
-    product_in: ProductCreate,
-    current_user: UserModel = get_current_admin_user_dependency,
-) -> Any:
+product_in: ProductCreate,
+    current_user: UserModel = require_product_create,
+    ) -> Any:
     """
     Create new product.
     """
@@ -74,9 +76,9 @@ async def update_product(
     *,
     db: AsyncSession = db_dependency,
     id: uuid.UUID,
-    product_in: ProductUpdate,
-    current_user: UserModel = get_current_admin_user_dependency,
-) -> Any:
+product_in: ProductUpdate,
+    current_user: UserModel = require_product_update,
+    ) -> Any:
     """
     Update a product.
     """
@@ -92,9 +94,9 @@ async def update_product(
 async def delete_product(
     *,
     db: AsyncSession = db_dependency,
-    id: uuid.UUID,
-    current_user: UserModel = get_current_admin_user_dependency,
-) -> Any:
+id: uuid.UUID,
+    current_user: UserModel = require_product_delete,
+    ) -> Any:
     """
     Delete a product.
     """

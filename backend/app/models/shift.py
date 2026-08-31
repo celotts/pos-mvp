@@ -58,6 +58,9 @@ class Shift(Base):
         PG_UUID(as_uuid=True), ForeignKey("pos_terminals.id"), nullable=False
     )
     store_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("stores.id"), nullable=False)
+    tenant_id: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("companies.id"), nullable=True, index=True
+    )
 
     # Relationships
     user: Mapped[User] = relationship(back_populates="shifts")

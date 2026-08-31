@@ -4,7 +4,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.deps_auth import get_current_admin_user
+from api.deps_auth import require_permission
 from api.response_factory import ApiResponse, create_api_response
 from dependencies import get_current_user, get_db
 from models.user import User as UserModel
@@ -19,7 +19,9 @@ router = APIRouter(tags=["Accounting"])
 
 db_dependency = Depends(get_db)
 current_user_dependency = Depends(get_current_user)
-get_current_admin_user_dependency = Depends(get_current_admin_user)
+require_accounts_create = Depends(require_permission("accounts:create"))
+require_accounts_update = Depends(require_permission("accounts:update"))
+require_accounts_delete = Depends(require_permission("accounts:delete"))
 
 
 @router.post(
@@ -32,8 +34,8 @@ async def create_account_receivable(
     *,
     account_in: AccountsReceivableCreate,
     db: AsyncSession = db_dependency,
-    current_user: UserModel = get_current_admin_user_dependency,
-) -> Any:
+current_user: UserModel = require_accounts_create,
+    ) -> Any:
     """Creates a new accounts receivable record, usually associated with a sale."""
     new_account = await accounts_receivable_service.create(db=db, obj_in=account_in)
     return create_api_response(
@@ -85,8 +87,8 @@ async def update_account_receivable(
     account_id: uuid.UUID,
     account_in: AccountsReceivableUpdate,
     db: AsyncSession = db_dependency,
-    current_user: UserModel = get_current_admin_user_dependency,
-) -> Any:
+current_user: UserModel = require_accounts_update,
+    ) -> Any:
     """Updates the data of an account receivable (e.g., to register a payment)."""
     updated_account = await accounts_receivable_service.update(
         db=db, id=account_id, obj_in=account_in
@@ -107,8 +109,8 @@ async def delete_account_receivable(
     *,
     account_id: uuid.UUID,
     db: AsyncSession = db_dependency,
-    current_user: UserModel = get_current_admin_user_dependency,
-) -> Any:
+current_user: UserModel = require_accounts_delete,
+    ) -> Any:
     """Deletes an account receivable record."""
     deleted_account = await accounts_receivable_service.remove(db, id=account_id)
     if not deleted_account:

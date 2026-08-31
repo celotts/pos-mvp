@@ -3,6 +3,7 @@ import logging
 from fastapi import HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 logger = logging.getLogger("pos.api")
@@ -53,6 +54,22 @@ async def sqlalchemy_error_handler(request: Request, exc: SQLAlchemyError):
     logger.error("DB error: %s", exc)
     return _error_response(
         status_code=500, message="A database error occurred. Please try again."
+    )
+
+
+async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
+    """Límite de peticiones excedido (login) -> 429 con formato unificado."""
+    return JSONResponse(
+        status_code=429,
+        headers={
+            "Retry-After": "60",
+        },
+        content={
+            "success": False,
+            "status_code": 429,
+            "message": "Too many login attempts. Please try again later.",
+            "data": None,
+        },
     )
 
 

@@ -18,14 +18,16 @@
           "label": "Productos",
           "icon": "box",
           "path": "/catalogo/productos",
-          "roles": ["SUPER_ADMIN", "ADMIN"]
+          "roles": ["SUPER_ADMIN", "ADMIN"],
+          "permissions": ["product:read"]
         },
         {
           "id": "clientes",
           "label": "Clientes",
           "icon": "users",
           "path": "/catalogo/clientes",
-          "roles": ["SUPER_ADMIN", "ADMIN"]
+          "roles": ["SUPER_ADMIN", "ADMIN"],
+          "permissions": ["customer:read"]
         },
         {
           "id": "proveedores",
@@ -55,7 +57,8 @@
       "label": "Ventas",
       "icon": "shopping-cart",
       "path": "/ventas",
-      "roles": ["SUPER_ADMIN", "ADMIN"]
+      "roles": ["SUPER_ADMIN", "ADMIN"],
+      "permissions": ["sale:read"]
     },
     {
       "id": "compras",
@@ -75,7 +78,8 @@
           "label": "Stock y productos",
           "icon": "boxes",
           "path": "/inventario/stock",
-          "roles": ["SUPER_ADMIN", "ADMIN"]
+          "roles": ["SUPER_ADMIN", "ADMIN"],
+          "permissions": ["inventory:read"]
         },
         {
           "id": "recomendacion",
@@ -162,7 +166,8 @@
           "label": "Roles",
           "icon": "shield",
           "path": "/administracion/roles",
-          "roles": ["SUPER_ADMIN"]
+          "roles": ["SUPER_ADMIN"],
+          "permissions": ["role:read"]
         },
         {
           "id": "terminales",
@@ -178,7 +183,8 @@
       "label": "Asistente de IA",
       "icon": "bot",
       "path": "/asistente",
-      "roles": ["*"]
+      "roles": ["*"],
+      "permissions": ["assistant:use"]
     }
   ]
 }

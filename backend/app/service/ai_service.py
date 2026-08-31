@@ -14,6 +14,7 @@ from sqlalchemy.orm import joinedload
 
 from core.config import settings
 from core.db import async_session_maker
+from core.tenancy import get_current_tenant
 from models.sale import Sale
 from models.sale_item import SaleItem
 from models.sales_vector import SalesVector
@@ -189,6 +190,7 @@ class AIService:
                 sale_vector = SalesVector(
                     sale_id=sale.id,
                     store_id=sale.store_id,
+                    tenant_id=sale.tenant_id,
                     content=content,
                     embedding=embedding,
                 )
@@ -210,6 +212,11 @@ class AIService:
                 .order_by(SalesVector.embedding.cosine_distance(query_embedding))
                 .limit(5)
             )
+            tenant_id = get_current_tenant()
+            if tenant_id:
+                context_query = context_query.where(
+                    SalesVector.tenant_id == tenant_id
+                )
             if store_id:
                 # Incluye vectores de la tienda y los históricos sin tienda asignada
                 context_query = context_query.where(

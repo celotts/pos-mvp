@@ -4,11 +4,14 @@
 __all__ = [
     "AccountsPayable",
     "AccountsReceivable",
+    "AuditLog",
     "CashAccount",
     "CashTransaction",
+    "Company",
     "Country",
     "Customer",
     "Municipality",
+    "Permission",
     "PosTerminal",
     "Product",
     "Purchase",
@@ -27,11 +30,14 @@ __all__ = [
 
 from .accounts_payable import AccountsPayable
 from .accounts_receivable import AccountsReceivable
+from .audit_log import AuditLog
 from .cash_account import CashAccount
 from .cash_transaction import CashTransaction
+from .company import Company
 from .country import Country
 from .customer import Customer
 from .municipality import Municipality
+from .permission import Permission
 from .pos_terminal import PosTerminal
 from .product import Product
 from .purchase import Purchase, PurchaseItem

@@ -4,11 +4,12 @@ import uuid
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, Numeric, String
+from sqlalchemy import ForeignKey, Index, Numeric, String, text
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.db import Base
+from core.soft_delete import SoftDeleteMixin
 
 if TYPE_CHECKING:
     from .purchase import PurchaseItem
@@ -16,8 +17,18 @@ if TYPE_CHECKING:
     from .supplier import Supplier
 
 
-class Product(Base):
+class Product(Base, SoftDeleteMixin):
     __tablename__ = "products"
+
+    __table_args__ = (
+        Index(
+            "uq_products_tenant_sku",
+            "tenant_id",
+            "sku",
+            unique=True,
+            postgresql_where=text("sku IS NOT NULL"),
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
@@ -25,11 +36,14 @@ class Product(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     description: Mapped[str | None] = mapped_column(String)
     price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
-    sku: Mapped[str | None] = mapped_column(String(100), unique=True, index=True)
+    sku: Mapped[str | None] = mapped_column(String(100))
 
     # Foreign Key to Supplier
     supplier_id: Mapped[uuid.UUID | None] = mapped_column(
         PG_UUID(as_uuid=True), ForeignKey("suppliers.id"), nullable=True
+    )
+    tenant_id: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("companies.id"), nullable=True, index=True
     )
 
     # Relationships

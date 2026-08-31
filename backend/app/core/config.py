@@ -20,9 +20,11 @@ class Settings(BaseSettings):
 
     # PostgreSQL settings
     POSTGRES_HOST: str = "pos-db"
-    POSTGRES_USER: str = "product"
-    POSTGRES_PASSWORD: str = "product123"
-    POSTGRES_DB: str = "pos_db"
+    # SECRETOS OBLIGATORIOS (sin valores por defecto): deben inyectarse vía .env
+    # o variable de entorno. Si faltan, la app falla al arrancar (ver abajo).
+    POSTGRES_USER: str
+    POSTGRES_PASSWORD: str
+    POSTGRES_DB: str
     POSTGRES_PORT: int = 5432
 
     @computed_field
@@ -41,7 +43,8 @@ class Settings(BaseSettings):
 
     # Credenciales para el primer superusuario
     FIRST_SUPERUSER_EMAIL: EmailStr = "admin@posAdmin.com"
-    FIRST_SUPERUSER_PASSWORD: str = "PasswordPasAdmin123!"
+    # OBLIGATORIO (sin default): debe inyectarse vía .env o variable de entorno.
+    FIRST_SUPERUSER_PASSWORD: str
     FIRST_SUPERUSER_FULL_NAME: str = "Admin"
 
     # IA Settings (Valores predeterminados corregidos)
@@ -50,6 +53,9 @@ class Settings(BaseSettings):
     LLM_MODEL: str = "llama3.2:latest"
     EMBEDDING_MODEL: str = "nomic-embed-text:latest"
     EMBEDDING_DIM: int = 768  # Dimensión de nomic-embed-text
+    # Anthropic (usado cuando LLM_PROVIDER=anthropic)
+    ANTHROPIC_API_KEY: str = ""
+    ANTHROPIC_MODEL: str = ""
 
     # Application
     ENVIRONMENT: str = "development"

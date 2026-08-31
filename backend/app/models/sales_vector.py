@@ -19,9 +19,10 @@ class SalesVector(Base):
     """
     Modelo para almacenar embeddings (vectores) de las ventas.
     Permite realizar búsquedas semánticas y de similitud utilizando pgvector.
-    Está asociado directamente a un registro de venta (Sale) y almacena 
+    Está asociado directamente a un registro de venta (Sale) y almacena
     tanto el contenido en texto como su representación vectorial.
     """
+
     __tablename__ = "sales_vectors"
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -37,7 +38,9 @@ class SalesVector(Base):
     embedding: Mapped[list[float]] = mapped_column(
         VECTOR(settings.EMBEDDING_DIM)
     )  # Dimensión según configuración (default: nomic-embed-text 768d)
-
+    tenant_id: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("companies.id"), nullable=True, index=True
+    )
     sale: Mapped[Sale] = relationship(back_populates="sales_vectors")
 
 

@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.deps_auth import get_current_admin_user
+from api.deps_auth import require_permission
 from api.response_factory import ApiResponse, create_api_response
 from core.crud_customer import crud_customer
 from dependencies import get_current_user, get_db
@@ -15,7 +15,9 @@ router = APIRouter(tags=["Customers"])
 # Dependencias a nivel de módulo para un código más limpio y sin advertencias del linter
 db_dependency = Depends(get_db)
 current_user_dependency = Depends(get_current_user)
-current_admin_user_dependency = Depends(get_current_admin_user)
+require_customer_create = Depends(require_permission("customer:create"))
+require_customer_update = Depends(require_permission("customer:update"))
+require_customer_delete = Depends(require_permission("customer:delete"))
 
 
 @router.post(
@@ -25,8 +27,8 @@ async def create_customer(
     *,
     customer_in: CustomerCreate,
     db: AsyncSession = db_dependency,
-    current_user: UserModel = current_admin_user_dependency,
-) -> ApiResponse[Customer]:
+current_user: UserModel = require_customer_create,
+    ) -> ApiResponse[Customer]:
     """Create a new customer. For administrators only."""
     customer = await crud_customer.create(db=db, obj_in=customer_in)
     return create_api_response(
@@ -68,8 +70,8 @@ async def update_customer(
     customer_id: uuid.UUID,
     customer_in: CustomerUpdate,
     db: AsyncSession = db_dependency,
-    current_user: UserModel = current_admin_user_dependency,
-) -> ApiResponse[Customer]:
+current_user: UserModel = require_customer_update,
+    ) -> ApiResponse[Customer]:
     """Update a customer. For administrators only."""
     db_customer = await crud_customer.get(db, id=customer_id)
     if not db_customer:
@@ -85,8 +87,8 @@ async def delete_customer(
     *,
     customer_id: uuid.UUID,
     db: AsyncSession = db_dependency,
-    current_user: UserModel = current_admin_user_dependency,
-) -> ApiResponse[Customer]:
+current_user: UserModel = require_customer_delete,
+    ) -> ApiResponse[Customer]:
     """Delete a customer. For administrators only."""
     customer = await crud_customer.remove(db, id=customer_id)
     if not customer:

@@ -6,8 +6,9 @@ from httpx import HTTPError
 from langchain_core.exceptions import OutputParserException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.deps_auth import require_permission
 from api.response_factory import ApiResponse, create_api_response
-from dependencies import get_current_user, get_db
+from dependencies import get_db
 from models.user import User as UserModel
 from schemas.assistant import ChatRequest, ChatResponse
 from service.ai_agent_service import ai_agent_service
@@ -18,7 +19,7 @@ router = APIRouter(prefix="/assistant", tags=["AI Assistant"])
 
 # Inyección de dependencias reutilizable
 db_dependency = Depends(get_db)
-current_user_dependency = Depends(get_current_user)
+current_user_dependency = Depends(require_permission("assistant:use"))
 
 
 @router.post(

@@ -91,5 +91,67 @@ class OllamaService(AbstractLLMService):
                 return "No fue posible generar el resumen ejecutivo debido a un fallo de conexión con la IA."
 
 
-def llm_service_factory() -> OllamaService:
+class AnthropicService(AbstractLLMService):
+    """Servicio para interactuar con la API de Anthropic (Claude)."""
+
+    API_URL = "https://api.anthropic.com/v1/messages"
+
+    def __init__(self, api_key: str | None = None, model: str | None = None):
+        self.api_key = api_key or getattr(settings, "ANTHROPIC_API_KEY", "") or ""
+        self.model = model or getattr(settings, "ANTHROPIC_MODEL", "") or "claude-3-5-sonnet-20241022"
+
+    async def generate_executive_summary(
+        self, structured_data: dict[str, Any]
+    ) -> str | None:
+        """Genera un resumen ejecutivo usando Claude."""
+        if not self.api_key:
+            logger.warning(
+                "ANTHROPIC_API_KEY no está configurada. Omitiendo resumen de IA."
+            )
+            return "Servicio de IA no configurado."
+
+        prompt = _build_executive_summary_prompt(structured_data)
+
+        headers = {
+            "x-api-key": self.api_key,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+        }
+        payload = {
+            "model": self.model,
+            "max_tokens": 1024,
+            "messages": [{"role": "user", "content": prompt}],
+        }
+
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            try:
+                response = await client.post(self.API_URL, headers=headers, json=payload)
+                response.raise_for_status()
+                data = response.json()
+                blocks = data.get("content", [])
+                return "".join(b.get("text", "") for b in blocks if b.get("type") == "text").strip()
+            except (httpx.RequestError, httpx.HTTPStatusError) as e:
+                logger.error(
+                    f"Error de comunicación con Anthropic: {type(e).__name__} - {e}"
+                )
+                return "No fue posible generar el resumen ejecutivo debido a un fallo de conexión con la IA."
+
+
+def llm_service_factory() -> AbstractLLMService:
+    """Construye el servicio LLM según `settings.LLM_PROVIDER`.
+
+    - `ollama` (default): llama a un servidor Ollama local.
+    - `anthropic`: usa la API de Anthropic (requiere ANTHROPIC_API_KEY).
+    - Otro/desconocido: cae en Ollama y registra un aviso en logs.
+    """
+    provider = (settings.LLM_PROVIDER or "ollama").strip().lower()
+    if provider == "anthropic":
+        logger.info("Usando proveedor LLM: anthropic")
+        return AnthropicService()
+    if provider == "ollama":
+        logger.info("Usando proveedor LLM: ollama")
+        return OllamaService()
+    logger.warning(
+        "LLM_PROVIDER='%s' no reconocido; usando Ollama por defecto.", provider
+    )
     return OllamaService()

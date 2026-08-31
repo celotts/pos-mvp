@@ -5,21 +5,18 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.config import settings
 from core.crud_user import crud_user
 from core.db import get_db
 from core.security import decode_access_token
+from core.tenancy import set_current_tenant
 from models.user import User
 from service.inventory_analisis_service import InventoryAnalysisService
 from service.llm_service import (
     AbstractLLMService,
-    OllamaService,
     llm_service_factory,
 )
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/login/swagger")
-
-ollama_service = llm_service_factory()
 
 
 async def get_current_user(
@@ -43,6 +40,8 @@ async def get_current_user(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="The user account is inactive.",
         )
+    # Propaga el tenant del usuario al request en curso (scoping de datos).
+    set_current_tenant(user.tenant_id)
     return user
 
 
@@ -50,13 +49,11 @@ async def get_current_user(
 def get_llm_service() -> AbstractLLMService:
     """
     Dependencia de FastAPI que proporciona una instancia del servicio LLM.
-    Utiliza un factory para decidir qué agente de IA instanciar según la configuración
-    del entorno (settings.LLM_PROVIDER). `lru_cache` asegura que la factory
-    solo se ejecute una vez, creando un singleton del servicio para la aplicación.
+    Utiliza `llm_service_factory` para instanciar el proveedor configurado en
+    `settings.LLM_PROVIDER` (ollama por defecto, anthropic alternativo).
+    `lru_cache` asegura que el factory solo se ejecute una vez (singleton).
     """
-    return OllamaService(
-        ollama_base_url=settings.OLLAMA_BASE_URL, model_name=settings.LLM_MODEL
-    )
+    return llm_service_factory()
 
 
 LLMServiceDep = Annotated[AbstractLLMService, Depends(get_llm_service)]

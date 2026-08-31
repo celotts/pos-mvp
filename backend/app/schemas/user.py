@@ -61,3 +61,4 @@ class UserWithRole(User):
     is_active: bool
     role_id: uuid.UUID
     role_name: str
+    permissions: list[str] = []

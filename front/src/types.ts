@@ -7,6 +7,8 @@ export interface UserWithRole {
   is_active: boolean
   role_id: string
   role_name: string
+  /** Códigos de permiso RBAC del rol (sale:create, product:read, …). */
+  permissions: string[]
 }
 
 export interface LoginResponseData {
@@ -31,6 +33,11 @@ export interface MenuItem {
   path?: string
   /** Roles permitidos; "*" significa cualquier usuario autenticado. */
   roles: RoleRule[]
+  /**
+   * Permisos RBAC requeridos (cualquiera de la lista habilita el ítem).
+   * Si está vacío/ausente, se ignora y solo se evalúa `roles`.
+   */
+  permissions?: string[]
   children?: MenuItem[]
 }
 

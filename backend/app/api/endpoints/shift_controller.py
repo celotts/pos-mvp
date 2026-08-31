@@ -4,8 +4,9 @@ from typing import Any
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.deps_auth import require_permission
 from api.response_factory import ApiResponse, create_api_response
-from dependencies import get_current_user, get_db
+from dependencies import get_db
 from models.user import User as UserModel
 from schemas.shift import Shift, ShiftClose, ShiftOpen
 from service import shift_service
@@ -13,7 +14,8 @@ from service import shift_service
 router = APIRouter(tags=["POS"])
 
 db_dependency = Depends(get_db)
-current_user_dependency = Depends(get_current_user)
+require_shift_open = Depends(require_permission("shift:open"))
+require_shift_close = Depends(require_permission("shift:close"))
 
 
 @router.post(
@@ -26,7 +28,7 @@ async def open_new_shift(
     *,
     shift_in: ShiftOpen,
     db: AsyncSession = db_dependency,
-    current_user: UserModel = current_user_dependency,
+    current_user: UserModel = require_shift_open,
 ) -> Any:
     """Starts a new shift for the current user at a specific terminal,
     registering the initial cash."""
@@ -46,7 +48,7 @@ async def close_existing_shift(
     shift_id: uuid.UUID,
     shift_in: ShiftClose,
     db: AsyncSession = db_dependency,
-    current_user: UserModel = current_user_dependency,
+    current_user: UserModel = require_shift_close,
 ) -> Any:
     """Closes an open shift, registering the final cash."""
     closed_shift = await shift_service.close_shift(

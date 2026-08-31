@@ -11,13 +11,20 @@ y los endpoints de agente de IA, inventario y POS faltantes.
 Requiere que el stack esté arriba (make up).
 """
 
+import asyncio
 import os
 import uuid
 
 import httpx
 import pytest
+from sqlalchemy import select
 
 from core.config import settings
+from core.db import async_session_maker
+from core.security import get_password_hash
+from models.company import Company
+from models.role import Role
+from models.user import User
 
 # Dentro del contenedor pos-api la API responde en el 8000.
 # En el host se publica en el 8003 (sobreescribir con TEST_API_BASE_URL).
@@ -27,20 +34,33 @@ BASE_URL = os.environ.get("TEST_API_BASE_URL") or "http://localhost:8000"
 TEST_API_TOKEN = os.environ.get("TEST_API_TOKEN")
 
 
+def _ollama_available() -> bool:
+    """True si Ollama responde en settings.OLLAMA_BASE_URL."""
+    try:
+        resp = httpx.get(f"{settings.OLLAMA_BASE_URL}/api/tags", timeout=3)
+        return resp.status_code == 200
+    except (httpx.HTTPError, ValueError):
+        return False
+
+
 @pytest.fixture()
 def client():
     with httpx.Client(base_url=BASE_URL, timeout=60) as c:
         yield c
 
 
-def _auth_headers(client: httpx.Client) -> dict:
+def _auth_headers(
+    client: httpx.Client,
+    username: str | None = None,
+    password: str | None = None,
+) -> dict:
     if TEST_API_TOKEN:
         return {"Authorization": f"Bearer {TEST_API_TOKEN}"}
     resp = client.post(
         "/api/v1/login/access-token",
         json={
-            "username": settings.FIRST_SUPERUSER_EMAIL,
-            "password": settings.FIRST_SUPERUSER_PASSWORD,
+            "username": username or settings.FIRST_SUPERUSER_EMAIL,
+            "password": password or settings.FIRST_SUPERUSER_PASSWORD,
         },
     )
     assert resp.status_code == 200, resp.text
@@ -282,9 +302,7 @@ def test_customer_crud_full(client: httpx.Client):
         json={"full_name": f"Cliente TEST-{tag}-actualizado"},
     )
     assert updated.status_code == 200, updated.text
-    assert (
-        updated.json()["data"]["full_name"] == f"Cliente TEST-{tag}-actualizado"
-    )
+    assert updated.json()["data"]["full_name"] == f"Cliente TEST-{tag}-actualizado"
 
     deleted = client.delete(f"{base}/{customer_id}", headers=headers)
     assert deleted.status_code == 200, deleted.text
@@ -346,10 +364,13 @@ def test_inventory_recommendation(client: httpx.Client):
     assert "suggestion" in resp.json()
 
 
+@pytest.mark.skipif(not _ollama_available(), reason="Ollama no disponible (embeddings)")
 def test_inventory_vectorize_analysis(client: httpx.Client):
     """POST /inventory/vectorize-analysis: analiza, embebe y persiste (201)."""
     headers = _auth_headers(client)
-    resp = client.post("/api/v1/inventory/vectorize-analysis", headers=headers, timeout=180)
+    resp = client.post(
+        "/api/v1/inventory/vectorize-analysis", headers=headers, timeout=180
+    )
     assert resp.status_code == 201, resp.text
     assert "message" in resp.json()
 
@@ -432,3 +453,273 @@ def test_sale_create_http(client: httpx.Client):
     data = resp.json()["data"]
     assert data["total_amount"] is not None
     assert data["items"][0]["product_id"] == product_id
+
+
+# --- FASE 3: RBAC — prueba de la escalada de privilegios ---
+
+def _create_cashier(client: httpx.Client, headers: dict) -> dict:
+    """Crea un usuario con rol CASHIER y devuelve sus headers autenticados."""
+    resp = client.get("/api/v1/roles/", headers=headers)
+    assert resp.status_code == 200, resp.text
+    roles = resp.json()["data"]
+    cashier_role = next(r for r in roles if r["name"] == "CASHIER")
+
+    email = f"cashier_{uuid.uuid4().hex[:8]}@test.com"
+    resp = client.post(
+        "/api/v1/users/",
+        headers=headers,
+        json={
+            "email": email,
+            "password": "CashierPass123!",
+            "full_name": "Cajera de Prueba",
+            "role_id": str(cashier_role["id"]),
+        },
+    )
+    assert resp.status_code == 201, resp.text
+
+    resp = client.post(
+        "/api/v1/login/access-token",
+        json={"username": email, "password": "CashierPass123!"},
+    )
+    assert resp.status_code == 200, resp.text
+    token = resp.json()["data"]["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+def test_rbac_cashier_escalation(client: httpx.Client):
+    """Un CASHIER no puede escalar: 403 en admin-only, 200 en lo mínimo."""
+    admin_headers = _auth_headers(client)
+    cashier_headers = _create_cashier(client, admin_headers)
+
+    # CASHIER NO puede crear productos (requiere product:create).
+    resp = client.post(
+        "/api/v1/products/",
+        headers=cashier_headers,
+        json={"name": "Intento CASHIER", "price": 10.0, "sku": f"ESC-{uuid.uuid4().hex[:6]}"},
+    )
+    assert resp.status_code == 403, resp.text
+
+    # La operación sí funciona con SUPER_ADMIN (la autorización se aplica antes).
+    resp = client.post(
+        "/api/v1/products/",
+        headers=admin_headers,
+        json={"name": "Admin TB-OK", "price": 20.0, "sku": f"ADM-{uuid.uuid4().hex[:6]}"},
+    )
+    assert resp.status_code in (200, 201), resp.text
+
+    # CASHIER NO puede leer analítica (requiere analytics:read; no lo tiene).
+    resp = client.get("/api/v1/analytics/bundles", headers=cashier_headers)
+    assert resp.status_code == 403, resp.text
+
+    # CASHIER SÍ puede leer productos y crear clientes (permisos que sí tiene).
+    resp = client.get("/api/v1/products/", headers=cashier_headers)
+    assert resp.status_code == 200, resp.text
+
+    resp = client.post(
+        "/api/v1/customers/",
+        headers=cashier_headers,
+        json={"full_name": "Cliente CASHIER"},
+    )
+    assert resp.status_code == 201, resp.text
+
+
+# --- AISLAMIENTO MULTITENANT (F3) ---
+
+
+def _create_foreign_tenant_user() -> tuple[str, str]:
+    """Crea una segunda compañía + admin (vía DB directa) y devuelve (company_id, email)."""
+
+    async def _inner():
+        async with async_session_maker() as db:
+            role = (
+                (await db.execute(select(Role).where(Role.name == "ADMIN")))
+                .scalars()
+                .first()
+            )
+            assert role, "Rol ADMIN no encontrado para el tenant foráneo"
+            company = Company(name=f"Tenant aislado {uuid.uuid4().hex[:6]}")
+            db.add(company)
+            await db.flush()
+            email = f"admin.foreign.{uuid.uuid4().hex[:8]}@example.com"
+            user = User(
+                email=email,
+                full_name="Admin Foráneo",
+                password=get_password_hash("ForeignPass1"),
+                role_id=role.id,
+                tenant_id=company.id,
+            )
+            db.add(user)
+            company_id = str(company.id)
+            await db.commit()
+            return company_id, email
+
+    return asyncio.run(_inner())
+
+
+def test_cross_tenant_isolation(client: httpx.Client):
+    """Un tenant no puede leer ni listar datos(productos) de otro tenant."""
+    admin_headers = _auth_headers(client)
+
+    sku = f"TEN-ISO-{uuid.uuid4().hex[:8]}".upper()
+    created = client.post(
+        "/api/v1/products/",
+        headers=admin_headers,
+        json={"name": f"Producto tenancy {sku}", "price": 10.5, "sku": sku},
+    )
+    assert created.status_code == 201, created.text
+    product_id = created.json()["data"]["id"]
+
+    # El tenant A (súperusuario) sí ve su producto.
+    assert (
+        client.get(f"/api/v1/products/{product_id}", headers=admin_headers).status_code
+        == 200
+    )
+
+    company_b_id, email_b = _create_foreign_tenant_user()
+    headers_b = _auth_headers(
+        client, username=email_b, password="ForeignPass1"
+    )
+
+    # El tenant B no ve el producto de A en su listado.
+    products_b = client.get("/api/v1/products/", headers=headers_b).json()["data"]
+    assert all(p["id"] != product_id for p in products_b)
+
+    # Y obtenerlo por id devuelve 404 (scoping de lectura).
+    assert (
+        client.get(f"/api/v1/products/{product_id}", headers=headers_b).status_code
+        == 404
+    )
+
+    # Un producto creado por B no contamina el tenant A.
+    sku_b = f"TEN-B-{company_b_id[:8].upper()}"
+    created_b = client.post(
+        "/api/v1/products/",
+        headers=headers_b,
+        json={"name": "Producto de tenant B", "price": 1.0, "sku": sku_b},
+    )
+    assert created_b.status_code == 201, created_b.text
+    product_b_id = created_b.json()["data"]["id"]
+
+    products_a = client.get("/api/v1/products/", headers=admin_headers).json()["data"]
+    assert all(p["id"] != product_b_id for p in products_a)
+
+
+# --- ADMIN: CRUD DE ROLES + ASIGNACIÓN DE PERMISOS (F3-P4) ---
+
+
+def test_admin_role_crud_and_permission_assignment(client: httpx.Client):
+    """SUPER_ADMIN crea un rol, le asigna permisos, y un CASHIER recibe 403."""
+    admin_headers = _auth_headers(client)
+
+    # Listar catálogo de permisos.
+    perms = client.get(
+        "/api/v1/roles/catalog/permissions", headers=admin_headers
+    )
+    assert perms.status_code == 200, perms.text
+    catalog = perms.json()["data"]
+    assert any(p["code"] == "product:read" for p in catalog)
+
+    # CASHIER NO puede listar el catálogo de permisos (requiere permission:read).
+    cashier_headers = _create_cashier(client, admin_headers)
+    resp = client.get(
+        "/api/v1/roles/catalog/permissions", headers=cashier_headers
+    )
+    assert resp.status_code == 403, resp.text
+
+    # Crear rol personalizado.
+    name = f"RBAC_{uuid.uuid4().hex[:6].upper()}"
+    created = client.post(
+        "/api/v1/roles/",
+        headers=admin_headers,
+        json={"name": name, "description": "Rol de prueba"},
+    )
+    assert created.status_code == 201, created.text
+    role_id = created.json()["data"]["id"]
+
+    # Asignar permisos específicos.
+    assigned = client.put(
+        f"/api/v1/roles/{role_id}/permissions",
+        headers=admin_headers,
+        json={"permission_codes": ["product:read", "sale:create"]},
+    )
+    assert assigned.status_code == 200, assigned.text
+    assert set(assigned.json()["data"]["permissions"]) == {
+        "product:read",
+        "sale:create",
+    }
+
+    # Los roles protegidos no se pueden modificar (403).
+    sa_id = next(
+        r["id"]
+        for r in client.get("/api/v1/roles/", headers=admin_headers).json()["data"]
+        if r["name"] == "SUPER_ADMIN"
+    )
+    protected = client.put(
+        f"/api/v1/roles/{sa_id}/permissions",
+        headers=admin_headers,
+        json={"permission_codes": ["product:read"]},
+    )
+    assert protected.status_code == 403, protected.text
+
+    # CASHIER no puede crear roles (requiere role:create).
+    resp = client.post(
+        "/api/v1/roles/",
+        headers=cashier_headers,
+        json={"name": "ESC_ROLE"},
+    )
+    assert resp.status_code == 403, resp.text
+
+    # Eliminar el rol de prueba.
+    deleted = client.delete(f"/api/v1/roles/{role_id}", headers=admin_headers)
+    assert deleted.status_code == 200, deleted.text
+
+
+def test_user_context_exposes_permissions(client: httpx.Client):
+    """El login y /users/me exponen los códigos de permiso para el menú dinámico."""
+    admin_headers = _auth_headers(client)
+
+    # El superusuario tiene todos los permisos en el payload de login y en /me.
+    login = client.post(
+        "/api/v1/login/access-token",
+        json={
+            "username": settings.FIRST_SUPERUSER_EMAIL,
+            "password": settings.FIRST_SUPERUSER_PASSWORD,
+        },
+    )
+    assert login.status_code == 200, login.text
+    assert "sale:create" in login.json()["data"]["user"]["permissions"]
+
+    me = client.get("/api/v1/users/me", headers=admin_headers)
+    assert me.status_code == 200, me.text
+    assert "permissions" in me.json()["data"]
+    assert set(me.json()["data"]["permissions"]) == set(
+        login.json()["data"]["user"]["permissions"]
+    )
+
+
+# --- C.5: IntegrityError (duplicado) → HTTP 409, no 500 ---
+
+
+def test_duplicate_sku_returns_409(client: httpx.Client):
+    """Crear dos productos con el mismo SKU debe devolver 409 (IntegrityError), no 500."""
+    headers = _auth_headers(client)
+    sku = f"C5-DUP-{uuid.uuid4().hex[:8].upper()}"
+
+    first = client.post(
+        "/api/v1/products/",
+        headers=headers,
+        json={"name": "Original", "price": 1.0, "sku": sku},
+    )
+    assert first.status_code == 201, first.text
+
+    dup = client.post(
+        "/api/v1/products/",
+        headers=headers,
+        json={"name": "Duplicado", "price": 2.0, "sku": sku},
+    )
+    assert dup.status_code == 409, dup.text
+    body = dup.json()
+    # Formato de error unificado (HTTPException → {success, status_code, message, data})
+    assert body["success"] is False
+    assert body["status_code"] == 409
+    assert isinstance(body["message"], str) and body["message"]

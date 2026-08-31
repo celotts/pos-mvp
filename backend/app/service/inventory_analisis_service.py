@@ -8,8 +8,9 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
+from core.tenancy import get_current_tenant
 from models.product import Product
-from models.purchase import PurchaseItem
+from models.purchase import Purchase, PurchaseItem
 from models.sale import Sale
 from models.sale_item import SaleItem
 from models.sales_vector import SalesVector
@@ -37,6 +38,7 @@ class InventoryAnalysisService:
     async def get_purchase_suggestions(self) -> PurchaseSuggestionsResponse:
         """Devuelve el análisis estructurado y un resumen ejecutivo opcional."""
         thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
+        tenant_id = get_current_tenant()
 
         try:
             # 1. Subconsulta para compras totales históricas por producto
@@ -47,8 +49,8 @@ class InventoryAnalysisService:
                         "total_purchased"
                     ),
                 )
+                .join(Purchase, Purchase.id == PurchaseItem.purchase_id)
                 .group_by(PurchaseItem.product_id)
-                .subquery()
             )
 
             # 2. Subconsulta para ventas totales históricas por producto
@@ -57,8 +59,8 @@ class InventoryAnalysisService:
                     SaleItem.product_id,
                     func.coalesce(func.sum(SaleItem.quantity), 0).label("total_sold"),
                 )
+                .join(Sale, Sale.id == SaleItem.sale_id)
                 .group_by(SaleItem.product_id)
-                .subquery()
             )
 
             # 3. Subconsulta para ventas de los últimos 30 días
@@ -70,8 +72,20 @@ class InventoryAnalysisService:
                 .join(Sale, Sale.id == SaleItem.sale_id)
                 .where(Sale.created_at >= thirty_days_ago)
                 .group_by(SaleItem.product_id)
-                .subquery()
             )
+
+            if tenant_id:
+                purchased_sub = purchased_sub.where(
+                    Purchase.tenant_id == tenant_id
+                )
+                sold_sub = sold_sub.where(Sale.tenant_id == tenant_id)
+                recent_sold_sub = recent_sold_sub.where(
+                    Sale.tenant_id == tenant_id
+                )
+
+            purchased_sub = purchased_sub.subquery()
+            sold_sub = sold_sub.subquery()
+            recent_sold_sub = recent_sold_sub.subquery()
 
             # 4. Consulta principal uniendo las subconsultas
             stmt = (
@@ -201,7 +215,10 @@ class InventoryAnalysisService:
 
         Retorna True si se guardó, False si falló (el detalle queda en los logs).
         """
-        summary_text = f"Análisis de inventario y ventas: {json.dumps(analysis_data, ensure_ascii=False)}"
+        summary_text = (
+            "Análisis de inventario y ventas: "
+            f"{json.dumps(analysis_data, ensure_ascii=False, default=str)}"
+        )
 
         try:
             base_url = settings.OLLAMA_BASE_URL or "http://ollama:11434"
@@ -219,7 +236,11 @@ class InventoryAnalysisService:
                 logger.error("Ollama no devolvió un vector de embeddings válido.")
                 return False
 
-            db_vector = SalesVector(content=summary_text, embedding=embedding_vector)
+            db_vector = SalesVector(
+                content=summary_text,
+                embedding=embedding_vector,
+                tenant_id=get_current_tenant(),
+            )
             self.db.add(db_vector)
             await self.db.commit()
             logger.info("Vector de inventario guardado exitosamente en pgvector.")

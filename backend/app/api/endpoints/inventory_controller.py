@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from dependencies import InventoryAnalysisServiceDep, get_current_user
+from api.deps_auth import require_permission
+from dependencies import InventoryAnalysisServiceDep
 from models.user import User as UserModel
 from schemas.inventory import PurchaseSuggestionsResponse
 
 router = APIRouter()
 
-current_user_dependency = Depends(get_current_user)
+current_user_dependency = Depends(require_permission("inventory:read"))
 
 
 @router.get(

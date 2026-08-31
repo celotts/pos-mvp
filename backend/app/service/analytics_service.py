@@ -6,13 +6,14 @@ testearla de forma determinística; las consultas a BD están aisladas.
 import math
 import uuid
 from collections import Counter, defaultdict
+from collections.abc import Iterable
 from datetime import date, datetime, timedelta, timezone
-from typing import Iterable
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.crud_product import crud_product
+from core.tenancy import get_current_tenant
 from models.product import Product
 from models.sale import Sale
 from models.sale_item import SaleItem
@@ -175,6 +176,9 @@ class AnalyticsService:
             .join(SaleItem, SaleItem.sale_id == Sale.id)
             .where(Sale.sale_date >= since)
         )
+        tenant_id = get_current_tenant()
+        if tenant_id:
+            stmt = stmt.where(Sale.tenant_id == tenant_id)
         if store_id:
             stmt = stmt.where(Sale.store_id == store_id)
 
@@ -190,6 +194,9 @@ class AnalyticsService:
         if not ids:
             return {}
         stmt = select(Product.id, Product.name).where(Product.id.in_(ids))
+        tenant_id = get_current_tenant()
+        if tenant_id:
+            stmt = stmt.where(Product.tenant_id == tenant_id)
         return {pid: name for pid, name in (await db.execute(stmt)).all()}
 
     async def get_cross_sell(
@@ -243,6 +250,9 @@ class AnalyticsService:
         )
         if store_id:
             stmt = stmt.where(Sale.store_id == store_id)
+        tenant_id = get_current_tenant()
+        if tenant_id:
+            stmt = stmt.where(Sale.tenant_id == tenant_id)
 
         daily_by_product: dict[uuid.UUID, dict[date, int]] = defaultdict(dict)
         for product_id, day, qty in (await db.execute(stmt)).all():

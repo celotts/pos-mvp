@@ -7,6 +7,7 @@ from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.db import Base
+from core.soft_delete import SoftDeleteMixin
 
 if TYPE_CHECKING:
     from .municipality import Municipality
@@ -15,7 +16,7 @@ if TYPE_CHECKING:
     from .shift import Shift
 
 
-class Store(Base):
+class Store(Base, SoftDeleteMixin):
     __tablename__ = "stores"
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -40,6 +41,10 @@ class Store(Base):
         relationship(  # This was already correct
             "Municipality", back_populates="stores"
         )
+    )
+
+    tenant_id: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("companies.id"), nullable=True, index=True
     )
 
     # Relationships to transactions

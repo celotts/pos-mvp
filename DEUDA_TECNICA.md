@@ -17,13 +17,14 @@
 
 ## B. 🔴 Secreto ya publicado (lo más urgente de todo)
 
-- [ ] `.env` está **trackeado en git** (ya está en GitHub: `celotts/pos-mvp`).
-      Contiene `POSTGRES_PASSWORD`, `FIRST_SUPERUSER_PASSWORD` y `SECRET_KEY`.
-- [ ] Rotar credenciales: nuevo password de DB, nuevo `SECRET_KEY`, nueva password del superusuario.
-- [ ] Mover `.env` a `.gitignore` y crear `.env.example` (o `.env.production`).
-- [ ] Hacer que `SECRET_KEY`, `POSTGRES_PASSWORD` y `FIRST_SUPERUSER_PASSWORD`
-      sean OBLIGATORIAS en producción (sin default en `core/config.py`) y que el
-      app **falle al arrancar** si faltan.
+- [x] `.env` **fuera de git** (`.gitignore` + `.env.example` creados).
+- [x] Credenciales **rotadas** (2026-08-31): nuevo `SECRET_KEY`, `POSTGRES_PASSWORD` y
+      `FIRST_SUPERUSER_PASSWORD`. Verificado: el password antiguo ya falla (login 401 + FATAL en TCP).
+      > Nota: los valores antiguos siguen en el historial de git; si se requiere eliminarlos
+      > del historial, usar `git filter-repo`/`BFG` (operación opcional y destructiva).
+- [x] `SECRET_KEY`, `POSTGRES_USER/PASSWORD/DB` y `FIRST_SUPERUSER_PASSWORD` son
+      **obligatorias (sin default)** en `core/config.py`; la app **falla al arrancar**
+      (`sys.exit(1)`) si faltan o son inválidas.
 
 > Nota: no rompe el desarrollo dejar esto al final, pero el secreto ya está
 > expuesto en GitHub, así que se recomienda hacerlo cuanto antes.
@@ -33,13 +34,13 @@
 | # | Tema | Beneficio | Esfuerzo |
 | --- | --- | --- | --- |
 | 1 | **Alembic** (migraciones versionadas) en lugar de `create_all` + parches idempotentes | Cambios de schema seguros sobre datos existentes | Medio |
-| 2 | **RBAC por permiso** (tabla `permissions` + `role_permissions` + guards `can:create:sale`) en vez de solo rol admin vs no-admin | Control fino de acceso | Medio-alto |
+| 2 | ~~**RBAC por permiso**~~ ✅ Implementado en Fase 3 (`permissions` + `role_permissions` + guards `require_permission` + multi-tenancy por `Company`) | Control fino de acceso | Hecho |
 | 3 | **Refresh token** con rotación + revocación (logout server-side / `token_version` por usuario) | Tokens comprometidos limitados a minutos | Medio |
-| 4 | **Soft-delete** (`is_deleted`, `deleted_at`, `deleted_by`) + tabla `audit_log` | Datos recuperables y trazables | Medio |
-| 5 | Transacciones seguras en `crud_base` (try/except + `rollback()`) y `IntegrityError` → HTTP 409 | Errores limpios, sesiones consistentes | Bajo |
-| 6 | **Rate limiting** por IP en `/login` (slowapi) | Frena fuerza bruta distribuida | Bajo |
-| 7 | **DB de test aislada + CI** (GitHub Actions: pytest + build front) | Evita ensuciar datos de dev; valida cada push | Medio |
-| 8 | `get_llm_service` que respete `LLM_PROVIDER` (hoy hardcodea Ollama) | Coherencia con la config | Bajo |
+| 4 | ~~**Soft-delete** (`is_deleted`, `deleted_at`, `deleted_by`) + tabla `audit_log`~~ ✅ Hecho (commit `03a4685`): `SoftDeleteMixin` en modelos maestros (Company, User, Role, Product, Supplier, Customer, Store, PosTerminal, CashAccount); CRUDBase hace soft-delete en `remove` y filtra `is_deleted=False` en `get`/`get_multi`; `AuditLog` registra create/update/delete; migración idempotente `_ensure_soft_delete_columns` | Datos recuperables y trazables | Hecho |
+| 5 | ~~**Transacciones seguras en `crud_base`**~~ ✅ Hecho: try/except + rollback en create/update/remove; `IntegrityError` → HTTP 409; errores unificados (`{success, status_code, message, data}`) vía `http_exception_handler` registrado | Errores limpios, sesiones consistentes | Hecho |
+| 6 | ~~**Rate limiting** por IP en `/login`~~ ✅ Hecho con **slowapi** (reemplazó el limiter casero): `@login_limiter.limit` + 429 unificado vía `rate_limit_exceeded_handler` | Frena fuerza bruta distribuida | Hecho |
+| 7 | ~~**DB de test aislada + CI**~~ ✅ Hecho: GitHub Actions (pytest + ruff + build front) en verde | Evita ensuciar datos de dev; valida cada push | Hecho |
+| 8 | ~~`get_llm_service` que respete `LLM_PROVIDER`~~ ✅ Hecho: `llm_service_factory` elige Anthropic/**Ollama** según `LLM_PROVIDER`; `get_llm_service` usa el factory (ya no hardcodea Ollama) | Coherencia con la config | Hecho |
 
 ## D. Limpieza de código al migrar (lo que NO debe ir a producción)
 
@@ -49,8 +50,8 @@
 
 ## Criterio de aceptación para "listo para producción"
 
-1. Secreto de `.env` rotado y fuera de git.
-2. `SECRET_KEY` obligatoria sin default.
+1. ✅ Secreto de `.env` rotado y fuera de git.
+2. ✅ `SECRET_KEY` obligatoria sin default.
 3. `docker-compose.prod.yml` desplegando la imagen construida.
 4. `/docs` desactivado; CORS con allowlist.
 5. Alembic con migración inicial aplicada en el entorno de producción.

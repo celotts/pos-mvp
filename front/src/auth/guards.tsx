@@ -2,8 +2,7 @@ import { Navigate, useLocation } from 'react-router-dom'
 import type { ReactNode } from 'react'
 
 import { useAuth } from './AuthContext'
-import { getMenuItemByPath, roleAllowed } from '../menu/menu'
-import type { RoleRule } from '../types'
+import { getMenuItemByPath, menuAllowed } from '../menu/menu'
 
 function FullScreenLoader() {
   return (
@@ -29,9 +28,8 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
 }
 
 /**
- * Valida el acceso según el rol del usuario.
- * Si `allowedRoles` no se indica, resuelve los roles desde el menú JSON
- * usando la ruta actual; si la ruta no está en el menú, exige solo sesión.
+ * Valida el acceso según rol + permisos RBAC del usuario.
+ * Si la ruta no está en el menú, exige solo sesión.
  */
 export function RoleRoute({ children }: { children: ReactNode }) {
   const { user } = useAuth()
@@ -40,9 +38,8 @@ export function RoleRoute({ children }: { children: ReactNode }) {
   if (!user) return <Navigate to="/login" replace />
 
   const menuItem = getMenuItemByPath(location.pathname)
-  const allowedRoles: RoleRule[] | null = menuItem ? menuItem.roles : null
 
-  if (allowedRoles && !roleAllowed(allowedRoles, user.role_name)) {
+  if (menuItem && !menuAllowed(menuItem, user.role_name, user.permissions ?? [])) {
     return <Navigate to="/403" replace />
   }
   return <>{children}</>

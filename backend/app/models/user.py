@@ -9,6 +9,7 @@ from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship  # type: ignore
 
 from core.db import Base
+from core.soft_delete import SoftDeleteMixin
 
 # Esto solo lo lee el IDE para el autocompletado y los tipos,
 # evitando importaciones circulares en ejecución.
@@ -22,7 +23,7 @@ if TYPE_CHECKING:
 from .purchase import Purchase  # Needed at runtime for foreign_keys
 
 
-class User(Base):
+class User(Base, SoftDeleteMixin):
     __tablename__ = "users"
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -50,6 +51,10 @@ class User(Base):
         DateTime(timezone=True), onupdate=func.now()
     )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    tenant_id: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("companies.id"), nullable=True, index=True
+    )
 
     # Control de intentos de login (bloqueo de cuenta)
     failed_login_attempts: Mapped[int] = mapped_column(

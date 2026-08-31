@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.deps_auth import get_current_admin_user
+from api.deps_auth import require_permission
 from api.response_factory import ApiResponse, create_api_response
 from dependencies import get_current_user, get_db
 from models.user import User as UserModel
@@ -14,18 +14,21 @@ router = APIRouter(tags=["Users"])
 
 get_db_dependency = Depends(get_db)
 get_current_user_dependency = Depends(get_current_user)
-get_current_admin_user_dependency = Depends(get_current_admin_user)
+require_user_read = Depends(require_permission("user:read"))
+require_user_create = Depends(require_permission("user:create"))
+require_user_update = Depends(require_permission("user:update"))
+require_user_delete = Depends(require_permission("user:delete"))
 
 
 @router.get(
     "/me",
     response_model=ApiResponse[UserWithRole],
-    summary="Get the current logged-in user with its role",
+    summary="Get the current logged-in user with its role and permissions",
 )
 async def read_me(
     current_user: UserModel = get_current_user_dependency,
 ) -> ApiResponse[UserWithRole]:
-    """Returns the authenticated user enriched with its role (for dynamic menus)."""
+    """Returns the authenticated user enriched with role and permissions (for dynamic menus)."""
     return create_api_response(
         data=UserWithRole(
             id=current_user.id,
@@ -34,6 +37,11 @@ async def read_me(
             is_active=current_user.is_active,
             role_id=current_user.role_id,
             role_name=current_user.role.name if current_user.role else "",
+            permissions=sorted(
+                {p.code for p in current_user.role.permissions}
+                if current_user.role
+                else []
+            ),
         )
     )
 
@@ -45,7 +53,7 @@ async def read_me(
 )
 async def read_users(
     db: AsyncSession = get_db_dependency,
-    current_user: UserModel = get_current_admin_user_dependency,
+    current_user: UserModel = require_user_read,
     skip: int = 0,
     limit: int = 100,
 ) -> ApiResponse[list[User]]:
@@ -63,7 +71,7 @@ async def read_users(
 async def create_user(
     *,
     user_in: UserCreate,
-    current_user: UserModel = get_current_admin_user_dependency,
+    current_user: UserModel = require_user_create,
     db: AsyncSession = get_db_dependency,
 ) -> ApiResponse[User]:
     user = await user_service.create_user_with_logic(db=db, user_in=user_in)
@@ -82,7 +90,7 @@ async def create_user(
 async def read_user_by_id(
     user_id: uuid.UUID,
     db: AsyncSession = get_db_dependency,
-    current_user: UserModel = get_current_admin_user_dependency,
+    current_user: UserModel = require_user_read,
 ) -> ApiResponse[User]:
     """Get a user by ID."""
     user = await user_service.get_user(db=db, user_id=user_id)
@@ -98,7 +106,7 @@ async def update_user(
     *,
     user_id: uuid.UUID,
     user_in: UserUpdate,
-    current_user: UserModel = get_current_admin_user_dependency,
+    current_user: UserModel = require_user_update,
     db: AsyncSession = get_db_dependency,
 ) -> ApiResponse[User]:
     """Update a user."""
@@ -116,7 +124,7 @@ async def update_user(
 async def delete_user(
     *,
     user_id: uuid.UUID,
-    current_user: UserModel = get_current_admin_user_dependency,
+    current_user: UserModel = require_user_delete,
     db: AsyncSession = get_db_dependency,
 ) -> ApiResponse[User]:
     """Delete a user."""
