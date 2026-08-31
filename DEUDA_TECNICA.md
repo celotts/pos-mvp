@@ -33,12 +33,12 @@
 | # | Tema | Beneficio | Esfuerzo |
 | --- | --- | --- | --- |
 | 1 | **Alembic** (migraciones versionadas) en lugar de `create_all` + parches idempotentes | Cambios de schema seguros sobre datos existentes | Medio |
-| 2 | **RBAC por permiso** (tabla `permissions` + `role_permissions` + guards `can:create:sale`) en vez de solo rol admin vs no-admin | Control fino de acceso | Medio-alto |
+| 2 | ~~**RBAC por permiso**~~ ✅ Implementado en Fase 3 (`permissions` + `role_permissions` + guards `require_permission` + multi-tenancy por `Company`) | Control fino de acceso | Hecho |
 | 3 | **Refresh token** con rotación + revocación (logout server-side / `token_version` por usuario) | Tokens comprometidos limitados a minutos | Medio |
 | 4 | **Soft-delete** (`is_deleted`, `deleted_at`, `deleted_by`) + tabla `audit_log` | Datos recuperables y trazables | Medio |
 | 5 | Transacciones seguras en `crud_base` (try/except + `rollback()`) y `IntegrityError` → HTTP 409 | Errores limpios, sesiones consistentes | Bajo |
 | 6 | **Rate limiting** por IP en `/login` (slowapi) | Frena fuerza bruta distribuida | Bajo |
-| 7 | **DB de test aislada + CI** (GitHub Actions: pytest + build front) | Evita ensuciar datos de dev; valida cada push | Medio |
+| 7 | ~~**DB de test aislada + CI**~~ ✅ Hecho: GitHub Actions (pytest + ruff + build front) en verde | Evita ensuciar datos de dev; valida cada push | Hecho |
 | 8 | `get_llm_service` que respete `LLM_PROVIDER` (hoy hardcodea Ollama) | Coherencia con la config | Bajo |
 
 ## D. Limpieza de código al migrar (lo que NO debe ir a producción)
