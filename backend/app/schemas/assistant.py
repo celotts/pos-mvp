@@ -6,7 +6,10 @@ from pydantic import BaseModel, Field
 
 class ChatRequest(BaseModel):
     message: str = Field(
-        ..., description="Consulta del usuario o directivo sobre el negocio."
+        ...,
+        min_length=1,
+        max_length=4000,
+        description="Consulta del usuario o directivo sobre el negocio.",
     )
     context_store_id: uuid.UUID | None = Field(
         None, description="ID de la tienda (UUID) para filtrar analíticas."

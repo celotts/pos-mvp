@@ -2,8 +2,9 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
+from pydantic import BaseModel, Field
+
 from models.shift import ShiftStatus
-from pydantic import BaseModel
 
 
 # --- Shared Properties ---
@@ -14,13 +15,13 @@ class ShiftBase(BaseModel):
 
 # --- Properties for Creating a Shift ---
 class ShiftOpen(ShiftBase):
-    starting_cash: Decimal
+    starting_cash: Decimal = Field(..., ge=0)
 
 
 # --- Properties for Closing a Shift ---
 class ShiftClose(BaseModel):
-    ending_cash: Decimal
-    notes: str | None = None
+    ending_cash: Decimal = Field(..., ge=0)
+    notes: str | None = Field(None, max_length=500)
 
 
 # --- Properties to Return to Client ---

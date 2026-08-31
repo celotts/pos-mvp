@@ -1,18 +1,21 @@
 import uuid
 from typing import Any
 
+from fastapi import APIRouter, Depends, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from api.deps_auth import get_current_admin_user
 from api.response_factory import ApiResponse, create_api_response
 from dependencies import get_current_user, get_db
-from fastapi import APIRouter, Depends, status
 from models.user import User as UserModel
 from schemas.purchase import Purchase, PurchaseCreate, PurchaseUpdate
 from service.purchase_service import purchase_service
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["Purchases"])
 
 db_dependency = Depends(get_db)
 current_user_dependency = Depends(get_current_user)
+get_current_admin_user_dependency = Depends(get_current_admin_user)
 
 
 @router.post(
@@ -25,7 +28,7 @@ async def create_purchase(
     *,
     purchase_in: PurchaseCreate,
     db: AsyncSession = db_dependency,
-    current_user: UserModel = current_user_dependency,
+    current_user: UserModel = get_current_admin_user_dependency,
 ) -> Any:
     """Creates a new purchase record from a supplier."""
     new_purchase = await purchase_service.create(db=db, obj_in=purchase_in)
@@ -76,7 +79,7 @@ async def update_purchase(
     purchase_id: uuid.UUID,
     purchase_in: PurchaseUpdate,
     db: AsyncSession = db_dependency,
-    current_user: UserModel = current_user_dependency,
+    current_user: UserModel = get_current_admin_user_dependency,
 ) -> Any:
     """Updates the data of an existing purchase."""
     updated_purchase = await purchase_service.update(
@@ -96,7 +99,7 @@ async def delete_purchase(
     *,
     purchase_id: uuid.UUID,
     db: AsyncSession = db_dependency,
-    current_user: UserModel = current_user_dependency,
+    current_user: UserModel = get_current_admin_user_dependency,
 ) -> Any:
     """Deletes a purchase record."""
     deleted_purchase = await purchase_service.remove(db, id=purchase_id)

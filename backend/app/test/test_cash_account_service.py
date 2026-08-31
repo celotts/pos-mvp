@@ -2,12 +2,13 @@ import uuid
 from unittest.mock import AsyncMock
 
 import pytest
+from fastapi import HTTPException
+from sqlalchemy.exc import IntegrityError
+
 from models.cash_account import CashAccount, CashAccountType
 from models.user import User
 from schemas.cash_account import CashAccountCreate
 from service import cash_account_service
-from fastapi import HTTPException
-from sqlalchemy.exc import IntegrityError
 
 pytestmark = pytest.mark.asyncio
 
@@ -70,8 +71,6 @@ async def test_create_cash_account_success(
     mock_crud_create.assert_called_once_with(
         db=mock_db,
         obj_in=account_in,
-        created_by=current_user.id,
-        created_by_role_id=current_user.role_id,
     )
 
 

@@ -1,13 +1,15 @@
 import uuid
 from datetime import datetime, timezone
 
-from core import crud_pos_terminal, crud_shift
 from fastapi import HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from core import crud_pos_terminal, crud_shift
+from core.config import settings
 from models import Shift
 from models import User as UserModel
 from models.shift import ShiftStatus
 from schemas.shift import ShiftClose, ShiftOpen
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def open_shift(
@@ -68,9 +70,16 @@ async def close_shift(
             detail="The shift is already closed.",
         )
 
-    # (Opcional) Añadir lógica para permitir que solo el propio usuario o un admin cierre el turno
+    # 3. Solo el dueño del turno o un usuario con rol protegido (ADMIN/SUPER_ADMIN) puede cerrarlo
+    is_owner = db_shift.user_id == current_user.id
+    role_name = current_user.role.name.strip().upper() if current_user.role else ""
+    if not is_owner and role_name not in settings.PROTECTED_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only close your own shifts.",
+        )
 
-    # 3. Actualizar el turno para cerrarlo
+    # 4. Actualizar el turno para cerrarlo
     db_shift.ending_cash = shift_in.ending_cash
     db_shift.end_time = datetime.now(timezone.utc)
     db_shift.status = ShiftStatus.CLOSED

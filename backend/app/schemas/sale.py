@@ -3,7 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class SaleStatus(str, Enum):
@@ -21,7 +21,7 @@ class PaymentStatus(str, Enum):
 # --- SaleItem Schemas ---
 class SaleItemBase(BaseModel):
     product_id: uuid.UUID
-    quantity: int
+    quantity: int = Field(..., ge=1)
 
 
 class SaleItemCreate(SaleItemBase):

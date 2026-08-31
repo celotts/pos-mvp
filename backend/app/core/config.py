@@ -51,13 +51,21 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str = "nomic-embed-text:latest"
     EMBEDDING_DIM: int = 768  # Dimensión de nomic-embed-text
 
+    # Application
+    ENVIRONMENT: str = "development"
+    CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
+
     # JWT Settings
-    SECRET_KEY: str = "d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5"
+    # SECRET_KEY es OBLIGATORIA (sin valor por defecto). Debe inyectarse via .env
+    # o variable de entorno. Generar con: openssl rand -hex 32
+    SECRET_KEY: str
     ACCESS_TOKEN_EXPIRE_SECONDS: int = 90000
 
     # Login lockout (bloqueo por intentos fallidos)
     MAX_LOGIN_ATTEMPTS: int = 3
     LOGIN_LOCKOUT_SECONDS: int = 3600
+    # Rate limiting de login por IP: máx. intentos por ventana de 60s
+    LOGIN_RATE_LIMIT_PER_MINUTE: int = 100
 
     # System roles
     PROTECTED_ROLES: set[str] = {"SUPER_ADMIN", "ADMIN"}

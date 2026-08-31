@@ -1,13 +1,14 @@
 import uuid
 
+from fastapi import APIRouter, Depends, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from api.deps_auth import get_current_admin_user
 from api.response_factory import ApiResponse, create_api_response
 from dependencies import get_current_user, get_db
-from fastapi import APIRouter, Depends, status
 from models.user import User as UserModel
 from schemas.user import User, UserCreate, UserUpdate, UserWithRole
 from service import user_service
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["Users"])
 
@@ -44,7 +45,7 @@ async def read_me(
 )
 async def read_users(
     db: AsyncSession = get_db_dependency,
-    current_user: UserModel = get_current_user_dependency,
+    current_user: UserModel = get_current_admin_user_dependency,
     skip: int = 0,
     limit: int = 100,
 ) -> ApiResponse[list[User]]:
@@ -81,7 +82,7 @@ async def create_user(
 async def read_user_by_id(
     user_id: uuid.UUID,
     db: AsyncSession = get_db_dependency,
-    current_user: UserModel = get_current_user_dependency,
+    current_user: UserModel = get_current_admin_user_dependency,
 ) -> ApiResponse[User]:
     """Get a user by ID."""
     user = await user_service.get_user(db=db, user_id=user_id)
@@ -97,7 +98,7 @@ async def update_user(
     *,
     user_id: uuid.UUID,
     user_in: UserUpdate,
-    current_user: UserModel = get_current_user_dependency,
+    current_user: UserModel = get_current_admin_user_dependency,
     db: AsyncSession = get_db_dependency,
 ) -> ApiResponse[User]:
     """Update a user."""

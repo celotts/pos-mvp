@@ -1,15 +1,26 @@
 import uuid
 from typing import Any, Generic, TypeVar
 
-from core.db import Base
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from core.db import Base
 
 ModelType = TypeVar("ModelType", bound=Base)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
 UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
+
+# Techo máximo para la paginación (evita dumps masivos con skip/limit arbitrarios)
+MAX_PAGE_SIZE = 100
+
+
+def sanitize_pagination(skip: int, limit: int) -> tuple[int, int]:
+    skip = max(0, skip or 0)
+    limit = min(max(limit, 1), MAX_PAGE_SIZE)
+    return skip, limit
 
 
 class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
@@ -35,6 +46,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     async def get_multi(
         self, db: AsyncSession, *, skip: int = 0, limit: int = 100
     ) -> list[ModelType]:
+        skip, limit = sanitize_pagination(skip, limit)
         query = select(self.model).offset(skip).limit(limit)
         if self.default_loads:
             query = query.options(*self.default_loads)
@@ -48,7 +60,11 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         # Combina los datos del schema con cualquier kwarg adicional (como created_by)
         db_obj = self.model(**obj_in_data, **kwargs)
         db.add(db_obj)
-        await db.commit()
+        try:
+            await db.commit()
+        except SQLAlchemyError:
+            await db.rollback()
+            raise
         await db.refresh(db_obj)
         return db_obj
 
@@ -73,7 +89,11 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             if field in update_data:
                 setattr(db_obj, field, update_data[field])
         db.add(db_obj)
-        await db.commit()
+        try:
+            await db.commit()
+        except SQLAlchemyError:
+            await db.rollback()
+            raise
         await db.refresh(db_obj)
         return db_obj
 
@@ -81,5 +101,9 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         obj = await self.get(db, id=id)
         if obj:
             await db.delete(obj)
-            await db.commit()
+            try:
+                await db.commit()
+            except SQLAlchemyError:
+                await db.rollback()
+                raise
         return obj

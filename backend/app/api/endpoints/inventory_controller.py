@@ -1,8 +1,12 @@
-from dependencies import InventoryAnalysisServiceDep
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from dependencies import InventoryAnalysisServiceDep, get_current_user
+from models.user import User as UserModel
 from schemas.inventory import PurchaseSuggestionsResponse
 
 router = APIRouter()
+
+current_user_dependency = Depends(get_current_user)
 
 
 @router.get(
@@ -21,6 +25,7 @@ router = APIRouter()
 )
 async def get_purchase_suggestions(
     inventory_service: InventoryAnalysisServiceDep,
+    _current_user: UserModel = current_user_dependency,
 ):
     return await inventory_service.get_purchase_suggestions()
 
@@ -28,7 +33,11 @@ async def get_purchase_suggestions(
 @router.get("/recommendation")
 async def get_purchase_suggestion(
     inventory_service: InventoryAnalysisServiceDep,
-    query: str = "Analiza las ventas y compras para sugerir reabastecimiento",
+    _current_user: UserModel = current_user_dependency,
+    query: str = Query(
+        "Analiza las ventas y compras para sugerir reabastecimiento",
+        max_length=200,
+    ),
 ):
     # inventory_service ya incluye self.db gracias a la inyección de dependencias
     response = await inventory_service.get_agent_suggestion(query)
@@ -43,6 +52,7 @@ async def get_purchase_suggestion(
 )
 async def vectorize_inventory_analysis(
     inventory_service: InventoryAnalysisServiceDep,
+    _current_user: UserModel = current_user_dependency,
 ) -> dict:
     suggestions_response = await inventory_service.get_purchase_suggestions()
     analysis_dict = suggestions_response.analysis.model_dump()

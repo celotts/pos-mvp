@@ -1,13 +1,15 @@
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from core.crud_base import CRUDBase
+from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
+from core.crud_base import CRUDBase, sanitize_pagination
 from core.security import get_password_hash, verify_password
 from models.user import User
 from schemas.user import UserCreate, UserUpdate
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 
 class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
@@ -17,9 +19,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         self.default_loads = [selectinload(self.model.role)]
 
     async def get_by_email(self, db: AsyncSession, *, email: str) -> User | None:
-        query = select(self.model).filter(
-            func.lower(self.model.email) == email.lower()
-        )
+        query = select(self.model).filter(func.lower(self.model.email) == email.lower())
         if self.default_loads:
             query = query.options(*self.default_loads)
 
@@ -55,9 +55,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         await db.refresh(db_obj)
         return db_obj
 
-    async def reset_failed_attempts(
-        self, db: AsyncSession, *, db_obj: User
-    ) -> User:
+    async def reset_failed_attempts(self, db: AsyncSession, *, db_obj: User) -> User:
         """Limpia los intentos fallidos tras un login correcto."""
         db_obj.failed_login_attempts = 0
         db_obj.locked_until = None
@@ -74,7 +72,11 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             role_id=obj_in.role_id,
         )
         db.add(db_obj)
-        await db.commit()
+        try:
+            await db.commit()
+        except IntegrityError:
+            await db.rollback()
+            raise
         await db.refresh(db_obj)
         return db_obj
 
@@ -103,6 +105,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         limit: int = 100,
         email: str | None = None,
     ) -> list[User]:
+        skip, limit = sanitize_pagination(skip, limit)
         query = select(self.model)
         if email:
             query = query.filter(self.model.email == email)
