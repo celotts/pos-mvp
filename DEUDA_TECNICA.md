@@ -17,13 +17,14 @@
 
 ## B. 🔴 Secreto ya publicado (lo más urgente de todo)
 
-- [ ] `.env` está **trackeado en git** (ya está en GitHub: `celotts/pos-mvp`).
-      Contiene `POSTGRES_PASSWORD`, `FIRST_SUPERUSER_PASSWORD` y `SECRET_KEY`.
-- [ ] Rotar credenciales: nuevo password de DB, nuevo `SECRET_KEY`, nueva password del superusuario.
-- [ ] Mover `.env` a `.gitignore` y crear `.env.example` (o `.env.production`).
-- [ ] Hacer que `SECRET_KEY`, `POSTGRES_PASSWORD` y `FIRST_SUPERUSER_PASSWORD`
-      sean OBLIGATORIAS en producción (sin default en `core/config.py`) y que el
-      app **falle al arrancar** si faltan.
+- [x] `.env` **fuera de git** (`.gitignore` + `.env.example` creados).
+- [x] Credenciales **rotadas** (2026-08-31): nuevo `SECRET_KEY`, `POSTGRES_PASSWORD` y
+      `FIRST_SUPERUSER_PASSWORD`. Verificado: el password antiguo ya falla (login 401 + FATAL en TCP).
+      > Nota: los valores antiguos siguen en el historial de git; si se requiere eliminarlos
+      > del historial, usar `git filter-repo`/`BFG` (operación opcional y destructiva).
+- [x] `SECRET_KEY`, `POSTGRES_USER/PASSWORD/DB` y `FIRST_SUPERUSER_PASSWORD` son
+      **obligatorias (sin default)** en `core/config.py`; la app **falla al arrancar**
+      (`sys.exit(1)`) si faltan o son inválidas.
 
 > Nota: no rompe el desarrollo dejar esto al final, pero el secreto ya está
 > expuesto en GitHub, así que se recomienda hacerlo cuanto antes.
@@ -49,8 +50,8 @@
 
 ## Criterio de aceptación para "listo para producción"
 
-1. Secreto de `.env` rotado y fuera de git.
-2. `SECRET_KEY` obligatoria sin default.
+1. ✅ Secreto de `.env` rotado y fuera de git.
+2. ✅ `SECRET_KEY` obligatoria sin default.
 3. `docker-compose.prod.yml` desplegando la imagen construida.
 4. `/docs` desactivado; CORS con allowlist.
 5. Alembic con migración inicial aplicada en el entorno de producción.
