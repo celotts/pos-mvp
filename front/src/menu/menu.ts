@@ -76,16 +76,39 @@ export function roleAllowed(roles: RoleRule[], roleName: string): boolean {
   return roles.includes(roleName)
 }
 
-/** Filtra recursivamente el menú según el rol del usuario. */
-export function filterMenuByRole(
+/**
+ * Control de acceso por rol y por permiso RBAC.
+ * - Si `item.roles` incluye "*" → acceso para cualquier autenticado.
+ * - Si el rol está listado → acceso.
+ * - Si el ítem define `permissions`, basta que el usuario tenga UNO de ellos.
+ * - Los roles protegidos (SUPER_ADMIN/ADMIN) conservan acceso total.
+ */
+export function menuAllowed(
+  item: Pick<MenuItem, 'roles' | 'permissions'>,
+  roleName: string,
+  permissions: string[],
+): boolean {
+  if (roleAllowed(item.roles, roleName)) return true
+  if (item.permissions && item.permissions.length > 0) {
+    return item.permissions.some((p) => permissions.includes(p))
+  }
+  return false
+}
+
+/** Filtra recursivamente el menú según rol + permisos del usuario. */
+export function filterMenu(
   items: MenuItem[],
   roleName: string,
+  permissions: string[],
 ): MenuItem[] {
   return items
-    .filter((item) => roleAllowed(item.roles, roleName))
+    .filter((item) => menuAllowed(item, roleName, permissions))
     .map((item) =>
       item.children
-        ? { ...item, children: filterMenuByRole(item.children, roleName) }
+        ? {
+            ...item,
+            children: filterMenu(item.children, roleName, permissions),
+          }
         : item,
     )
     .filter((item) => !item.children || item.children.length > 0)

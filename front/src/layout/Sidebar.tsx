@@ -3,7 +3,7 @@ import { ChevronDown } from 'lucide-react'
 import { useMemo } from 'react'
 
 import { useAuth } from '../auth/AuthContext'
-import { filterMenuByRole, getMenuIcon, menuConfig } from '../menu/menu'
+import { filterMenu, getMenuIcon, menuConfig } from '../menu/menu'
 import type { MenuItem } from '../types'
 import { Logo } from '../components/ui/brand'
 
@@ -65,7 +65,10 @@ export function Sidebar({
   const { user } = useAuth()
 
   const items = useMemo(
-    () => (user ? filterMenuByRole(menuConfig.items, user.role_name) : []),
+    () =>
+      user
+        ? filterMenu(menuConfig.items, user.role_name, user.permissions ?? [])
+        : [],
     [user],
   )
 
