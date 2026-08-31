@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.response_factory import ApiResponse, create_api_response
 from core.config import settings
 from core.crud_user import crud_user
-from core.rate_limit import client_ip, login_limiter
+from core.rate_limit import login_limiter
 from core.security import create_access_token
 from dependencies import get_db
 from models.user import User as UserModel
@@ -98,17 +98,12 @@ async def _authenticate_with_lockout(
     summary="Get a JWT access token via JSON",
     description="Authenticates a user via JSON payload and returns a token with user details.",
 )
+@login_limiter.limit(f"{settings.LOGIN_RATE_LIMIT_PER_MINUTE}/minute")
 async def login_access_token(
     request: Request,
     login_data: UserLoginSchema,  # Lee payload JSON
     db: AsyncSessionDep,
 ) -> Any:
-    if not login_limiter.is_allowed(client_ip(request)):
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many login attempts. Please try again later.",
-            headers={"Retry-After": "60"},
-        )
     user = await _authenticate_with_lockout(
         db, email=login_data.username, password=login_data.password
     )
@@ -130,17 +125,12 @@ async def login_access_token(
     summary="OAuth2 compatible token login for Swagger UI",
     description="Authenticates via x-www-form-urlencoded for Swagger UI Authorize dialog.",
 )
+@login_limiter.limit(f"{settings.LOGIN_RATE_LIMIT_PER_MINUTE}/minute")
 async def login_swagger(
     request: Request,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],  # Lee Form Data
     db: AsyncSessionDep,
 ) -> Any:
-    if not login_limiter.is_allowed(client_ip(request)):
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many login attempts. Please try again later.",
-            headers={"Retry-After": "60"},
-        )
     user = await _authenticate_with_lockout(
         db, email=form_data.username, password=form_data.password
     )

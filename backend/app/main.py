@@ -33,10 +33,12 @@ from api.endpoints import (
 from contextlib import asynccontextmanager
 
 from core.config import settings
+from core.rate_limit import login_limiter
 from fastapi import APIRouter, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from initial_data import init_db
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from utils.logger import logger
 
@@ -75,6 +77,8 @@ app.add_middleware(
 )
 
 # Handlers de error unificados (formato JSON consistente, sin fugas de detalle)
+# Necesario para slowapi: el limiter debe exponerse en app.state.
+app.state.limiter = login_limiter
 app.add_exception_handler(
     HTTPException,
     exception_handlers.http_exception_handler,
@@ -82,6 +86,10 @@ app.add_exception_handler(
 app.add_exception_handler(
     RequestValidationError,
     exception_handlers.request_validation_exception_handler,
+)
+app.add_exception_handler(
+    RateLimitExceeded,
+    exception_handlers.rate_limit_exceeded_handler,
 )
 app.add_exception_handler(IntegrityError, exception_handlers.integrity_error_handler)
 app.add_exception_handler(SQLAlchemyError, exception_handlers.sqlalchemy_error_handler)

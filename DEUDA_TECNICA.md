@@ -38,7 +38,7 @@
 | 3 | **Refresh token** con rotación + revocación (logout server-side / `token_version` por usuario) | Tokens comprometidos limitados a minutos | Medio |
 | 4 | **Soft-delete** (`is_deleted`, `deleted_at`, `deleted_by`) + tabla `audit_log` | Datos recuperables y trazables | Medio |
 | 5 | ~~**Transacciones seguras en `crud_base`**~~ ✅ Hecho: try/except + rollback en create/update/remove; `IntegrityError` → HTTP 409; errores unificados (`{success, status_code, message, data}`) vía `http_exception_handler` registrado | Errores limpios, sesiones consistentes | Hecho |
-| 6 | **Rate limiting** por IP en `/login` (slowapi) | Frena fuerza bruta distribuida | Bajo |
+| 6 | ~~**Rate limiting** por IP en `/login`~~ ✅ Hecho con **slowapi** (reemplazó el limiter casero): `@login_limiter.limit` + 429 unificado vía `rate_limit_exceeded_handler` | Frena fuerza bruta distribuida | Hecho |
 | 7 | ~~**DB de test aislada + CI**~~ ✅ Hecho: GitHub Actions (pytest + ruff + build front) en verde | Evita ensuciar datos de dev; valida cada push | Hecho |
 | 8 | `get_llm_service` que respete `LLM_PROVIDER` (hoy hardcodea Ollama) | Coherencia con la config | Bajo |
 
