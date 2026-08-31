@@ -36,7 +36,7 @@
 | 1 | **Alembic** (migraciones versionadas) en lugar de `create_all` + parches idempotentes | Cambios de schema seguros sobre datos existentes | Medio |
 | 2 | ~~**RBAC por permiso**~~ ✅ Implementado en Fase 3 (`permissions` + `role_permissions` + guards `require_permission` + multi-tenancy por `Company`) | Control fino de acceso | Hecho |
 | 3 | **Refresh token** con rotación + revocación (logout server-side / `token_version` por usuario) | Tokens comprometidos limitados a minutos | Medio |
-| 4 | **Soft-delete** (`is_deleted`, `deleted_at`, `deleted_by`) + tabla `audit_log` | Datos recuperables y trazables | Medio |
+| 4 | ~~**Soft-delete** (`is_deleted`, `deleted_at`, `deleted_by`) + tabla `audit_log`~~ ✅ Hecho (commit `03a4685`): `SoftDeleteMixin` en modelos maestros (Company, User, Role, Product, Supplier, Customer, Store, PosTerminal, CashAccount); CRUDBase hace soft-delete en `remove` y filtra `is_deleted=False` en `get`/`get_multi`; `AuditLog` registra create/update/delete; migración idempotente `_ensure_soft_delete_columns` | Datos recuperables y trazables | Hecho |
 | 5 | ~~**Transacciones seguras en `crud_base`**~~ ✅ Hecho: try/except + rollback en create/update/remove; `IntegrityError` → HTTP 409; errores unificados (`{success, status_code, message, data}`) vía `http_exception_handler` registrado | Errores limpios, sesiones consistentes | Hecho |
 | 6 | ~~**Rate limiting** por IP en `/login`~~ ✅ Hecho con **slowapi** (reemplazó el limiter casero): `@login_limiter.limit` + 429 unificado vía `rate_limit_exceeded_handler` | Frena fuerza bruta distribuida | Hecho |
 | 7 | ~~**DB de test aislada + CI**~~ ✅ Hecho: GitHub Actions (pytest + ruff + build front) en verde | Evita ensuciar datos de dev; valida cada push | Hecho |
