@@ -31,6 +31,9 @@ class Product(Base):
     supplier_id: Mapped[uuid.UUID | None] = mapped_column(
         PG_UUID(as_uuid=True), ForeignKey("suppliers.id"), nullable=True
     )
+    tenant_id: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("companies.id"), nullable=True, index=True
+    )
 
     # Relationships
     supplier: Mapped[Supplier | None] = relationship(  # This was already correct

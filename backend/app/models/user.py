@@ -51,6 +51,10 @@ class User(Base):
     )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
+    tenant_id: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("companies.id"), nullable=True, index=True
+    )
+
     # Control de intentos de login (bloqueo de cuenta)
     failed_login_attempts: Mapped[int] = mapped_column(
         Integer, default=0, server_default="0", nullable=False

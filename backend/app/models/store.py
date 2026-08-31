@@ -42,6 +42,10 @@ class Store(Base):
         )
     )
 
+    tenant_id: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("companies.id"), nullable=True, index=True
+    )
+
     # Relationships to transactions
     purchases: Mapped[list["Purchase"]] = relationship(  # This was already correct
         "Purchase", back_populates="store"

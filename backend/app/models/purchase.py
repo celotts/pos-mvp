@@ -56,6 +56,9 @@ class Purchase(Base):
         nullable=False,
         default="UNPAID",
     )
+    tenant_id: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("companies.id"), nullable=True, index=True
+    )
 
     # Audit fields
     created_at: Mapped[datetime] = mapped_column(

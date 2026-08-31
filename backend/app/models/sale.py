@@ -70,6 +70,9 @@ class Sale(Base):
     shift_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("shifts.id"), nullable=True
     )
+    tenant_id: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("companies.id"), nullable=True, index=True
+    )
 
     # Relationships
     store: Mapped["Store"] = relationship("Store", back_populates="sales")

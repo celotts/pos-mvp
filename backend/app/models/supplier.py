@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String
+from sqlalchemy import ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -28,6 +28,9 @@ class Supplier(Base):
     )
     address: Mapped[str | None] = mapped_column(String(255))
 
+    tenant_id: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("companies.id"), nullable=True, index=True
+    )
     products: Mapped[list[Product]] = relationship(back_populates="supplier")
     purchases: Mapped[list[Purchase]] = relationship(back_populates="supplier")
 

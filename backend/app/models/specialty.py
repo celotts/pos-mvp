@@ -34,6 +34,10 @@ class Specialty(Base):
         PG_UUID(as_uuid=True), ForeignKey("users.id")
     )
 
+    tenant_id: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("companies.id"), nullable=True, index=True
+    )
+
     # Relationships for audit
     created_by_user: Mapped[Optional["User"]] = (  # This was already correct
         relationship(  # This was already correct

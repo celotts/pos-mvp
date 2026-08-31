@@ -41,6 +41,9 @@ class AccountsPayable(Base):
     outstanding_amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
     due_date: Mapped[date | None] = mapped_column(DATE)
     status: Mapped[str] = mapped_column(String, nullable=False, default="OPEN")
+    tenant_id: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("companies.id"), nullable=True, index=True
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

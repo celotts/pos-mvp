@@ -8,6 +8,7 @@ from decimal import Decimal
 from sqlalchemy import (
     DateTime,
     Enum,
+    ForeignKey,
     Numeric,
     String,
     func,
@@ -39,6 +40,9 @@ class CashAccount(Base):
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="MXN")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    tenant_id: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("companies.id"), nullable=True, index=True
     )
 
     def __repr__(self):

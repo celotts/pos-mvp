@@ -1,12 +1,13 @@
 import logging
 
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
 from core.crud_role import crud_role
 from core.crud_user import crud_user
 from core.db import Base, async_session_maker, engine
+from models.company import Company
 
 # Import all models so that Base knows about them.
 # This is a crucial step to ensure that SQLAlchemy's metadata is populated
@@ -94,7 +95,7 @@ async def _ensure_cosine_vector_index(conn) -> None:
 
     await conn.execute(
         text(
-            f"CREATE INDEX IF NOT EXISTS \"{index_name}\" "
+            f'CREATE INDEX IF NOT EXISTS "{index_name}" '
             "ON sales_vectors USING ivfflat (embedding vector_cosine_ops) "
             "WITH (lists = 100);"
         )
@@ -138,12 +139,70 @@ async def _ensure_login_lock_columns(conn) -> None:
         )
     )
     await conn.execute(
-        text(
-            "ALTER TABLE users "
-            "ADD COLUMN IF NOT EXISTS locked_until TIMESTAMPTZ;"
-        )
+        text("ALTER TABLE users ADD COLUMN IF NOT EXISTS locked_until TIMESTAMPTZ;")
     )
     logger.info("Columnas de bloqueo de login aseguradas en users.")
+
+
+# Migración Fase 3 (multi-tenancy): tablas que llevan `tenant_id` directo.
+TENANT_TABLES = [
+    "users",
+    "stores",
+    "products",
+    "suppliers",
+    "customers",
+    "specialties",
+    "pos_terminals",
+    "cash_accounts",
+    "cash_transactions",
+    "accounts_payable",
+    "accounts_receivable",
+    "sales",
+    "purchases",
+    "shifts",
+    "sales_vectors",
+]
+
+DEFAULT_COMPANY_NAME = "Demo Company"
+
+
+async def _ensure_tenant_columns(conn) -> None:
+    """
+    Migración idempotente (Fase 3): agrega `tenant_id` (FK a companies)
+    a todas las tablas del tenant, tanto en BD nuevas como existentes.
+    Se ejecuta tras `create_all` (que crea `companies` en BD nuevas).
+    """
+    for table in TENANT_TABLES:
+        await conn.execute(
+            text(
+                f"ALTER TABLE {table} "
+                "ADD COLUMN IF NOT EXISTS tenant_id UUID REFERENCES companies(id);"
+            )
+        )
+        await conn.execute(
+            text(
+                f"CREATE INDEX IF NOT EXISTS ix_{table}_tenant_id "
+                f"ON {table} (tenant_id);"
+            )
+        )
+    logger.info(
+        "Columnas de multitenancy (tenant_id) aseguradas en %d tablas.",
+        len(TENANT_TABLES),
+    )
+
+
+async def _create_default_company(db: AsyncSession) -> None:
+    """Asegura que exista la compañía por defecto (idempotente)."""
+    company = (
+        (await db.execute(select(Company).order_by(Company.created_at).limit(1)))
+        .scalars()
+        .first()
+    )
+    if company:
+        return
+    db.add(Company(name=DEFAULT_COMPANY_NAME))
+    await db.commit()
+    logger.info("Compañía por defecto '%s' creada.", DEFAULT_COMPANY_NAME)
 
 
 async def init_db():
@@ -166,6 +225,7 @@ async def init_db():
             await _ensure_cosine_vector_index(conn)
             await _ensure_sales_vector_store_id(conn)
             await _ensure_login_lock_columns(conn)
+            await _ensure_tenant_columns(conn)
             logger.info("Database schema created successfully.")
 
     except Exception as e:
@@ -176,6 +236,7 @@ async def init_db():
 
     logger.info("Starting data seeding process...")
     async with async_session_maker() as db:
+        await _create_default_company(db)
         await _create_initial_roles(db)
         await _create_initial_superuser(db)
     logger.info("Data seeding process finished.")

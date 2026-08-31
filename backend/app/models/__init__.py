@@ -6,6 +6,7 @@ __all__ = [
     "AccountsReceivable",
     "CashAccount",
     "CashTransaction",
+    "Company",
     "Country",
     "Customer",
     "Municipality",
@@ -29,6 +30,7 @@ from .accounts_payable import AccountsPayable
 from .accounts_receivable import AccountsReceivable
 from .cash_account import CashAccount
 from .cash_transaction import CashTransaction
+from .company import Company
 from .country import Country
 from .customer import Customer
 from .municipality import Municipality

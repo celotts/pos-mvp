@@ -42,6 +42,9 @@ class CashTransaction(Base):
     )
 
     shift_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("shifts.id"), nullable=False)
+    tenant_id: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True), ForeignKey("companies.id"), nullable=True, index=True
+    )
     shift: Mapped["Shift"] = relationship(back_populates="cash_transactions")
 
     def __repr__(self):
