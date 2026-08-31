@@ -1,16 +1,17 @@
 # api/endpoints/assistant_controller.py
 from typing import Any
 
-from api.response_factory import ApiResponse, create_api_response
-from dependencies import get_current_user, get_db
 from fastapi import APIRouter, Depends, HTTPException, status
 from httpx import HTTPError
 from langchain_core.exceptions import OutputParserException
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from api.response_factory import ApiResponse, create_api_response
+from dependencies import get_current_user, get_db
 from models.user import User as UserModel
 from schemas.assistant import ChatRequest, ChatResponse
 from service.ai_agent_service import ai_agent_service
 from service.ai_service import ai_service
-from sqlalchemy.ext.asyncio import AsyncSession
 from utils.logger import logger
 
 router = APIRouter(prefix="/assistant", tags=["AI Assistant"])

@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .enums import PaymentStatus, PurchaseStatus
 
@@ -10,11 +10,13 @@ from .enums import PaymentStatus, PurchaseStatus
 # --- PurchaseItem Schemas ---
 class PurchaseItemBase(BaseModel):
     product_id: uuid.UUID
-    quantity: int
+    quantity: int = Field(..., ge=1)
 
 
 class PurchaseItemCreate(PurchaseItemBase):
-    price_at_purchase: Decimal  # El precio al que compramos el producto
+    price_at_purchase: Decimal = Field(
+        ..., ge=0
+    )  # El precio al que compramos el producto
 
 
 class PurchaseItem(PurchaseItemBase):
@@ -29,8 +31,8 @@ class PurchaseBase(BaseModel):
     """Esquema base para una compra."""
 
     supplier_id: uuid.UUID
-    total_amount: Decimal
-    total_tax_amount: Decimal
+    total_amount: Decimal = Field(..., ge=0)
+    total_tax_amount: Decimal = Field(..., ge=0)
     status: PurchaseStatus = PurchaseStatus.PENDING
     payment_status: PaymentStatus = PaymentStatus.UNPAID
 

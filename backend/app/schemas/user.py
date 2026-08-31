@@ -53,3 +53,11 @@ class UserInDBBase(UserBase):
 
 class User(UserInDBBase):
     pass
+
+
+class UserWithRole(User):
+    """Usuario con información de rol para el frontend (menú dinámico)."""
+
+    is_active: bool
+    role_id: uuid.UUID
+    role_name: str

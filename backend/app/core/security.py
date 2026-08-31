@@ -1,9 +1,10 @@
 from datetime import datetime, timedelta, timezone
 
-from core.config import settings
 from jose import JWTError, jwt
 from jose.exceptions import ExpiredSignatureError
 from passlib.context import CryptContext
+
+from core.config import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

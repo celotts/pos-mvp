@@ -1,5 +1,6 @@
-from dependencies import get_current_user
 from fastapi.testclient import TestClient
+
+from dependencies import get_current_user
 from main import app
 from models.user import User
 

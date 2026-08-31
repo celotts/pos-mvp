@@ -5,7 +5,6 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from core.db import Base
 from sqlalchemy import (
     DATE,
     DateTime,
@@ -16,6 +15,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from core.db import Base
 
 if TYPE_CHECKING:
     from .customer import Customer

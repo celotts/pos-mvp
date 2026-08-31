@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from core.db import Base
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship  # type: ignore
+
+from core.db import Base
 
 # Esto solo lo lee el IDE para el autocompletado y los tipos,
 # evitando importaciones circulares en ejecución.
@@ -17,6 +18,7 @@ if TYPE_CHECKING:
     from .role import Role
     from .sale import Sale
     from .shift import Shift
+
 from .purchase import Purchase  # Needed at runtime for foreign_keys
 
 
@@ -48,6 +50,20 @@ class User(Base):
         DateTime(timezone=True), onupdate=func.now()
     )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    # Control de intentos de login (bloqueo de cuenta)
+    failed_login_attempts: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
+    locked_until: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    @property
+    def is_locked(self) -> bool:
+        if not self.locked_until:
+            return False
+        return self.locked_until > datetime.now(timezone.utc)
 
     # Relaciones inversas con transacciones
     purchases: Mapped[list[Purchase]] = relationship(  # This was already correct

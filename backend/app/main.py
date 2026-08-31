@@ -1,3 +1,4 @@
+# isort: skip_file
 import sys
 from pathlib import Path
 
@@ -5,8 +6,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
 sys.path.extend([str(BASE_DIR), str(BASE_DIR.parent)])
 
-from contextlib import asynccontextmanager
-
+from api import exception_handlers
 from api.endpoints import (
     accounts_payable_controller,
     accounts_receivable_controller,
@@ -30,8 +30,14 @@ from api.endpoints import (
     supplier_controller,
     users_controller,
 )
-from fastapi import APIRouter, FastAPI
+from contextlib import asynccontextmanager
+
+from core.config import settings
+from fastapi import APIRouter, FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from initial_data import init_db
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from utils.logger import logger
 
 
@@ -47,12 +53,47 @@ async def lifespan(app: FastAPI):
     logger.info("Apagando aplicación...")
 
 
+is_production = settings.ENVIRONMENT.strip().lower() == "production"
+
 app = FastAPI(
     title="POS-RAG API",
     version="0.1.0",
     description="API for inventory control with Retrieval-Augmented Generation (RAG) capabilities.",
     lifespan=lifespan,
+    docs_url="/docs" if not is_production else None,
+    redoc_url="/redoc" if not is_production else None,
+    openapi_url="/openapi.json" if not is_production else None,
 )
+
+# CORS: allowlist explícita en lugar de '*'
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
+)
+
+# Handlers de error unificados (formato JSON consistente, sin fugas de detalle)
+app.add_exception_handler(
+    RequestValidationError,
+    exception_handlers.request_validation_exception_handler,
+)
+app.add_exception_handler(IntegrityError, exception_handlers.integrity_error_handler)
+app.add_exception_handler(SQLAlchemyError, exception_handlers.sqlalchemy_error_handler)
+app.add_exception_handler(Exception, exception_handlers.unhandled_exception_handler)
+
+
+@app.middleware("http")
+async def security_headers_middleware(request: Request, call_next):
+    """Añade cabeceras de seguridad básicas a todas las respuestas."""
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Content-Security-Policy"] = "default-src 'self'"
+    return response
+
 
 # Router principal con prefijo para versionado de la API
 api_router = APIRouter(prefix="/api/v1")

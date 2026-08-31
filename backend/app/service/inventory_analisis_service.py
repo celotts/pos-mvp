@@ -3,6 +3,10 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import httpx
+from sqlalchemy import func, select
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from core.config import settings
 from models.product import Product
 from models.purchase import PurchaseItem
@@ -15,9 +19,6 @@ from schemas.inventory_analysis import (
     PurchaseSuggestionItem,
 )
 from service.llm_service import AbstractLLMService
-from sqlalchemy import func, select
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.asyncio import AsyncSession
 from utils.logger import logger
 
 

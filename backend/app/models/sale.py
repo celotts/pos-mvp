@@ -4,11 +4,12 @@ from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING, Optional
 
-from core.db import Base
 from sqlalchemy import DateTime, ForeignKey, Numeric, func
 from sqlalchemy import Enum as SQLAlchemyEnum
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from core.db import Base
 
 if TYPE_CHECKING:
     from .accounts_receivable import AccountsReceivable

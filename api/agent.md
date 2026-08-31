@@ -1,6 +1,7 @@
 # AGENT.MD: Contexto, Arquitectura y Reglas de Desarrollo para pos-API
 
 ## 5. Validación de Datos en Endpoints
+
 ```python
 # api/deps.py
 from pydantic import BaseModel, ConfigDict

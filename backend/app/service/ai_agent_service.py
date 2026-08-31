@@ -1,7 +1,8 @@
-from schemas.assistant import ChatRequest, ChatResponse, InsightRecommendation
-from service.ai_service import ai_service
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from schemas.assistant import ChatRequest, ChatResponse, InsightRecommendation
+from service.ai_service import ai_service
 from utils.logger import logger
 
 SYSTEM_PROMPT = (

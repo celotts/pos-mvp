@@ -1,12 +1,13 @@
 from typing import Any
 
+from fastapi import APIRouter, BackgroundTasks, Depends, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from api.response_factory import ApiResponse, create_api_response
 from dependencies import get_current_user, get_db
-from fastapi import APIRouter, BackgroundTasks, Depends, status
 from models.user import User as UserModel
 from schemas.sale import Sale, SaleCreate
 from service.sale_service import sale_service
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["POS"])
 

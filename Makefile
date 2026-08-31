@@ -81,9 +81,9 @@ lint:
 	$(COMPOSE_CMD) exec pos-api flake8 /app
 
 format:
-	@echo "Formateando el código con black y isort..."
+	@echo "Formateando el código con black y isort (perfil black)..."
 	$(COMPOSE_CMD) exec pos-api black /app
-	$(COMPOSE_CMD) exec pos-api isort /app
+	$(COMPOSE_CMD) exec pos-api isort --profile black /app
 
 test:
 	@echo "Ejecutando pruebas con pytest..."

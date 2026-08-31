@@ -1,7 +1,8 @@
-from core.crud_product import crud_product
-from core.crud_sale import crud_sale
 from langchain.tools import ToolRuntime, tool
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from core.crud_product import crud_product
+from core.crud_sale import crud_sale
 from utils.logger import logger
 
 

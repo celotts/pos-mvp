@@ -1,13 +1,14 @@
 import uuid
 
+from fastapi import APIRouter, Depends, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from api.deps_auth import get_current_admin_user
 from api.response_factory import ApiResponse, create_api_response
 from dependencies import get_db
-from fastapi import APIRouter, Depends, status
 from models.user import User as UserModel
 from schemas.role import Role, RoleCreate, RoleUpdate
 from service import role_service
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["Roles"])
 

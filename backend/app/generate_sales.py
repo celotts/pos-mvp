@@ -3,6 +3,8 @@ import random
 import uuid
 from datetime import datetime, timedelta
 
+from sqlalchemy import select
+
 from core.config import settings
 from core.crud_user import crud_user
 from core.db import async_session_maker
@@ -10,7 +12,6 @@ from models.product import Product
 from models.sale import Sale, SaleItem
 from models.sales_vector import SalesVector
 from models.store import Store
-from sqlalchemy import select
 
 
 async def generate_mock_data():

@@ -1,12 +1,13 @@
 from decimal import Decimal
 
 from fastapi import BackgroundTasks, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from models.product import Product
 from models.sale import Sale
 from models.sale_item import SaleItem
 from models.user import User
 from schemas.sale import SaleCreate, SaleUpdate
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from .ai_service import ai_service
 from .base_service import CRUDService

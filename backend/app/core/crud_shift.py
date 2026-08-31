@@ -1,12 +1,13 @@
 import uuid
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
 from core.crud_base import CRUDBase
 from models.shift import Shift, ShiftStatus
 from schemas.shift import ShiftClose as ShiftUpdate
 from schemas.shift import ShiftOpen as ShiftCreate
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 
 class CRUDShift(CRUDBase[Shift, ShiftCreate, ShiftUpdate]):

@@ -2,11 +2,12 @@ import uuid
 from unittest.mock import AsyncMock
 
 import pytest
+from fastapi import HTTPException
+
 from models.role import Role
 from models.user import User
 from schemas.user import UserCreate, UserUpdate
 from service import user_service
-from fastapi import HTTPException
 
 # Marca todas las pruebas en este archivo para que se ejecuten con asyncio
 pytestmark = pytest.mark.asyncio

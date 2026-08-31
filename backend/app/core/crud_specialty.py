@@ -1,9 +1,10 @@
 import uuid
 
-from models.specialty import Specialty
-from schemas.specialty import SpecialtyCreate, SpecialtyUpdate
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from models.specialty import Specialty
+from schemas.specialty import SpecialtyCreate, SpecialtyUpdate
 
 
 async def get_specialty(db: AsyncSession, specialty_id: uuid.UUID) -> Specialty | None:

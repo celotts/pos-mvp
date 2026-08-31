@@ -1,13 +1,14 @@
 import uuid
 
+from fastapi import HTTPException, status
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from core.crud_pos_terminal import crud_pos_terminal
 from core.crud_store import crud_store
-from fastapi import HTTPException, status
 from models import PosTerminal
 from models import User as UserModel
 from schemas.pos_terminal import PosTerminalCreate, PosTerminalUpdate
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def get_pos_terminals(

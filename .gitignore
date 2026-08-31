@@ -4,5 +4,6 @@ __pycache__/
 *.py[cod]
 .env
 .env.*
+!.env.example
 backend/config.json
 probar_api.sh

@@ -1,11 +1,12 @@
 import uuid
 
+from fastapi import HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from core.crud_role import crud_role
 from core.crud_user import crud_user
-from fastapi import HTTPException, status
 from models.user import User
 from schemas.user import UserCreate, UserUpdate
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def get_users(db: AsyncSession, skip: int = 0, limit: int = 100) -> list[User]:
@@ -77,7 +78,15 @@ async def update_user(
                 detail="You cannot change your own role.",
             )
 
-    return await crud_user.update(db=db, db_obj=db_user, obj_in=user_in)
+    updated_user = await crud_user.update(db=db, db_obj=db_user, obj_in=user_in)
+
+    # Al reactivar la cuenta se desbloquea el login (limpia intentos fallidos).
+    if user_in.is_active is True:
+        updated_user = await crud_user.reset_failed_attempts(
+            db, db_obj=updated_user
+        )
+
+    return updated_user
 
 
 async def remove_user(db: AsyncSession, *, user_id: uuid.UUID) -> User:

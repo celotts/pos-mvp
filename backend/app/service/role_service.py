@@ -1,11 +1,12 @@
 import uuid
 
+from fastapi import HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from core.config import settings
 from core.crud_role import crud_role
-from fastapi import HTTPException, status
 from models.role import Role
 from schemas.role import RoleCreate, RoleUpdate
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def get_roles(db: AsyncSession, skip: int = 0, limit: int = 100) -> list[Role]:

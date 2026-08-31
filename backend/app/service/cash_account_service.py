@@ -1,12 +1,13 @@
 import uuid
 
-from core.crud_cash_account import crud_cash_account
 from fastapi import HTTPException, status
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from core.crud_cash_account import crud_cash_account
 from models import CashAccount
 from models import User as UserModel
 from schemas.cash_account import CashAccountCreate, CashAccountUpdate
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def get_cash_accounts(
@@ -21,12 +22,7 @@ async def create_cash_account(
 ) -> CashAccount:
     """Crea una nueva cuenta de caja/banco."""
     try:
-        return await crud_cash_account.create(
-            db=db,
-            obj_in=account_in,
-            created_by=current_user.id,
-            created_by_role_id=current_user.role_id,
-        )
+        return await crud_cash_account.create(db=db, obj_in=account_in)
     except IntegrityError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -57,8 +53,6 @@ async def update_cash_account(
         db=db,
         db_obj=db_account,
         obj_in=account_in,
-        updated_by=current_user.id,
-        updated_by_role_id=current_user.role_id,
     )
 
 

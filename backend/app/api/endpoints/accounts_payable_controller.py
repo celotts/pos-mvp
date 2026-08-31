@@ -1,9 +1,12 @@
 import uuid
 from typing import Any
 
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from api.deps_auth import get_current_admin_user
 from api.response_factory import ApiResponse, create_api_response
 from dependencies import get_current_user, get_db
-from fastapi import APIRouter, Depends, HTTPException, status
 from models.user import User as UserModel
 from schemas.accounts_payable import (
     AccountsPayable,
@@ -11,12 +14,12 @@ from schemas.accounts_payable import (
     AccountsPayableUpdate,
 )
 from service.accounts_payable_service import accounts_payable_service
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["Accounting"])
 
 db_dependency = Depends(get_db)
 current_user_dependency = Depends(get_current_user)
+get_current_admin_user_dependency = Depends(get_current_admin_user)
 
 
 @router.post(
@@ -29,7 +32,7 @@ async def create_account_payable(
     *,
     account_in: AccountsPayableCreate,
     db: AsyncSession = db_dependency,
-    current_user: UserModel = current_user_dependency,
+    current_user: UserModel = get_current_admin_user_dependency,
 ) -> Any:
     """Creates a new accounts payable record, usually associated with a purchase."""
     new_account = await accounts_payable_service.create(db=db, obj_in=account_in)
@@ -82,7 +85,7 @@ async def update_account_payable(
     account_id: uuid.UUID,
     account_in: AccountsPayableUpdate,
     db: AsyncSession = db_dependency,
-    current_user: UserModel = current_user_dependency,
+    current_user: UserModel = get_current_admin_user_dependency,
 ) -> Any:
     """Updates the data of an account payable (e.g., to register a payment)."""
     updated_account = await accounts_payable_service.update(
@@ -104,7 +107,7 @@ async def delete_account_payable(
     *,
     account_id: uuid.UUID,
     db: AsyncSession = db_dependency,
-    current_user: UserModel = current_user_dependency,
+    current_user: UserModel = get_current_admin_user_dependency,
 ) -> Any:
     """Deletes an account payable record."""
     deleted_account = await accounts_payable_service.remove(db, id=account_id)
