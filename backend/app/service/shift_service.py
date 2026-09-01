@@ -38,7 +38,7 @@ async def open_shift(
     shift_to_create = Shift(
         user_id=current_user.id,
         pos_terminal_id=shift_in.pos_terminal_id,
-        store_id=terminal.store_id,  # Asignar la tienda desde la terminal
+        store_id=shift_in.store_id,  # La tienda viene en el payload de apertura
         starting_cash=shift_in.starting_cash,
         status=ShiftStatus.OPEN,
     )

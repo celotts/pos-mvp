@@ -33,7 +33,9 @@ async def create_purchase(
     current_user: UserModel = require_purchase_create,
 ) -> Any:
     """Creates a new purchase record from a supplier."""
-    new_purchase = await purchase_service.create(db=db, obj_in=purchase_in)
+    new_purchase = await purchase_service.create(
+        db=db, obj_in=purchase_in, current_user=current_user
+    )
     return create_api_response(
         data=new_purchase,
         status_code=status.HTTP_201_CREATED,

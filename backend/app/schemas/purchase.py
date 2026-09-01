@@ -41,6 +41,8 @@ class PurchaseCreate(BaseModel):
     """Esquema para crear una nueva compra. Los totales se calculan en el backend."""
 
     supplier_id: uuid.UUID
+    store_id: uuid.UUID
+    pos_terminal_id: uuid.UUID | None = None
     items: list[PurchaseItemCreate]
 
 

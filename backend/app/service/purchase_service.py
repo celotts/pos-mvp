@@ -39,7 +39,9 @@ class PurchaseService(CRUDService[Purchase, PurchaseCreate, PurchaseUpdate]):
         result = await db.execute(query)
         return result.scalars().all()
 
-    async def create(self, db: AsyncSession, *, obj_in: PurchaseCreate) -> Purchase:
+    async def create(
+        self, db: AsyncSession, *, obj_in: PurchaseCreate, current_user: User | None = None
+    ) -> Purchase:
         """
         Crea una nueva compra, valida los items, calcula los totales y crea
         los registros asociados en la base de datos.
@@ -80,8 +82,11 @@ class PurchaseService(CRUDService[Purchase, PurchaseCreate, PurchaseUpdate]):
         # 2. Crear el objeto Purchase con los datos calculados y los items
         purchase_data = {
             "supplier_id": obj_in.supplier_id,
+            "store_id": obj_in.store_id,
+            "pos_terminal_id": obj_in.pos_terminal_id,
             "total_amount": total_amount,
             "total_tax_amount": total_tax_amount,
+            "created_by": current_user.id if current_user else None,
             "items": purchase_items_to_create,
         }
 
@@ -90,9 +95,6 @@ class PurchaseService(CRUDService[Purchase, PurchaseCreate, PurchaseUpdate]):
         db.add(db_obj)
         await db.commit()
         await db.refresh(db_obj)
-
-        # Aquí es donde iría la lógica de negocio extra, como actualizar el stock.
-        print(f"Business logic executed! Purchase {db_obj.id} created with its items.")
 
         return db_obj
 
