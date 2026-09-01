@@ -190,13 +190,6 @@ export function SuppliersPage() {
     },
   ]
 
-  const fieldLabel = (label: string, required = false) => (
-    <span className="flex items-center gap-0.5">
-      {label}
-      {required && <span className="text-red-500">*</span>}
-    </span>
-  )
-
   return (
     <div className="space-y-6">
       <PageHeader
