@@ -11,6 +11,7 @@ from models.purchase import Purchase, PurchaseItem
 from models.sale import Sale
 from models.sale_item import SaleItem
 from schemas.product import ProductCreate, ProductUpdate
+from schemas.sale import SaleStatus as SaleStatusEnum
 
 
 class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
@@ -32,6 +33,9 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
             SaleItem.product_id,
             func.coalesce(func.sum(SaleItem.quantity), 0).label("qty"),
         ).join(Sale, Sale.id == SaleItem.sale_id)
+
+        # Las ventas canceladas/devueltas no descuentan stock.
+        sold_stmt = sold_stmt.where(Sale.status != SaleStatusEnum.CANCELLED)
 
         tenant_id = get_current_tenant()
         if tenant_id:

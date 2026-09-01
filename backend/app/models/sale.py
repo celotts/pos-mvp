@@ -32,7 +32,9 @@ class Sale(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     total_amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
-    total_tax_amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    total_tax_amount: Mapped[Decimal] = mapped_column(
+        Numeric(18, 2), server_default="0", nullable=False
+    )
     discount_amount: Mapped[Decimal] = mapped_column(
         Numeric(18, 2), server_default="0", nullable=False
     )
@@ -85,7 +87,10 @@ class Sale(Base):
     )
     shift: Mapped[Optional["Shift"]] = relationship("Shift", back_populates="sales")
     items: Mapped[list["SaleItem"]] = relationship(
-        "SaleItem", back_populates="sale", cascade="all, delete-orphan"
+        "SaleItem",
+        back_populates="sale",
+        cascade="all, delete-orphan",
+        lazy="selectin",
     )
     accounts_receivable: Mapped[Optional["AccountsReceivable"]] = relationship(
         "AccountsReceivable", back_populates="sale", uselist=False

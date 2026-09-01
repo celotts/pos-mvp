@@ -1,13 +1,15 @@
 from decimal import Decimal
 
 from fastapi import BackgroundTasks, HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from models.product import Product
 from models.sale import Sale
 from models.sale_item import SaleItem
 from models.user import User
-from schemas.sale import SaleCreate, SaleUpdate
+from schemas.sale import SaleCreate, SaleStatus, SaleUpdate
 
 from .ai_service import ai_service
 from .base_service import CRUDService
@@ -18,6 +20,48 @@ class SaleService(CRUDService[Sale, SaleCreate, SaleUpdate]):
     Servicio para las operaciones CRUD de Ventas con lógica de negocio extendida,
     incluyendo la integración con el servicio de IA.
     """
+
+    async def get(self, db: AsyncSession, id) -> Sale | None:
+        query = (
+            select(self.model)
+            .where(self.model.id == id)
+            .options(selectinload(Sale.items))
+        )
+        result = await db.execute(query)
+        return result.scalars().first()
+
+    async def get_all(
+        self, db: AsyncSession, *, skip: int = 0, limit: int = 100
+    ) -> list[Sale]:
+        query = (
+            select(self.model)
+            .order_by(self.model.sale_date.desc())
+            .offset(skip)
+            .limit(limit)
+            .options(selectinload(Sale.items))
+        )
+        result = await db.execute(query)
+        return result.scalars().all()
+
+    async def return_sale(
+        self, db: AsyncSession, *, sale_id, current_user: User
+    ) -> Sale:
+        """Devuelve (cancela) una venta completa. Reintegra stock al excluirla del cómputo."""
+        db_sale = await self.get(db, id=sale_id)
+        if not db_sale:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Sale does not exist.",
+            )
+        if db_sale.status == SaleStatus.CANCELLED:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The sale is already cancelled.",
+            )
+        db_sale.status = SaleStatus.CANCELLED
+        await db.commit()
+        await db.refresh(db_sale)
+        return db_sale
 
     async def create_sale(
         self,
@@ -65,6 +109,8 @@ class SaleService(CRUDService[Sale, SaleCreate, SaleUpdate]):
             **sale_in.model_dump(exclude={"items"}),
             user_id=current_user.id,
             total_amount=total_amount,
+            total_tax_amount=Decimal("0.0"),
+            discount_amount=Decimal("0.0"),
             items=sale_items_to_create,
         )
         db.add(db_obj)

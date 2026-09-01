@@ -5,7 +5,6 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.crud_pos_terminal import crud_pos_terminal
-from core.crud_store import crud_store
 from models import PosTerminal
 from models import User as UserModel
 from schemas.pos_terminal import PosTerminalCreate, PosTerminalUpdate
@@ -22,13 +21,6 @@ async def create_pos_terminal(
     db: AsyncSession, *, terminal_in: PosTerminalCreate, current_user: UserModel
 ) -> PosTerminal:
     """Crea una nueva terminal de venta."""
-    # Verifica que la tienda exista
-    store = await crud_store.get(db, id=terminal_in.store_id)
-    if not store:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Store with id '{terminal_in.store_id}' does not exist.",
-        )
     try:
         return await crud_pos_terminal.create(
             db=db,

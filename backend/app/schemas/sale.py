@@ -57,7 +57,13 @@ class SaleUpdate(BaseModel):
 
 class Sale(BaseModel):
     id: uuid.UUID
+    store_id: uuid.UUID
     total_amount: Decimal
+    total_tax_amount: Decimal = Decimal(0)
+    discount_amount: Decimal = Decimal(0)
+    status: SaleStatus = SaleStatus.PENDING
+    payment_status: PaymentStatus = PaymentStatus.UNPAID
+    sale_date: datetime
     user_id: uuid.UUID
     created_at: datetime
     items: list[SaleItem] = []

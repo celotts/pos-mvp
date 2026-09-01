@@ -44,6 +44,12 @@ async def request_validation_exception_handler(
 
 async def integrity_error_handler(request: Request, exc: IntegrityError):
     """SQLAlchemy IntegrityError (duplicados, violación de constraints) -> 409."""
+    logger.error(
+        "IntegrityError on %s %s: %s",
+        request.method,
+        request.url.path,
+        exc.orig,
+    )
     return _error_response(
         status_code=409, message="The resource conflicts with existing data."
     )

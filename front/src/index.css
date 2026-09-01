@@ -2,11 +2,57 @@
 @tailwind components;
 @tailwind utilities;
 
-html {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    /* Fondo suave con gradiente y textura sutil, más profesional que plano */
+    @apply text-slate-900;
+    background-color: #f6f7fb;
+    background-image:
+      radial-gradient(
+        1000px 500px at 0% 0%,
+        rgb(243 244 255 / 0.8),
+        transparent 60%
+      ),
+      radial-gradient(
+        900px 460px at 100% 0%,
+        rgb(238 242 255 / 0.6),
+        transparent 55%
+      ),
+      linear-gradient(180deg, #f6f7fb 0%, #eef0f6 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: theme("colors.slate.300") transparent;
+  }
 }
 
-body {
-  @apply bg-slate-50 text-slate-900;
+@layer utilities {
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-slate-300;
+  }
 }
+
+/* Transiciones suaves globales para los componentes interactivos */
+button,
+a,
+input,
+select,
+textarea {
+  transition-property: color, background-color, border-color, box-shadow,
+    opacity, transform;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+

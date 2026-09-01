@@ -8,6 +8,7 @@ __all__ = [
     "CashAccount",
     "CashTransaction",
     "Company",
+    "InventoryMovement",
     "Country",
     "Customer",
     "Municipality",
@@ -37,6 +38,7 @@ from .cash_transaction import CashTransaction
 from .company import Company
 from .country import Country
 from .customer import Customer
+from .inventory_movement import InventoryMovement
 from .municipality import Municipality
 from .permission import Permission
 from .pos_terminal import PosTerminal

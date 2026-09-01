@@ -1,21 +1,44 @@
-import type { ReactNode } from 'react'
+import * as React from "react"
 
-interface CardProps {
-  header?: ReactNode
-  children: ReactNode
-  className?: string
-}
+import { cn } from "@/lib/utils"
 
-/** Contenedor de tarjeta blanca con encabezado opcional. */
-export function Card({ header, children, className = '' }: CardProps) {
+export function Card({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={`overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm ${className}`}
-    >
-      {header ? (
-        <div className="border-b border-slate-200 px-5 py-4">{header}</div>
-      ) : null}
-      <div className="px-5 py-5">{children}</div>
-    </div>
+      className={cn(
+        "rounded-xl border border-slate-200 bg-white shadow-card",
+        className,
+      )}
+      {...props}
+    />
   )
+}
+
+export function CardHeader({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("p-5 pb-3", className)} {...props} />
+}
+
+export function CardTitle({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLHeadingElement>) {
+  return (
+    <h3
+      className={cn("text-base font-semibold text-slate-800", className)}
+      {...props}
+    />
+  )
+}
+
+export function CardContent({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("p-5 pt-2", className)} {...props} />
 }

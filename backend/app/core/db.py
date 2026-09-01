@@ -11,7 +11,9 @@ engine = create_async_engine(str(settings.DATABASE_URL), pool_pre_ping=True)
 
 # Crea una fábrica de sesiones asíncronas.
 # expire_on_commit=False es importante para evitar que los objetos se desvinculen de la sesión.
-async_session_maker = async_sessionmaker(engine, autocommit=False, autoflush=False)
+async_session_maker = async_sessionmaker(
+    engine, autocommit=False, autoflush=False, expire_on_commit=False
+)
 
 
 class Base(DeclarativeBase):
