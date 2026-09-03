@@ -98,9 +98,32 @@ class PurchaseService(CRUDService[Purchase, PurchaseCreate, PurchaseUpdate]):
         db_obj = self.model(**purchase_data)
         db.add(db_obj)
         await db.commit()
-        await db.refresh(db_obj)
 
-        return db_obj
+        # Tras el commit, recargar la entidad con `items` eager-loaded para evitar
+        # un lazy-load asíncrono (MissingGreenlet) al serializar la respuesta fuera
+        # del contexto de la sesión.
+        result = await db.execute(
+            select(self.model)
+            .where(self.model.id == db_obj.id)
+            .options(selectinload(Purchase.items))
+        )
+        return result.scalars().one()
+
+    async def update(
+        self, db: AsyncSession, *, id: Any, obj_in: PurchaseUpdate
+    ) -> Purchase:
+        """Actualiza una compra y devuelve la entidad con `items` eager-loaded."""
+        db_obj = await self.get(db, id=id)
+        update_data = obj_in.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_obj, field, value)
+        await db.commit()
+        result = await db.execute(
+            select(self.model)
+            .where(self.model.id == db_obj.id)
+            .options(selectinload(Purchase.items))
+        )
+        return result.scalars().one()
 
 
 # Instancia del servicio para ser usada en los controladores

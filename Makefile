@@ -95,8 +95,8 @@ format:
 	$(COMPOSE_CMD) exec pos-api isort --profile black /app
 
 test:
-	@echo "Ejecutando pruebas con pytest..."
-	$(COMPOSE_CMD) exec pos-api pytest
+	@echo "Ejecutando pruebas con pytest (unitarios + integración) y cobertura mínima 40%..."
+	$(COMPOSE_CMD) exec -e TEST_API_BASE_URL="http://localhost:8000" pos-api pytest -q --cov=. --cov-report=term-missing --cov-fail-under=40 test
 
 test-api:
 	@echo "Ejecutando colección de endpoints contra la BD real..."
@@ -119,8 +119,8 @@ db-reset:
 	$(COMPOSE_CMD) exec pos-db psql -P pager=off -U "$(POSTGRES_USER)" -d postgres -c "CREATE DATABASE $(POSTGRES_DB) OWNER $(POSTGRES_USER);"
 	$(COMPOSE_CMD) start pos-api
 	@sleep 12
-	@echo "Estampando la revisión de Alembic (evita recrear tablas existentes)..."
-	$(COMPOSE_CMD) exec -w /app/backend pos-api python -m alembic stamp head
+	@echo "Verificando que el esquema quedó en la revisión head de Alembic..."
+	$(COMPOSE_CMD) exec -w /app/backend pos-api python -m alembic current
 	@echo "BD '$(POSTGRES_DB)' recreada con seed automático (sin datos demo)."
 
 # Deja la BD con los datos demo de seed_demo.py además del seed automático.

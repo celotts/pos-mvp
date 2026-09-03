@@ -141,7 +141,16 @@ class SaleService(CRUDService[Sale, SaleCreate, SaleUpdate]):
         )
         db.add(db_obj)
         await db.commit()
-        await db.refresh(db_obj)
+
+        # Tras el commit, recargar la entidad con `items` eager-loaded para evitar
+        # un lazy-load asíncrono (MissingGreenlet) al serializar la respuesta fuera
+        # del contexto de la sesión.
+        result = await db.execute(
+            select(Sale)
+            .where(Sale.id == db_obj.id)
+            .options(selectinload(Sale.items))
+        )
+        db_obj = result.scalars().one()
 
         # 3. Disparar la creación del embedding en segundo plano
         background_tasks.add_task(ai_service.create_and_store_sale_embedding, db_obj.id)

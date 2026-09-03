@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from jose import JWTError, jwt
-from jose.exceptions import ExpiredSignatureError
+import jwt
 from passlib.context import CryptContext
 
 from core.config import settings
@@ -11,19 +10,31 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 ALGORITHM = "HS256"
 
 
-def create_access_token(subject: str | int) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(
-        seconds=settings.ACCESS_TOKEN_EXPIRE_SECONDS
+def _jwt_encode(claims: dict, *, now: datetime) -> str:
+    """Codifica un JWT con los claims estándar de seguridad (iss/aud/iat)."""
+    return jwt.encode(
+        {
+            **claims,
+            "iat": now,
+            "iss": settings.JWT_ISSUER,
+            "aud": settings.JWT_AUDIENCE,
+        },
+        settings.SECRET_KEY,
+        algorithm=ALGORITHM,
     )
-    to_encode = {"exp": expire, "sub": str(subject)}
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+
+
+def create_access_token(subject: str | int) -> str:
+    now = datetime.now(timezone.utc)
+    expire = now + timedelta(seconds=settings.ACCESS_TOKEN_EXPIRE_SECONDS)
+    return _jwt_encode({"exp": expire, "sub": str(subject)}, now=now)
 
 
 def decode_access_token(token: str) -> str:
     """Decodifica un token de acceso JWT y devuelve el ID del usuario (subject).
 
-    Lanza una excepción HTTPException si el token es inválido o ha expirado.
+    Valida firma, expiración, issuer y audience. Lanza una excepción
+    HTTPException si el token es inválido, de otra audiencia o ha expirado.
     """
     from fastapi import HTTPException, status
 
@@ -39,14 +50,20 @@ def decode_access_token(token: str) -> str:
     )
 
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(
+            token,
+            settings.SECRET_KEY,
+            algorithms=[ALGORITHM],
+            audience=settings.JWT_AUDIENCE,
+            issuer=settings.JWT_ISSUER,
+        )
         user_id: str | None = payload.get("sub")
         if user_id is None:
             raise credentials_exception
         return user_id
-    except ExpiredSignatureError:
+    except jwt.ExpiredSignatureError:
         raise expired_token_exception from None
-    except JWTError:
+    except jwt.InvalidTokenError:
         raise credentials_exception from None
 
 

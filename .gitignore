@@ -7,3 +7,10 @@ __pycache__/
 !.env.example
 backend/config.json
 probar_api.sh
+
+# Coverage y cachés de herramientas
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.ruff_cache/

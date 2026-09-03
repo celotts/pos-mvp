@@ -69,6 +69,9 @@ class Settings(BaseSettings):
     # Refresh tokens (C.3): rotación + revocación. Reusa SECRET_KEY para la firma;
     # la vida del refresh es mayor que la del access para re-autenticar sin pedir creds.
     REFRESH_TOKEN_EXPIRE_SECONDS: int = 604800  # 7 días
+    # Claims estándar para blindar los JWT frente a replay/confusión entre entornos.
+    JWT_ISSUER: str = "pos-rag-api"
+    JWT_AUDIENCE: str = "pos-rag-api"
 
     # Cookies HttpOnly (autenticación segura del frontend web)
     # En producción debe usarse https y SameSite=None; en local sin https.
@@ -83,6 +86,11 @@ class Settings(BaseSettings):
     LOGIN_LOCKOUT_SECONDS: int = 3600
     # Rate limiting de login por IP: máx. intentos por ventana de 60s
     LOGIN_RATE_LIMIT_PER_MINUTE: int = 100
+    # Rate limiting GLOBAL por IP (red de seguridad anti-DoS/abuso) para toda
+    # la API, distinto y más laxo que el específico de login. Se aplica vía
+    # SlowAPIMiddleware como red bajo ninguna circunstancia se debe bajar de un
+    # valor que rompa el uso legítimo del frontend (POS).
+    API_RATE_LIMIT_PER_MINUTE: int = 600
 
     # System roles
     PROTECTED_ROLES: set[str] = {"SUPER_ADMIN", "ADMIN"}

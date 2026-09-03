@@ -723,3 +723,90 @@ def test_duplicate_sku_returns_409(client: httpx.Client):
     assert body["success"] is False
     assert body["status_code"] == 409
     assert isinstance(body["message"], str) and body["message"]
+
+
+# --- SEGURIDAD: endpoints GET que antes eran públicos, ahora protegidos ---
+
+# Endpoints GET que requieren autenticación (se blindaron para no filtrar
+# catálogo a clientes no autenticados). Sin token deben dar 401; con token 200.
+_PROTECTED_GET_ENDPOINTS = [
+    ("countries", "/api/v1/countries/"),
+    ("state_province", "/api/v1/states/"),
+    ("municipality", "/api/v1/municipalities/"),
+    ("specialty", "/api/v1/specialties/"),
+]
+
+
+@pytest.mark.parametrize("entity,endpoint", _PROTECTED_GET_ENDPOINTS)
+def test_protected_get_requires_auth(client: httpx.Client, entity, endpoint):
+    """Los GET protegidos devuelven 401 sin token (no filtran catálogo público)."""
+    resp = client.get(endpoint)
+    assert resp.status_code == 401, f"{entity}: {resp.status_code} → {resp.text[:200]}"
+    # Sin token NO se devuelve el catálogo
+    assert resp.headers.get("content-type", "").startswith("application/json")
+    assert "access_token" not in resp.text
+
+
+@pytest.mark.parametrize("entity,endpoint", _PROTECTED_GET_ENDPOINTS)
+def test_protected_get_authorized(client: httpx.Client, entity, endpoint):
+    """Los GET protegidos devuelven 200 con un Bearer token válido."""
+    headers = _auth_headers(client)
+    resp = client.get(endpoint, headers=headers)
+    assert resp.status_code == 200, f"{entity}: {resp.status_code} → {resp.text[:200]}"
+    assert resp.json().get("success") is True
+
+
+# --- SEGURIDAD: Cache-Control: no-store en respuestas autenticadas ---
+
+
+def test_health_endpoint_is_public(client: httpx.Client):
+    """El health check es público (sin auth) y no expone datos de usuario."""
+    resp = client.get("/health")
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body.get("success") is True
+    assert body.get("status") == "ok"
+    # Endpoint público sin credenciales: no requiere no-store (no hay datos sensibles).
+    assert "no-store" not in (resp.headers.get("cache-control") or "")
+
+
+def test_authenticated_response_no_store(client: httpx.Client):
+    """Una respuesta autenticada trae Cache-Control: no-store (no cacheable)."""
+    headers = _auth_headers(client)
+    resp = client.get("/api/v1/products/", headers=headers)
+    assert resp.status_code == 200, resp.text
+    assert resp.headers.get("cache-control") == "no-store", resp.headers
+
+
+def test_unauthorized_response_no_store(client: httpx.Client):
+    """Un 401 tampoco se cachea (Cache-Control: no-store)."""
+    resp = client.get("/api/v1/countries/")
+    assert resp.status_code == 401, resp.text
+    assert resp.headers.get("cache-control") == "no-store", resp.headers
+
+
+# --- SEGURIDAD: fail-closed del middleware de auth ----------------------------------
+
+
+def test_fail_closed_rejects_unprotected_api_route(client: httpx.Client):
+    """Una ruta /api/v1/* desconocida sin token → 401 (protección por defecto).
+
+    Verifica que el middleware bloquea de forma determinista cualquier endpoint
+    bajo /api/v1/ que NO esté en la whitelist explícita, incluso si no lleva
+    dependencia de auth a nivel de endpoint (red de seguridad contra errores).
+    """
+    resp = client.get("/api/v1/__nonexistent_probe__")
+    assert resp.status_code == 401, resp.text
+    body = resp.json()
+    assert body["success"] is False
+    assert body["status_code"] == 401
+
+
+def test_fail_closed_whitelist_login_is_open(client: httpx.Client):
+    """La whitelist (login) NO es bloqueada por el middleware fail-closed."""
+    resp = client.get("/health")
+    assert resp.status_code == 200, resp.text
+    # La ruta de login requiere body, pero el middleware no la bloquea: con un
+    # POST mal formado ya no sería 401 de auth, sería 422 de validación.
+    resp = client.post("/api/v1/login/access-token", json={})
+    assert resp.status_code != 401, resp.text

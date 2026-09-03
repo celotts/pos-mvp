@@ -73,7 +73,10 @@ jobs:
           echo "Seed falló tras 3 intentos."
           docker compose logs --tail=60 pos-api
           exit 1
-      - name: Tests unitarios
-        run: docker compose exec -T pos-api pytest -q
-      - name: Tests de integración (endpoints)
-        run: docker compose exec -T pos-api pytest /app/backend/app/test/test_api_endpoints.py -q
+      - name: Tests (unitarios + integración) con cobertura mínima
+        run: |
+          docker compose exec -T pos-api pytest -q \
+            --cov=. --cov-report=term-missing --cov-fail-under=40 \
+            test
+        env:
+          TEST_API_BASE_URL: http://localhost:8000

@@ -15,3 +15,36 @@ ignore = ["B008"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["api", "core", "dependencies", "models", "schemas", "service", "utils"]
+
+[tool.pytest.ini_options]
+# Rootdir = /app (esta config se descubre por subida). Descubrimos SOLO la
+# carpeta real de tests para que un archivo test_*.py suelto no rompa la suite.
+testpaths = ["backend/app/test"]
+# asyncio strict explícito: los tests usan pytestmark.asyncio / @pytest.mark.asyncio.
+asyncio_mode = "strict"
+# Coverage siempre reportado (term-missing) con source = directorio de trabajo
+# (los módulos se importan top-level: core, models, ...). El umbral (--cov-fail-under)
+# se fuerza en CI/Makefile para no dejar la cobertura a criterio.
+addopts = "-ra --cov=. --cov-report=term-missing"
+
+[tool.coverage.run]
+# Medimos el cwd (/app/backend/app). Excluimos scripts y tests para no inflar.
+source = ["."]
+omit = [
+    "app/generate_sales.py",
+    "app/seed_demo.py",
+    "app/initial_data.py",
+    "app/test_ai.py",
+    "app/conftest.py",
+    "test/*.py",
+]
+
+[tool.coverage.report]
+# Regiones protegidas y marcadores de no-cobertura no cuentan como descubiertos.
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "logger.info",
+    "logger.warning",
+    "logger.error",
+]

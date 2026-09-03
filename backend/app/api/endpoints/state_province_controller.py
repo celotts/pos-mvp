@@ -50,10 +50,11 @@ async def create_state_province(
 )
 async def read_states_provinces(
     db: AsyncSession = db_dependency,
+    _current_user: UserModel = current_user_dependency,
     skip: int = 0,
     limit: int = 100,
 ) -> Any:
-    """Gets a paginated list of states and provinces."""
+    """Gets a paginated list of states and provinces. Requires authentication."""
     states = await state_province_service.get_all(db, skip=skip, limit=limit)
     return create_api_response(data=states)
 
@@ -67,8 +68,9 @@ async def read_state_province(
     *,
     state_id: uuid.UUID,
     db: AsyncSession = db_dependency,
+    _current_user: UserModel = current_user_dependency,
 ) -> Any:
-    """Gets a specific state or province by its ID."""
+    """Gets a specific state or province by its ID. Requires authentication."""
     state = await state_province_service.get_by_id(db, id=state_id)
     return create_api_response(data=state)
 

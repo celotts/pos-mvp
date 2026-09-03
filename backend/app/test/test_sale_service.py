@@ -76,7 +76,23 @@ async def test_create_sale_success(
     sold_result = MagicMock()
     sold_result.all.return_value = []
 
-    mock_db.execute.side_effect = [products_result, purchased_result, sold_result]
+    # Tras el commit, create_sale recarga la entidad con items eager-loaded para
+    # evitar MissingGreenlet (antes usaba db.refresh). Simulamos esa recarga
+    # devolviendo los valores que el servicio ya había calculado en memoria.
+    expected_total = (Decimal("20.00") * 2) + (Decimal("5.50") * 1)
+    reload_result = MagicMock()
+    reload_result.scalars.return_value.one.return_value = SimpleNamespace(
+        id=uuid.uuid4(),
+        total_amount=expected_total,
+        user_id=current_user.id,
+        items=[
+            SimpleNamespace(price_at_sale=product1.price),
+            SimpleNamespace(price_at_sale=product2.price),
+        ],
+    )
+    mock_db.execute.side_effect = [
+        products_result, purchased_result, sold_result, reload_result,
+    ]
 
     # Act: Llamar al método del servicio
     created_sale = await sale_service.create_sale(
@@ -87,7 +103,6 @@ async def test_create_sale_success(
     )
 
     # Assert: Verificar los resultados
-    expected_total = (Decimal("20.00") * 2) + (Decimal("5.50") * 1)
     assert created_sale.total_amount == expected_total
     assert created_sale.user_id == current_user.id
     assert len(created_sale.items) == 2
@@ -95,7 +110,8 @@ async def test_create_sale_success(
 
     mock_db.add.assert_called_once()
     mock_db.commit.assert_called_once()
-    mock_db.refresh.assert_called_once()
+    # Ya no se usa db.refresh: la entidad se recarga con selectinload tras el commit.
+    mock_db.refresh.assert_not_called()
 
     mock_background_tasks.add_task.assert_called_once()
     # Verificar que la tarea en segundo plano para la IA fue llamada con los argumentos correctos

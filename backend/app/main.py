@@ -32,14 +32,21 @@ from api.endpoints import (
 )
 from contextlib import asynccontextmanager
 
+import uuid
+
+from sqlalchemy import text
+
 from core.config import settings
+from core.db import async_session_maker
 from core.i18n import detect_lang, set_current_lang
-from core.rate_limit import login_limiter
+from core.rate_limit import api_limiter
 from fastapi import APIRouter, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from initial_data import init_db
 from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from utils.logger import logger
 
@@ -79,7 +86,11 @@ app.add_middleware(
 
 # Handlers de error unificados (formato JSON consistente, sin fugas de detalle)
 # Necesario para slowapi: el limiter debe exponerse en app.state.
-app.state.limiter = login_limiter
+app.state.limiter = api_limiter
+# Middleware de rate limit GLOBAL (slowapi): aplica `api_limiter.default_limits`
+# a todas las rutas como red de seguridad anti-DoS/abuso por IP. Los endpoints
+# de autenticación sobrescriben con un límite más estricto vía @login_limiter.
+app.add_middleware(SlowAPIMiddleware)
 app.add_exception_handler(
     HTTPException,
     exception_handlers.http_exception_handler,
@@ -96,17 +107,114 @@ app.add_exception_handler(IntegrityError, exception_handlers.integrity_error_han
 app.add_exception_handler(SQLAlchemyError, exception_handlers.sqlalchemy_error_handler)
 app.add_exception_handler(Exception, exception_handlers.unhandled_exception_handler)
 
+# Whitelist de rutas /api/v1/* que NO requieren Bearer token. Todo lo demás bajo
+# /api/v1/ EXIGE autenticación por defecto (fail-closed): un endpoint nuevo que se
+# olvide de declarar la dependencia queda protegido en vez de público. Las rutas
+# fuera de /api/v1 (health, docs, openapi) quedan intactas.
+_PUBLIC_API_ROUTES = (
+    "/api/v1/login/access-token",
+    "/api/v1/login/swagger",
+    "/api/v1/login/refresh",
+    "/api/v1/logout",
+)
+
+
+@app.middleware("http")
+async def auth_fail_closed_middleware(request: Request, call_next):
+    """Exige Authorization Bearer en /api/v1/* salvo whitelist explícita.
+
+    Red de seguridad: no valida credenciales (eso lo hacen las dependencias por
+    permiso), solo garantiza que no exista un endpoint /api/v1/ público no
+    intencionado. Falla a 401 si falta el token.
+    """
+    path = request.url.path
+    if (
+        request.method == "OPTIONS"
+        or not path.startswith("/api/v1/")
+        or path in _PUBLIC_API_ROUTES
+    ):
+        return await call_next(request)
+
+    if not request.headers.get("authorization"):
+        return exception_handlers._error_response(401, "Not authenticated")
+
+    return await call_next(request)
+
 
 @app.middleware("http")
 async def security_headers_middleware(request: Request, call_next):
-    """Añade cabeceras de seguridad básicas y detecta el idioma de la petición."""
+    """Añade cabeceras de seguridad, detección de idioma y no-cacheo de respuestas autenticadas."""
     set_current_lang(detect_lang(request.headers.get("accept-language")))
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Content-Security-Policy"] = "default-src 'self'"
+    # Evitar que proxies/caches almacenen respuestas que pueden contener datos
+    # o tokens: no-store si la petición trae credenciales (Authorization/Bearer)
+    # o si la respuesta ya es un 401/403 (nunca cachear errores de auth).
+    if request.headers.get("authorization") or response.status_code in (401, 403):
+        response.headers["Cache-Control"] = "no-store"
     return response
+
+
+@app.middleware("http")
+async def request_id_middleware(request: Request, call_next):
+    """Asigna un X-Request-ID a cada request para correlación en logs.
+
+    Reusa el header entrante si llega de un gateway upstream (para mantener la
+    cadena) o genera un UUID. Se registra como la capa más externa para que TODA
+    respuesta (incluidos los 401 del fail-closed) lleve el request-id. El id
+    queda en request.state y se devuelve como header en la respuesta.
+    """
+    request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
+    request.state.request_id = request_id
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    return response
+
+
+@app.get("/health", tags=["System"])
+async def health_check() -> dict:
+    """Healthcheck liviano para orquestadores/probes de contenedor."""
+    return {
+        "success": True,
+        "status": "ok",
+        "service": "pos-rag-api",
+        "environment": settings.ENVIRONMENT,
+    }
+
+
+@app.get("/ready", tags=["System"])
+async def readiness_check() -> JSONResponse:
+    """Readiness: verifica conectividad real con la BD.
+
+    Devuelve 200 cuando la app puede atender tráfico (BD accesible) y 503
+    con el detalle si la BD no responde, para que orquestadores no enruten
+    tráfico a un nodo no preparado.
+    """
+    try:
+        async with async_session_maker() as session:
+            await session.execute(text("SELECT 1"))
+    except Exception as exc:  # noqa: BLE001
+        return JSONResponse(
+            status_code=503,
+            content={
+                "success": False,
+                "status": "not_ready",
+                "service": "pos-rag-api",
+                "reason": type(exc).__name__,
+            },
+        )
+    return JSONResponse(
+        status_code=200,
+        content={
+            "success": True,
+            "status": "ready",
+            "service": "pos-rag-api",
+            "environment": settings.ENVIRONMENT,
+        },
+    )
 
 
 # Router principal con prefijo para versionado de la API

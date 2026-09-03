@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps_auth import get_current_admin_user
 from api.response_factory import ApiResponse, create_api_response
-from dependencies import get_db
+from dependencies import get_current_user, get_db
 from models.user import User as UserModel
 from schemas.country import Country, CountryCreate, CountryUpdate
 from service import country_service
@@ -14,6 +14,7 @@ router = APIRouter(tags=["Countries"])
 
 db_dependency = Depends(get_db)
 admin_user_dependency = Depends(get_current_admin_user)
+current_user_dependency = Depends(get_current_user)
 
 
 @router.post(
@@ -40,18 +41,24 @@ async def create_country(
 
 @router.get("/", response_model=ApiResponse[list[Country]])
 async def read_countries(
-    db: AsyncSession = db_dependency, skip: int = 0, limit: int = 100
+    db: AsyncSession = db_dependency,
+    _current_user: UserModel = current_user_dependency,
+    skip: int = 0,
+    limit: int = 100,
 ) -> ApiResponse[list[Country]]:
-    """Get a list of countries."""
+    """Get a list of countries. Requires authentication."""
     all_countries = await country_service.get_countries(db, skip=skip, limit=limit)
     return create_api_response(data=all_countries)
 
 
 @router.get("/{country_id}", response_model=ApiResponse[Country])
 async def read_country(
-    *, country_id: uuid.UUID, db: AsyncSession = db_dependency
+    *,
+    country_id: uuid.UUID,
+    db: AsyncSession = db_dependency,
+    _current_user: UserModel = current_user_dependency,
 ) -> ApiResponse[Country]:
-    """Get a country by its ID."""
+    """Get a country by its ID. Requires authentication."""
     return create_api_response(
         data=await country_service.get_country(db, country_id=country_id)
     )

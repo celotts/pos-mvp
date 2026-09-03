@@ -10,13 +10,12 @@ import hashlib
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from jose import JWTError, jwt
-from jose.exceptions import ExpiredSignatureError
+import jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
-from core.security import ALGORITHM
+from core.security import ALGORITHM, _jwt_encode
 from models.refresh_token import RefreshToken
 
 TYPE_CLAIM = "refresh"
@@ -33,15 +32,15 @@ def _hash_jti(jti: str) -> str:
 def create_refresh_token_payload(user_id: uuid.UUID) -> tuple[str, str]:
     """Genera el JWT de refresco y devuelve (token, jti)."""
     jti = str(uuid.uuid4())
-    expire = _now() + timedelta(seconds=settings.REFRESH_TOKEN_EXPIRE_SECONDS)
+    now = _now()
+    expire = now + timedelta(seconds=settings.REFRESH_TOKEN_EXPIRE_SECONDS)
     claims = {
         "sub": str(user_id),
         "jti": jti,
         "type": TYPE_CLAIM,
         "exp": expire,
-        "iat": _now(),
     }
-    token = jwt.encode(claims, settings.SECRET_KEY, algorithm=ALGORITHM)
+    token = _jwt_encode(claims, now=now)
     return token, jti
 
 
@@ -49,11 +48,16 @@ def _decode_refresh_token(token: str):
     """Decodifica y valida el refresh JWT. Lanza ValueError si es inválido/expirado."""
     try:
         payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[ALGORITHM], options={"verify_sub": False}
+            token,
+            settings.SECRET_KEY,
+            algorithms=[ALGORITHM],
+            audience=settings.JWT_AUDIENCE,
+            issuer=settings.JWT_ISSUER,
+            options={"verify_sub": False},
         )
-    except ExpiredSignatureError:
+    except jwt.ExpiredSignatureError:
         raise ValueError("refresh_expired") from None
-    except JWTError:
+    except jwt.InvalidTokenError:
         raise ValueError("refresh_invalid") from None
     if payload.get("type") != TYPE_CLAIM or not payload.get("jti") or not payload.get("sub"):
         raise ValueError("refresh_invalid")

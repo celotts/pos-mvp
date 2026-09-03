@@ -50,10 +50,11 @@ async def create_municipality(
 )
 async def read_municipalities(
     db: AsyncSession = db_dependency,
+    _current_user: UserModel = current_user_dependency,
     skip: int = 0,
     limit: int = 100,
 ) -> Any:
-    """Gets a paginated list of municipalities."""
+    """Gets a paginated list of municipalities. Requires authentication."""
     municipalities = await municipality_service.get_all(db, skip=skip, limit=limit)
     return create_api_response(data=municipalities)
 
@@ -67,8 +68,9 @@ async def read_municipality(
     *,
     municipality_id: uuid.UUID,
     db: AsyncSession = db_dependency,
+    _current_user: UserModel = current_user_dependency,
 ) -> Any:
-    """Gets a specific municipality by its ID."""
+    """Gets a specific municipality by its ID. Requires authentication."""
     municipality = await municipality_service.get_by_id(
         db, id=municipality_id
     )
