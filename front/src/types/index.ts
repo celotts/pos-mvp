@@ -132,7 +132,8 @@ export interface Store {
 export interface PosTerminal {
   id: string
   name?: string | null
-  store_id?: string | null
+  location?: string | null
+  is_active: boolean
 }
 
 // ─── Ventas ─────────────────────────────────────────────────────────────────
@@ -231,4 +232,110 @@ export interface ChatResponse {
   answer: string
   insights: InsightRecommendation[]
   raw_metrics?: unknown
+}
+
+// ─── Analítica ──────────────────────────────────────────────────────────────
+
+export interface CrossSellRecommendation {
+  product_id: string
+  product_name: string
+  confidence: number
+  lift: number
+  support: number
+}
+
+export interface CrossSellResponse {
+  product_id: string
+  product_name: string
+  transactions_analyzed: number
+  recommendations: CrossSellRecommendation[]
+}
+
+export interface ProductBundle {
+  product_a: string
+  product_b: string
+  transactions: number
+  support: number
+  lift: number
+}
+
+export interface StockoutRiskItem {
+  product_id: string
+  product_name: string
+  stock_quantity: number
+  avg_daily_demand: number
+  forecast_next_days: number
+  days_of_stock_left: number
+  risk: "OUT_OF_STOCK" | "CRITICAL" | "WARNING" | "OK" | "NO_SALES"
+  recommended_quantity: number
+}
+
+export interface StockoutRiskResponse {
+  horizon_days: number
+  lead_time_days: number
+  items: StockoutRiskItem[]
+}
+
+// ─── Contabilidad ───────────────────────────────────────────────────────────
+
+export type CashAccountType = "CASH" | "BANK"
+export type AccountStatus = "OPEN" | "CLOSED"
+
+export interface CashAccount {
+  id: string
+  name: string
+  account_type: CashAccountType
+  current_balance: string | number
+  currency: string
+  created_at: string
+}
+
+export interface AccountsPayable {
+  id: string
+  purchase_id: string
+  supplier_id: string
+  original_amount: string | number
+  outstanding_amount: string | number
+  due_date?: string | null
+  status: AccountStatus
+  created_at: string
+}
+
+export interface AccountsReceivable {
+  id: string
+  sale_id: string
+  customer_id: string
+  original_amount: string | number
+  outstanding_amount: string | number
+  due_date?: string | null
+  status: AccountStatus
+  created_at: string
+}
+
+// ─── Ubicaciones / Catálogos ────────────────────────────────────────────────
+
+export interface Country {
+  id: string
+  name: string
+  iso_code: string
+  created_at: string
+}
+
+export interface StateProvince {
+  id: string
+  name: string
+  country_id: string
+}
+
+export interface Municipality {
+  id: string
+  name: string
+  state_id: string
+}
+
+export interface Specialty {
+  id: string
+  name: string
+  description?: string | null
+  created_at: string
 }

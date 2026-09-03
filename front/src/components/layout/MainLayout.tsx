@@ -3,7 +3,6 @@ import {
   NavLink,
   Outlet,
   useLocation,
-  useNavigate,
 } from "react-router-dom"
 import {
   LayoutDashboard,
@@ -21,6 +20,15 @@ import {
   ChevronDown,
   ReceiptText,
   PackagePlus,
+  BarChart3,
+  Monitor,
+  Clock,
+  Wallet,
+  HandCoins,
+  Landmark,
+  Globe,
+  MapPin,
+  Sparkles,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -56,6 +64,12 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
         label: "Ventas",
         icon: ReceiptText,
         permission: "sale:read",
+      },
+      {
+        to: "/analytics",
+        label: "Analítica",
+        icon: BarChart3,
+        permission: "analytics:read",
       },
     ],
   },
@@ -104,6 +118,18 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
         permission: "store:read",
       },
       {
+        to: "/terminals",
+        label: "Terminales POS",
+        icon: Monitor,
+        permission: "pos_terminal:create",
+      },
+      {
+        to: "/shifts",
+        label: "Turnos / cierre",
+        icon: Clock,
+        permission: "shift:open",
+      },
+      {
         to: "/users",
         label: "Usuarios",
         icon: Users,
@@ -117,6 +143,37 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
       },
     ],
   },
+  {
+    title: "Contabilidad",
+    items: [
+      {
+        to: "/cash-accounts",
+        label: "Cuentas de efectivo",
+        icon: Wallet,
+      },
+      {
+        to: "/accounts-payable",
+        label: "Cuentas por pagar",
+        icon: HandCoins,
+        permission: "accounts:create",
+      },
+      {
+        to: "/accounts-receivable",
+        label: "Cuentas por cobrar",
+        icon: Landmark,
+        permission: "accounts:create",
+      },
+    ],
+  },
+  {
+    title: "Ubicaciones",
+    items: [
+      { to: "/countries", label: "Países", icon: Globe },
+      { to: "/states", label: "Estados", icon: MapPin },
+      { to: "/municipalities", label: "Municipios", icon: Landmark },
+      { to: "/specialties", label: "Especialidades", icon: Sparkles },
+    ],
+  },
 ]
 
 export function MainLayout() {
@@ -125,7 +182,6 @@ export function MainLayout() {
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
   const hasPermission = useAuthStore((s) => s.hasPermission)
-  const navigate = useNavigate()
   const location = useLocation()
 
   const pageTitle =
@@ -138,8 +194,8 @@ export function MainLayout() {
 
   const handleLogout = () => {
     setProfileOpen(false)
-    logout()
-    navigate("/login", { replace: true })
+    // El SessionListener se encarga de redirigir a /login.
+    logout("manual")
   }
 
   const sections = NAV_SECTIONS.map((sec) => ({

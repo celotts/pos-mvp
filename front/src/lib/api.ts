@@ -57,7 +57,7 @@ function flushQueue(token: string | null) {
 export async function refreshAccessToken(): Promise<string | null> {
   const { refreshToken, setSession, logout } = useAuthStore.getState()
   if (!refreshToken) {
-    logout()
+    logout("expired")
     return null
   }
   try {
@@ -68,7 +68,7 @@ export async function refreshAccessToken(): Promise<string | null> {
     )
     const d = res.data?.data
     if (!d?.access_token) {
-      logout()
+      logout("expired")
       return null
     }
     setSession({
@@ -78,7 +78,7 @@ export async function refreshAccessToken(): Promise<string | null> {
     })
     return d.access_token
   } catch {
-    logout()
+    logout("expired")
     return null
   }
 }

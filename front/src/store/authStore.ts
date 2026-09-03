@@ -5,6 +5,8 @@ import { api, decodeExp } from "@/lib/api"
 import type { LoginPayload, TokenData, UserWithRole } from "@/types"
 import type { ApiResponse } from "@/types"
 
+export type LogoutReason = "manual" | "expired"
+
 interface AuthState {
   accessToken: string | null
   refreshToken: string | null
@@ -13,8 +15,10 @@ interface AuthState {
   // Persistencia + derivación reactiva
   isAuthenticated: boolean
   loading: boolean
+  // Última razón de cierre de sesión (para feedback de UI, p.ej. sesión expirada)
+  lastLogoutReason: LogoutReason | null
   login: (payload: LoginPayload) => Promise<void>
-  logout: () => void
+  logout: (reason?: LogoutReason) => void
   setSession: (session: {
     accessToken?: string | null
     refreshToken?: string | null
@@ -35,6 +39,7 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isAuthenticated: false,
       loading: false,
+      lastLogoutReason: null,
 
       login: async (payload) => {
         set({ loading: true })
@@ -52,6 +57,7 @@ export const useAuthStore = create<AuthState>()(
             user: data.user,
             isAuthenticated: true,
             loading: false,
+            lastLogoutReason: null,
           })
         } catch (error) {
           set({ loading: false })
@@ -59,7 +65,7 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      logout: () => {
+      logout: (reason = "manual") => {
         // Revoca el refresh token en el backend (best-effort) y limpia estado
         const refreshToken = get().refreshToken
         if (refreshToken) {
@@ -73,6 +79,7 @@ export const useAuthStore = create<AuthState>()(
           tokenExp: null,
           user: null,
           isAuthenticated: false,
+          lastLogoutReason: reason,
         })
       },
 

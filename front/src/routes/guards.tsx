@@ -41,8 +41,9 @@ export function ProtectedRoute({ children }: GuardProps) {
     const run = async () => {
       if (!useAuthStore.getState().accessToken) return
       const ok = await ensureFreshSession()
-      if (!cancelled) setChecking(!ok ? false : false)
-      if (!ok) useAuthStore.getState().logout()
+      // Solo detener el spinner si el refresh fue exitoso. Si falló,
+      // refreshAccessToken ya hizo logout() y el SessionListener redirige.
+      if (!cancelled && ok) setChecking(false)
     }
     run()
     return () => {

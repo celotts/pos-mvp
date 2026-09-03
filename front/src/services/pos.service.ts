@@ -20,6 +20,18 @@ export async function createTerminal(
   return httpPost<PosTerminal>("/terminals/", payload)
 }
 
+export async function updateTerminal(
+  id: string,
+  payload: PosTerminalPayload,
+): Promise<PosTerminal> {
+  const res = await api.put<ApiResponse<PosTerminal>>(`/terminals/${id}`, payload)
+  return res.data.data
+}
+
+export async function deleteTerminal(id: string): Promise<void> {
+  await api.delete(`/terminals/${id}`)
+}
+
 // ─── Turnos (shifts) ────────────────────────────────────────────────────────
 
 export async function openShift(payload: ShiftOpen): Promise<Shift> {
@@ -35,4 +47,8 @@ export async function closeShift(
     payload,
   )
   return res.data.data
+}
+
+export async function listShifts(): Promise<Shift[]> {
+  return httpGet<Shift[]>("/shifts/")
 }

@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState } from "react"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { Plus, Trash2, CheckCircle2, MonitorX, Monitor, Search } from "lucide-react"
 
@@ -13,7 +13,7 @@ import {
 } from "@/components/ui"
 import { listStores } from "@/services/stores.service"
 import { listTerminals, createTerminal } from "@/services/pos.service"
-import { listProducts } from "@/services/product.service"
+import { listProducts, searchProducts } from "@/services/product.service"
 import { listCustomers } from "@/services/customers.service"
 import { registerSale } from "@/services/sales.service"
 import { useAuthStore } from "@/store/authStore"
@@ -170,7 +170,7 @@ export function PosPage() {
   const addLine = () =>
     setLines((prev) => [
       ...prev,
-      { product_id: "", quantity: 1, key: crypto.randomUUID() },
+      { product_id: "", quantity: 1, key: crypto.randomUUID(), product: null },
     ])
 
   const updateLine = (key: string, patch: Partial<Line>) =>
@@ -399,9 +399,13 @@ export function PosPage() {
                     className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2 sm:flex-nowrap"
                   >
                     <ProductPicker
-                      value={l.product_id}
-                      products={products}
-                      onSelect={(id) => updateLine(l.key, { product_id: id })}
+                      selected={p ?? null}
+                      onSelect={(prod) =>
+                        updateLine(l.key, {
+                          product_id: prod?.id ?? "",
+                          product: prod,
+                        })
+                      }
                     />
                     <input
                       type="number"
