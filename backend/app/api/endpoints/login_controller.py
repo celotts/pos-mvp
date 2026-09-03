@@ -9,6 +9,7 @@ from api.response_factory import ApiResponse, create_api_response
 from core import refresh_token as rt
 from core.config import settings
 from core.crud_user import crud_user
+from core.i18n import tr
 from core.rate_limit import client_ip, login_limiter
 from core.security import create_access_token
 from dependencies import get_db
@@ -46,7 +47,7 @@ def _build_user_with_role(user: UserModel) -> UserWithRole:
 def _credentials_error() -> HTTPException:
     return HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Incorrect email or password.",
+        detail=tr("AUTH.INVALID_CREDENTIALS"),
         headers={"WWW-Authenticate": "Bearer"},
     )
 
@@ -54,7 +55,7 @@ def _credentials_error() -> HTTPException:
 def _locked_error() -> HTTPException:
     return HTTPException(
         status_code=status.HTTP_423_LOCKED,
-        detail="The account is locked due to multiple failed login attempts.",
+        detail=tr("AUTH.ACCOUNT_LOCKED"),
     )
 
 
@@ -74,7 +75,7 @@ async def _authenticate_with_lockout(
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The user account is inactive.",
+            detail=tr("AUTH.ACCOUNT_INACTIVE"),
         )
 
     authenticated = await crud_user.authenticate(db, email=email, password=password)
@@ -174,24 +175,24 @@ async def login_refresh(
         mapping = {
             "refresh_invalid": (
                 status.HTTP_401_UNAUTHORIZED,
-                "Invalid refresh token.",
+                tr("AUTH.INVALID_REFRESH"),
             ),
             "refresh_expired": (
                 status.HTTP_401_UNAUTHORIZED,
-                "Refresh token has expired.",
+                tr("AUTH.REFRESH_EXPIRED"),
             ),
             "refresh_revoked": (
                 status.HTTP_401_UNAUTHORIZED,
-                "Refresh token has been revoked. Please login again.",
+                tr("AUTH.REFRESH_REVOKED"),
             ),
         }
-        http_code, message = mapping.get(str(e), (status.HTTP_401_UNAUTHORIZED, "Invalid refresh token."))
+        http_code, message = mapping.get(str(e), (status.HTTP_401_UNAUTHORIZED, tr("AUTH.INVALID_REFRESH")))
         raise HTTPException(status_code=http_code, detail=message)
 
     user = await crud_user.get(db, id=user_id)
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found."
+            status_code=status.HTTP_401_UNAUTHORIZED, detail=tr("AUTH.USER_NOT_FOUND")
         )
 
     access_token = create_access_token(subject=str(user_id))

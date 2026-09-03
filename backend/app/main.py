@@ -33,6 +33,7 @@ from api.endpoints import (
 from contextlib import asynccontextmanager
 
 from core.config import settings
+from core.i18n import detect_lang, set_current_lang
 from core.rate_limit import login_limiter
 from fastapi import APIRouter, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
@@ -98,7 +99,8 @@ app.add_exception_handler(Exception, exception_handlers.unhandled_exception_hand
 
 @app.middleware("http")
 async def security_headers_middleware(request: Request, call_next):
-    """Añade cabeceras de seguridad básicas a todas las respuestas."""
+    """Añade cabeceras de seguridad básicas y detecta el idioma de la petición."""
+    set_current_lang(detect_lang(request.headers.get("accept-language")))
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"

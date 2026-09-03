@@ -5,6 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.crud_country import crud_country
+from core.i18n import tr
 from models.country import Country
 from schemas.country import CountryCreate, CountryUpdate
 
@@ -20,7 +21,7 @@ async def create_country(
     except IntegrityError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="A country with that name or ISO code already exists.",
+            detail=tr("DUPLICATE.COUNTRY"),
         )
 
 
@@ -35,7 +36,7 @@ async def get_country(db: AsyncSession, *, country_id: uuid.UUID) -> Country:
     """Obtiene un país por ID, manejando el caso de no encontrarlo."""
     db_country = await crud_country.get(db=db, id=country_id)
     if not db_country:
-        raise HTTPException(status_code=404, detail="Country not found.")
+        raise HTTPException(status_code=404, detail=tr("NOT_FOUND.COUNTRY"))
     return db_country
 
 

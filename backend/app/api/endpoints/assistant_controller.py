@@ -8,11 +8,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps_auth import require_permission
 from api.response_factory import ApiResponse, create_api_response
+from core.i18n import tr
 from dependencies import get_db
 from models.user import User as UserModel
 from schemas.assistant import ChatRequest, ChatResponse
+from service.ai.factory import ai_service
 from service.ai_agent_service import ai_agent_service
-from service.ai_service import ai_service
 from utils.logger import logger
 
 router = APIRouter(prefix="/assistant", tags=["AI Assistant"])
@@ -45,13 +46,13 @@ async def analyze_inventory_flow(
         logger.error(f"Error de ejecución en el agente de IA: {exc!s}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al procesar la solicitud con el agente: {exc!s}",
+            detail=tr("AI.AGENT_PROCESS_ERROR", error=str(exc)),
         )
     except KeyError as exc:
         logger.error(f"Clave faltante en la respuesta del LLM: {exc!s}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Respuesta malformada del servicio de IA: falta la clave {exc!s}",
+            detail=tr("AI.MALFORMED_RESPONSE", error=str(exc)),
         )
 
 
@@ -76,5 +77,5 @@ async def ask_assistant(
         logger.error(f"Error procesando la toma de decisiones: {exc!s}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error interno en el módulo de decisiones: {exc!s}",
+            detail=tr("AI.DECISION_MODULE_ERROR", error=str(exc)),
         )

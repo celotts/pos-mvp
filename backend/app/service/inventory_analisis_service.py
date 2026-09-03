@@ -7,7 +7,6 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.config import settings
 from core.tenancy import get_current_tenant
 from models.product import Product
 from models.purchase import Purchase, PurchaseItem
@@ -19,6 +18,8 @@ from schemas.inventory_analysis import (
     PurchaseSuggestionAnalysisException,
     PurchaseSuggestionItem,
 )
+from service.ai.factory import ai_service
+from service.ai.providers.ollama import EMBEDDING_MAX_CHARS
 from service.llm_service import AbstractLLMService
 from utils.logger import logger
 
@@ -31,8 +32,6 @@ class InventoryAnalysisService:
         self.db = db
 
     async def get_agent_suggestion(self, query: str) -> str:
-        from service.ai_service import ai_service
-
         return await ai_service.get_purchase_suggestion(db=self.db, query=query)
 
     async def get_purchase_suggestions(self) -> PurchaseSuggestionsResponse:
@@ -220,21 +219,12 @@ class InventoryAnalysisService:
             f"{json.dumps(analysis_data, ensure_ascii=False, default=str)}"
         )
 
+        # El texto guardado DEBE coincidir con lo que se embebe (si no, la
+        # búsqueda RAG podría devolver contenido que no corresponde al vector).
+        summary_text = summary_text[:EMBEDDING_MAX_CHARS]
+
         try:
-            base_url = settings.OLLAMA_BASE_URL or "http://ollama:11434"
-            embed_model = settings.EMBEDDING_MODEL or "nomic-embed-text"
-
-            ollama_url = f"{base_url}/api/embeddings"
-            payload = {"model": embed_model, "prompt": summary_text}
-
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(ollama_url, json=payload)
-                response.raise_for_status()
-                embedding_vector = response.json().get("embedding")
-
-            if not embedding_vector:
-                logger.error("Ollama no devolvió un vector de embeddings válido.")
-                return False
+            embedding_vector = await ai_service.get_embedding(summary_text)
 
             db_vector = SalesVector(
                 content=summary_text,

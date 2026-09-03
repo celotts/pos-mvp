@@ -1,7 +1,8 @@
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core import crud_customer
+from core.crud_customer import crud_customer
+from core.i18n import tr
 from models.customer import Customer
 from schemas.customer import CustomerCreate
 
@@ -23,7 +24,7 @@ async def get_customer(db: AsyncSession, customer_id: int) -> Customer:
     db_customer = await crud_customer.get_customer(db=db, customer_id=customer_id)
     if not db_customer:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Customer not found."
+            status_code=status.HTTP_404_NOT_FOUND, detail=tr("NOT_FOUND.CUSTOMER")
         )
     return db_customer
 
@@ -49,6 +50,6 @@ async def get_customer_by_email(db: AsyncSession, email: str) -> Customer:
     db_customer = await crud_customer.get_customer_by_email(db=db, email=email)
     if not db_customer:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Customer not found."
+            status_code=status.HTTP_404_NOT_FOUND, detail=tr("NOT_FOUND.CUSTOMER")
         )
     return db_customer

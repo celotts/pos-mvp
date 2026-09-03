@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from api.deps_auth import require_permission
+from core.i18n import tr
 from dependencies import InventoryAnalysisServiceDep
 from models.user import User as UserModel
 from schemas.inventory import PurchaseSuggestionsResponse
@@ -62,10 +63,7 @@ async def vectorize_inventory_analysis(
     if not saved:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=(
-                "No se pudo vectorizar y guardar el análisis de inventario. "
-                "Revisa los logs del servicio de IA (Ollama) y la base de datos."
-            ),
+            detail=tr("AI.INVENTORY_VECTORIZE_ERROR"),
         )
 
     return {"message": "Análisis de inventario vectorizado y guardado exitosamente."}

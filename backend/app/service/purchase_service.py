@@ -6,8 +6,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from core.i18n import tr
 from models.product import Product
 from models.purchase import Purchase, PurchaseItem
+from models.user import User
 from schemas.purchase import PurchaseCreate, PurchaseUpdate
 
 from .base_service import CRUDService
@@ -54,7 +56,7 @@ class PurchaseService(CRUDService[Purchase, PurchaseCreate, PurchaseUpdate]):
         if not obj_in.items:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="A purchase must have at least one product.",
+                detail=tr("VALIDATION.EMPTY_PURCHASE"),
             )
 
         # 1. Validar items y calcular totales
@@ -63,7 +65,9 @@ class PurchaseService(CRUDService[Purchase, PurchaseCreate, PurchaseUpdate]):
             if not product:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Product with id {item_in.product_id} not found.",
+                    detail=tr(
+                        "NOT_FOUND.PRODUCT_ID", product_id=str(item_in.product_id)
+                    ),
                 )
 
             item_total = Decimal(str(item_in.price_at_purchase)) * Decimal(

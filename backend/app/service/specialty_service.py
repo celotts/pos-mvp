@@ -5,6 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core import crud_specialty
+from core.i18n import tr
 from models.specialty import Specialty
 from schemas.specialty import SpecialtyCreate, SpecialtyUpdate
 
@@ -27,7 +28,7 @@ async def create_specialty(
     except IntegrityError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="A specialty with this name already exists.",
+            detail=tr("DUPLICATE.SPECIALTY"),
         )
 
 
@@ -36,7 +37,7 @@ async def get_specialty(db: AsyncSession, *, specialty_id: uuid.UUID) -> Special
     db_specialty = await crud_specialty.get_specialty(db=db, specialty_id=specialty_id)
     if not db_specialty:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Specialty not found."
+            status_code=status.HTTP_404_NOT_FOUND, detail=tr("NOT_FOUND.SPECIALTY")
         )
     return db_specialty
 

@@ -1,12 +1,14 @@
 from functools import lru_cache
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.config import settings
 from core.crud_user import crud_user
 from core.db import get_db
+from core.i18n import tr
 from core.security import decode_access_token
 from core.tenancy import set_current_tenant
 from models.user import User
@@ -19,26 +21,52 @@ from service.llm_service import (
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/login/swagger")
 
 
+def _extract_bearer(authorization: str | None) -> str | None:
+    """Extrae el token de un header `Authorization: Bearer <token>`."""
+    if not authorization:
+        return None
+    scheme, _, token = authorization.partition(" ")
+    if scheme.lower() != "bearer" or not token:
+        return None
+    return token.strip()
+
+
+async def get_access_token(request: Request) -> str:
+    """Resuelve el access token desde el header Bearer o la cookie HttpOnly."""
+    bearer = _extract_bearer(request.headers.get("Authorization"))
+    if bearer:
+        return bearer
+    cookie_token = request.cookies.get(settings.COOKIE_ACCESS_NAME)
+    if cookie_token:
+        return cookie_token
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail=tr("AUTH.CREDENTIALS_INVALID"),
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
 async def get_current_user(
     db: Annotated[AsyncSession, Depends(get_db)],
-    token: Annotated[str, Depends(oauth2_scheme)],
+    request: Request,
+    token: Annotated[str, Depends(get_access_token)],
 ) -> User:
     user_id = decode_access_token(token)
     if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
+            detail=tr("AUTH.CREDENTIALS_INVALID"),
             headers={"WWW-Authenticate": "Bearer"},
         )
     user = await crud_user.get(db, id=user_id)
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail=tr("AUTH.USER_NOT_FOUND")
         )
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The user account is inactive.",
+            detail=tr("AUTH.ACCOUNT_INACTIVE"),
         )
     # Propaga el tenant del usuario al request en curso (scoping de datos).
     set_current_tenant(user.tenant_id)

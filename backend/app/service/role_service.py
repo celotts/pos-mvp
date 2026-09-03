@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.config import settings
 from core.crud_permission import crud_permission
 from core.crud_role import crud_role
+from core.i18n import tr
 from models.role import Role
 from schemas.role import RoleCreate, RoleUpdate
 
@@ -24,7 +25,7 @@ async def create_role(db: AsyncSession, *, role_in: RoleCreate) -> Role:
     if existing_role:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"A role with the name '{role_in.name}' already exists.",
+            detail=tr("DUPLICATE.ROLE_NAME", name=role_in.name),
         )
     return await crud_role.create(db=db, obj_in=role_in)
 
@@ -34,7 +35,7 @@ async def get_role(db: AsyncSession, *, role_id: uuid.UUID) -> Role:
     db_role = await crud_role.get(db=db, id=role_id)
     if not db_role:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Role not found."
+            status_code=status.HTTP_404_NOT_FOUND, detail=tr("NOT_FOUND.ROLE")
         )
     return db_role
 
@@ -49,7 +50,7 @@ async def update_role(
     if db_role.name in settings.PROTECTED_ROLES:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Role '{db_role.name}' is protected and cannot be modified.",
+            detail=tr("ROLE.PROTECTED_MODIFY", name=db_role.name),
         )
 
     # Si se está actualizando el nombre, convertirlo a mayúsculas y verificar duplicados.
@@ -61,7 +62,7 @@ async def update_role(
         if existing_role and existing_role.id != role_id:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail=f"A role with the name '{role_in.name}' already exists.",
+                detail=tr("DUPLICATE.ROLE_NAME", name=role_in.name),
             )
 
     return await crud_role.update(db=db, db_obj=db_role, obj_in=role_in)
@@ -78,7 +79,7 @@ async def remove_role(db: AsyncSession, *, role_id: uuid.UUID) -> Role:
     if db_role.name in settings.PROTECTED_ROLES:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Role '{db_role.name}' is protected and cannot be deleted.",
+            detail=tr("ROLE.PROTECTED_DELETE", name=db_role.name),
         )
 
     # Protección N°2: Roles en uso.
@@ -86,13 +87,13 @@ async def remove_role(db: AsyncSession, *, role_id: uuid.UUID) -> Role:
     if db_role.users:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Role '{db_role.name}' cannot be deleted because it is assigned to one or more users.",
+            detail=tr("ROLE.DELETE_ASSIGNED", name=db_role.name),
         )
 
     deleted_role = await crud_role.remove(db=db, id=role_id)
     # This check is for safety, although get_role already validates it.
     if not deleted_role:
-        raise HTTPException(status_code=404, detail="Role not found to delete.")
+        raise HTTPException(status_code=404, detail=tr("NOT_FOUND.ROLE"))
     return deleted_role
 
 
@@ -112,7 +113,7 @@ async def assign_permissions_to_role(
     if db_role.name in settings.PROTECTED_ROLES:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Role '{db_role.name}' is protected and cannot be modified.",
+            detail=tr("ROLE.PROTECTED_MODIFY", name=db_role.name),
         )
 
     # Validamos que todos los códigos existan en el catálogo; los ignorados se rechazan.
@@ -121,7 +122,7 @@ async def assign_permissions_to_role(
     if unknown:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unknown permission codes: {unknown}",
+            detail=tr("VALIDATION.UNKNOWN_PERMISSIONS", unknown=", ".join(unknown)),
         )
 
     db_role.permissions = [existing[c] for c in set(permission_codes)]

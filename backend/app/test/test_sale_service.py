@@ -1,5 +1,6 @@
 import uuid
 from decimal import Decimal
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -62,11 +63,20 @@ async def test_create_sale_success(
     product1 = Product(id=product1_id, name="Producto A", price=Decimal("20.00"))
     product2 = Product(id=product2_id, name="Producto B", price=Decimal("5.50"))
 
-    # Cuando se llame a db.get, devolver el producto correspondiente
-    mock_db.get.side_effect = lambda model, pid: {
-        product1_id: product1,
-        product2_id: product2,
-    }.get(pid)
+    # Product query (batch load con SELECT ... IN) → lista de productos
+    products_result = MagicMock()
+    products_result.scalars.return_value.all.return_value = [product1, product2]
+
+    # get_stock_levels → comprado 10 de cada, vendido 0
+    purchased_result = MagicMock()
+    purchased_result.all.return_value = [
+        SimpleNamespace(product_id=product1_id, qty=10),
+        SimpleNamespace(product_id=product2_id, qty=10),
+    ]
+    sold_result = MagicMock()
+    sold_result.all.return_value = []
+
+    mock_db.execute.side_effect = [products_result, purchased_result, sold_result]
 
     # Act: Llamar al método del servicio
     created_sale = await sale_service.create_sale(
@@ -123,7 +133,11 @@ async def test_create_sale_product_not_found(
 ):
     """Prueba que se lance una excepción si un producto no se encuentra."""
     # Arrange: Configurar el mock para que no encuentre el producto
-    mock_db.get.return_value = None
+    products_result = MagicMock()
+    products_result.scalars.return_value.all.return_value = []
+    empty_result = MagicMock()
+    empty_result.all.return_value = []
+    mock_db.execute.side_effect = [products_result, empty_result, empty_result]
 
     # Act & Assert
     with pytest.raises(HTTPException) as exc_info:
@@ -135,3 +149,36 @@ async def test_create_sale_product_not_found(
         )
     assert exc_info.value.status_code == 404
     assert "not found" in exc_info.value.detail
+
+
+async def test_create_sale_insufficient_stock(
+    mock_db: AsyncMock,
+    mock_background_tasks: MagicMock,
+    current_user: User,
+    sale_create_schema: SaleCreate,
+):
+    """Prueba que se lance 409 si el stock disponible es menor a lo solicitado."""
+    # Arrange
+    product1_id = sale_create_schema.items[0].product_id
+    product1 = Product(id=product1_id, name="Producto A", price=Decimal("20.00"))
+    products_result = MagicMock()
+    products_result.scalars.return_value.all.return_value = [product1]
+    purchased_result = MagicMock()
+    purchased_result.all.return_value = [
+        SimpleNamespace(product_id=product1_id, qty=1),
+    ]
+    sold_result = MagicMock()
+    sold_result.all.return_value = []
+    mock_db.execute.side_effect = [products_result, purchased_result, sold_result]
+
+    # Act & Assert
+    with pytest.raises(HTTPException) as exc_info:
+        await sale_service.create_sale(
+            db=mock_db,
+            sale_in=sale_create_schema,
+            current_user=current_user,
+            background_tasks=mock_background_tasks,
+        )
+    assert exc_info.value.status_code == 409
+    assert "Insufficient stock" in exc_info.value.detail
+    mock_db.add.assert_not_called()

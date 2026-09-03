@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps_auth import require_permission
 from api.response_factory import ApiResponse, create_api_response
+from core.i18n import tr
 from dependencies import get_current_user, get_db
 from models.user import User as UserModel
 from schemas.accounts_payable import (
@@ -94,7 +95,7 @@ current_user: UserModel = require_accounts_update,
         db=db, id=account_id, obj_in=account_in
     )
     if not updated_account:
-        raise HTTPException(status_code=404, detail="Account payable not found.")
+        raise HTTPException(status_code=404, detail=tr("NOT_FOUND.ACCOUNT_PAYABLE"))
     return create_api_response(
         data=updated_account, message="Account payable updated successfully."
     )
@@ -114,7 +115,7 @@ current_user: UserModel = require_accounts_delete,
     """Deletes an account payable record."""
     deleted_account = await accounts_payable_service.remove(db, id=account_id)
     if not deleted_account:
-        raise HTTPException(status_code=404, detail="Account payable not found.")
+        raise HTTPException(status_code=404, detail=tr("NOT_FOUND.ACCOUNT_PAYABLE"))
     return create_api_response(
         data=deleted_account, message="Account payable deleted successfully."
     )

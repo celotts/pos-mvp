@@ -13,6 +13,26 @@ export async function listProducts(): Promise<Product[]> {
   return httpGet<Product[]>("/products/")
 }
 
+export interface ProductPage {
+  items: Product[]
+  total: number
+}
+
+export async function searchProducts(params: {
+  q?: string
+  skip?: number
+  limit?: number
+} = {}): Promise<ProductPage> {
+  const { q = "", skip = 0, limit = 100 } = params
+  const searchParams = new URLSearchParams()
+  if (q.trim()) searchParams.set("q", q.trim())
+  searchParams.set("skip", String(skip))
+  searchParams.set("limit", String(limit))
+  const qs = searchParams.toString()
+  const res = await api.get<ApiResponse<Product[]>>(`/products/search${qs ? `?${qs}` : ""}`)
+  return { items: res.data.data ?? [], total: res.data.total ?? 0 }
+}
+
 export async function createProduct(payload: ProductCreate): Promise<Product> {
   return httpPost<Product>("/products/", payload)
 }

@@ -5,6 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.crud_cash_account import crud_cash_account
+from core.i18n import tr
 from models import CashAccount
 from models import User as UserModel
 from schemas.cash_account import CashAccountCreate, CashAccountUpdate
@@ -26,7 +27,7 @@ async def create_cash_account(
     except IntegrityError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="An account with this name already exists.",
+            detail=tr("DUPLICATE.ACCOUNT"),
         )
 
 
@@ -35,7 +36,7 @@ async def get_cash_account(db: AsyncSession, *, account_id: uuid.UUID) -> CashAc
     db_account = await crud_cash_account.get(db=db, id=account_id)
     if not db_account:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Account not found."
+            status_code=status.HTTP_404_NOT_FOUND, detail=tr("NOT_FOUND.ACCOUNT")
         )
     return db_account
 

@@ -1,6 +1,7 @@
 from fastapi import Depends, HTTPException, status
 
 from core.config import settings
+from core.i18n import tr
 from dependencies import get_current_user
 from models.user import User
 
@@ -15,7 +16,7 @@ def get_current_active_user(
     Dependencia que obtiene el usuario actual y verifica si está activo.
     """
     if not current_user.is_active:
-        raise HTTPException(status_code=400, detail="User is inactive.")
+        raise HTTPException(status_code=400, detail=tr("AUTH.USER_INACTIVE"))
     return current_user
 
 
@@ -33,7 +34,7 @@ def get_current_admin_user(
     if not current_user.role:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="The user does not have a valid role assigned or the role has been deleted.",
+            detail=tr("RBAC.NO_VALID_ROLE"),
         )
 
     # 2. Verificación de permisos (mejorada para ser robusta)
@@ -44,7 +45,7 @@ def get_current_admin_user(
     if user_role_normalized not in settings.PROTECTED_ROLES:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="The user does not have the necessary privileges.",
+            detail=tr("RBAC.FORBIDDEN"),
         )
     return current_user
 
@@ -66,7 +67,7 @@ def require_permission(permission_code: str):
         if not role:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="The user does not have a valid role assigned or the role has been deleted.",
+                detail=tr("RBAC.NO_VALID_ROLE"),
             )
 
         # Roles protegidos: acceso total (bypass de permisos granulares).
@@ -77,7 +78,7 @@ def require_permission(permission_code: str):
         if permission_code not in permitted_codes:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="The user does not have the necessary privileges.",
+                detail=tr("RBAC.FORBIDDEN"),
             )
         return current_user
 

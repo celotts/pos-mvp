@@ -4,8 +4,11 @@ from datetime import datetime, timezone
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core import crud_pos_terminal, crud_shift
 from core.config import settings
+from core.crud_pos_terminal import crud_pos_terminal
+from core.crud_shift import crud_shift
+from core.i18n import tr
+from core.tenancy import get_current_tenant
 from models import Shift
 from models import User as UserModel
 from models.shift import ShiftStatus
@@ -21,7 +24,7 @@ async def open_shift(
     if not terminal or not terminal.is_active:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="The terminal does not exist or is not active.",
+            detail=tr("VALIDATION.INACTIVE_TERMINAL"),
         )
 
     # 2. Verificar que no haya ya un turno abierto en esa terminal
@@ -31,7 +34,7 @@ async def open_shift(
     if existing_shift:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"An open shift already exists at terminal '{terminal.name}'.",
+            detail=tr("SHIFT.OPEN_EXISTS_TERMINAL", terminal=terminal.name),
         )
 
     # 3. Crear el nuevo turno
@@ -41,6 +44,7 @@ async def open_shift(
         store_id=shift_in.store_id,  # La tienda viene en el payload de apertura
         starting_cash=shift_in.starting_cash,
         status=ShiftStatus.OPEN,
+        tenant_id=get_current_tenant(),  # Scoping multi-tenant consistente
     )
     db.add(shift_to_create)
     await db.commit()
@@ -60,14 +64,14 @@ async def close_shift(
     db_shift = await crud_shift.get(db, id=shift_id)
     if not db_shift:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Shift does not exist."
+            status_code=status.HTTP_404_NOT_FOUND, detail=tr("NOT_FOUND.SHIFT")
         )
 
     # 2. Validar que el turno esté abierto y que el usuario sea el correcto (o un admin)
     if db_shift.status != ShiftStatus.OPEN:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The shift is already closed.",
+            detail=tr("SHIFT.CLOSED"),
         )
 
     # 3. Solo el dueño del turno o un usuario con permiso shift:close (o rol
@@ -80,7 +84,7 @@ async def close_shift(
     if not is_owner and role_name not in settings.PROTECTED_ROLES and not has_close_permission:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only close your own shifts.",
+            detail=tr("SHIFT.OWN_ONLY"),
         )
 
     # 4. Actualizar el turno para cerrarlo

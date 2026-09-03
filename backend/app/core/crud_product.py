@@ -2,9 +2,9 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 
-from core.crud_base import CRUDBase
+from core.crud_base import CRUDBase, _is_soft_deletable, sanitize_pagination
 from core.tenancy import get_current_tenant
 from models.product import Product
 from models.purchase import Purchase, PurchaseItem
@@ -17,6 +17,45 @@ from schemas.sale import SaleStatus as SaleStatusEnum
 class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
     def __init__(self, model: type[Product]):
         super().__init__(model)
+
+    async def search(
+        self,
+        db,
+        *,
+        search: str | None = None,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> tuple[list[Product], int]:
+        """Búsqueda server-side por nombre o SKU (case-insensitive, parcial).
+
+        Retorna `(items, total)` manteniendo el scoping de tenant/soft-delete.
+        """
+        skip, limit = sanitize_pagination(skip, limit)
+        stmt = select(self.model)
+        search = (search or "").strip()
+        if search:
+            pattern = f"%{search}%"
+            stmt = stmt.where(
+                or_(
+                    self.model.name.ilike(pattern),
+                    self.model.sku.ilike(pattern),
+                )
+            )
+
+        # Se aplica el mismo scoping que get_multi (tenant + soft-delete).
+        tenant_id = get_current_tenant()
+        if tenant_id is not None and hasattr(self.model, "tenant_id"):
+            stmt = stmt.where(self.model.tenant_id == tenant_id)
+        if _is_soft_deletable(self.model):
+            stmt = stmt.where(self.model.is_deleted.is_(False))
+
+        total_stmt = select(func.count()).select_from(stmt.order_by(None).subquery())
+        count_result = await db.execute(total_stmt)
+        total = int(count_result.scalar() or 0)
+
+        stmt = stmt.order_by(self.model.name).offset(skip).limit(limit)
+        result = await db.execute(stmt)
+        return result.scalars().all(), total
 
     async def get_stock_levels(
         self, db, store_id: uuid.UUID | None = None

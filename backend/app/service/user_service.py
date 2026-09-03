@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.crud_role import crud_role
 from core.crud_user import crud_user
+from core.i18n import tr
 from models.user import User
 from schemas.user import UserCreate, UserUpdate
 
@@ -23,7 +24,7 @@ async def get_user(db: AsyncSession, *, user_id: uuid.UUID) -> User:
     db_user = await crud_user.get(db, id=user_id)
     if not db_user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found."
+            status_code=status.HTTP_404_NOT_FOUND, detail=tr("NOT_FOUND.USER")
         )
     return db_user
 
@@ -37,7 +38,7 @@ async def create_user_with_logic(db: AsyncSession, *, user_in: UserCreate) -> Us
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="A user with this email already exists.",
+            detail=tr("DUPLICATE.EMAIL"),
         )
 
     # 2. Verificar si el rol asignado es válido
@@ -45,7 +46,7 @@ async def create_user_with_logic(db: AsyncSession, *, user_in: UserCreate) -> Us
     if not role:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Role with ID '{user_in.role_id}' not found.",
+            detail=tr("NOT_FOUND.ROLE_ID", role_id=str(user_in.role_id)),
         )
 
     # 3. Crear el usuario
@@ -70,12 +71,12 @@ async def update_user(
         if user_in.is_active is False:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="You cannot deactivate your own account.",
+                detail=tr("ROLE.SELF_DEACTIVATE"),
             )
         if user_in.role_id and user_in.role_id != db_user.role_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="You cannot change your own role.",
+                detail=tr("ROLE.SELF_CHANGE"),
             )
 
     updated_user = await crud_user.update(db=db, db_obj=db_user, obj_in=user_in)
@@ -98,6 +99,6 @@ async def remove_user(db: AsyncSession, *, user_id: uuid.UUID) -> User:
     deleted_user = await crud_user.remove(db=db, id=db_user.id)
     if not deleted_user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found."
+            status_code=status.HTTP_404_NOT_FOUND, detail=tr("NOT_FOUND.USER")
         )
     return deleted_user

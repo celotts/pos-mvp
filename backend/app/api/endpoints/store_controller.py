@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps_auth import get_current_admin_user
 from api.response_factory import ApiResponse, create_api_response
+from core.i18n import tr
 from dependencies import get_current_user, get_db
 from models.user import User as UserModel
 from schemas.store import Store, StoreCreate, StoreUpdate
@@ -63,7 +64,7 @@ async def read_store_by_id(
     """
     store = await store_service.get_by_id(db=db, id=store_id)
     if not store:
-        raise HTTPException(status_code=404, detail="Store not found")
+        raise HTTPException(status_code=404, detail=tr("NOT_FOUND.STORE"))
     return create_api_response(data=store)
 
 
@@ -80,7 +81,7 @@ async def update_store(
     """
     store = await store_service.update(db=db, id=store_id, obj_in=store_in)
     if not store:
-        raise HTTPException(status_code=404, detail="Store not found")
+        raise HTTPException(status_code=404, detail=tr("NOT_FOUND.STORE"))
     return create_api_response(data=store, message="Store updated successfully.")
 
 
@@ -96,5 +97,5 @@ async def delete_store(
     """
     store = await store_service.delete(db=db, id=store_id)
     if not store:
-        raise HTTPException(status_code=404, detail="Store not found")
+        raise HTTPException(status_code=404, detail=tr("NOT_FOUND.STORE"))
     return create_api_response(data=store, message="Store deleted successfully.")

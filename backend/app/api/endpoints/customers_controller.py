@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.deps_auth import require_permission
 from api.response_factory import ApiResponse, create_api_response
 from core.crud_customer import crud_customer
+from core.i18n import tr
 from dependencies import get_current_user, get_db
 from models.user import User as UserModel
 from schemas.customer import Customer, CustomerCreate, CustomerUpdate
@@ -60,7 +61,7 @@ async def read_customer(
     """Get a customer by its ID."""
     customer = await crud_customer.get(db, id=customer_id)
     if not customer:
-        raise HTTPException(status_code=404, detail="Customer not found.")
+        raise HTTPException(status_code=404, detail=tr("NOT_FOUND.CUSTOMER"))
     return create_api_response(data=customer)
 
 
@@ -75,7 +76,7 @@ current_user: UserModel = require_customer_update,
     """Update a customer. For administrators only."""
     db_customer = await crud_customer.get(db, id=customer_id)
     if not db_customer:
-        raise HTTPException(status_code=404, detail="Customer not found.")
+        raise HTTPException(status_code=404, detail=tr("NOT_FOUND.CUSTOMER"))
     customer = await crud_customer.update(
         db=db, db_obj=db_customer, obj_in=customer_in
     )
@@ -92,5 +93,5 @@ current_user: UserModel = require_customer_delete,
     """Delete a customer. For administrators only."""
     customer = await crud_customer.remove(db, id=customer_id)
     if not customer:
-        raise HTTPException(status_code=404, detail="Customer not found.")
+        raise HTTPException(status_code=404, detail=tr("NOT_FOUND.CUSTOMER"))
     return create_api_response(data=customer, message="Customer deleted successfully.")

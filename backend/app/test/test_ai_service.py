@@ -2,34 +2,38 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from service.ai_service import AIService
+from service.ai.agent_service import AgentService
 
 
 @pytest.fixture
 def ai_service():
-    return AIService()
+    chat_provider = MagicMock()
+    chat_provider.name = "ollama"
+    chat_provider.complete = AsyncMock(
+        return_value="Respuesta generada por el provider."
+    )
+
+    embedding_provider = MagicMock()
+    embedding_provider.name = "ollama"
+    embedding_provider.embed = AsyncMock(return_value=[0.1, 0.2, 0.3])
+
+    driver = MagicMock()
+    driver.run = AsyncMock(return_value="Análisis generado por el agente.")
+
+    return AgentService(
+        chat_provider=chat_provider,
+        embedding_provider=embedding_provider,
+        driver=driver,
+    )
 
 
 @pytest.mark.asyncio
-async def test_get_embedding_success(ai_service, monkeypatch):
-    """Verifica que get_embedding consuma el endpoint de Ollama y retorne el vector correctamente."""
-    mock_response = MagicMock()
-    mock_response.raise_for_status = MagicMock()
-    mock_response.json.return_value = {"embedding": [0.1, 0.2, 0.3]}
-
-    mock_client = AsyncMock()
-    mock_client.is_closed = False
-    mock_client.post.return_value = mock_response
-
-    monkeypatch.setattr(ai_service, "_client", mock_client)
-
+async def test_get_embedding_success(ai_service):
+    """Verifica que get_embedding delegue en el embedding provider y retorne el vector."""
     result = await ai_service.get_embedding("Texto de prueba")
 
     assert result == [0.1, 0.2, 0.3]
-    mock_client.post.assert_called_once_with(
-        "/api/embeddings",
-        json={"model": ai_service.embedding_model, "prompt": "Texto de prueba"},
-    )
+    ai_service.embedding_provider.embed.assert_called_once_with("Texto de prueba")
 
 
 @pytest.mark.asyncio
@@ -51,3 +55,15 @@ async def test_get_rag_response_no_context(ai_service, monkeypatch):
     )
 
     assert response == "No se encontró información relevante en la base de datos."
+
+
+@pytest.mark.asyncio
+async def test_get_purchase_suggestion_delegates_to_driver(ai_service):
+    """Verifica que el agente de inventario delegue en el driver."""
+    mock_db = AsyncMock()
+    response = await ai_service.get_purchase_suggestion(
+        db=mock_db, query="qué productos reponer?"
+    )
+
+    assert response == "Análisis generado por el agente."
+    ai_service.driver.run.assert_called_once()

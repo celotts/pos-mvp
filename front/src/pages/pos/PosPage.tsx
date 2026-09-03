@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { Plus, Trash2, CheckCircle2, MonitorX, Monitor } from "lucide-react"
+import { Plus, Trash2, CheckCircle2, MonitorX, Monitor, Search } from "lucide-react"
 
 import {
   Button,
@@ -19,11 +19,120 @@ import { registerSale } from "@/services/sales.service"
 import { useAuthStore } from "@/store/authStore"
 import { formatCurrency } from "@/lib/utils"
 import { getErrorMessage } from "@/lib/api"
+import type { Product } from "@/types"
 
 interface Line {
   product_id: string
+  product: Product | null
   quantity: number
   key: string
+}
+
+function useDebouncedSearch(query: string, enabled: boolean) {
+  const [debounced, setDebounced] = useState("")
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(query), 250)
+    return () => clearTimeout(t)
+  }, [query])
+  return useQuery({
+    queryKey: ["product-search", debounced],
+    queryFn: () => searchProducts({ q: debounced, limit: 20 }),
+    enabled: enabled && debounced.trim().length > 0,
+    placeholderData: keepPreviousData,
+  })
+}
+
+function ProductPicker({
+  selected,
+  onSelect,
+}: {
+  selected: Product | null
+  onSelect: (p: Product | null) => void
+}) {
+  const [query, setQuery] = useState("")
+  const [open, setOpen] = useState(false)
+
+  const search = useDebouncedSearch(query, selected === null)
+  const results = search.data?.items ?? []
+  const loading = search.isFetching
+  const showingSearch = selected === null && query.trim().length > 0
+
+  return (
+    <div className="relative flex-1">
+      {selected ? (
+        <div className="flex h-9 items-center justify-between rounded-lg border border-brand-300 bg-brand-50 px-2 text-sm">
+          <span className="truncate font-medium text-slate-800">
+            {selected.name}
+            {selected.sku ? (
+              <span className="ml-2 text-xs text-slate-400">{selected.sku}</span>
+            ) : null}
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              onSelect(null)
+              setQuery("")
+            }}
+            className="ml-2 rounded px-1 text-xs font-semibold text-brand-600 hover:underline"
+          >
+            Cambiar
+          </button>
+        </div>
+      ) : (
+        <>
+          <input
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value)
+              setOpen(true)
+            }}
+            onFocus={() => setOpen(true)}
+            onBlur={() => setTimeout(() => setOpen(false), 150)}
+            placeholder="Busca por nombre o código (SKU)…"
+            className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 pl-9 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          />
+          <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+          {open && showingSearch && (
+            <div className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-lg border border-slate-200 bg-white shadow-lg">
+              {loading ? (
+                <div className="px-3 py-2 text-sm text-slate-400">Buscando…</div>
+              ) : results.length === 0 ? (
+                <div className="px-3 py-2 text-sm text-slate-400">
+                  Sin resultados
+                </div>
+              ) : (
+                results.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      onSelect(p)
+                      setQuery("")
+                      setOpen(false)
+                    }}
+                    className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-slate-50"
+                  >
+                    <span className="truncate">
+                      {p.name}
+                      {p.sku ? (
+                        <span className="ml-2 text-xs text-slate-400">
+                          {p.sku}
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="ml-2 shrink-0 font-medium text-slate-700">
+                      {formatCurrency(p.price)}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
 }
 
 export function PosPage() {
@@ -58,18 +167,11 @@ export function PosPage() {
   const products = productsQ.data ?? []
   const customers = customersQ.data ?? []
 
-  const productsById = useMemo(
-    () => new Map(products.map((p) => [p.id, p])),
-    [products],
-  )
-
-  const addLine = () => {
-    const first = products[0]
+  const addLine = () =>
     setLines((prev) => [
       ...prev,
-      { product_id: first?.id ?? "", quantity: 1, key: crypto.randomUUID() },
+      { product_id: "", quantity: 1, key: crypto.randomUUID() },
     ])
-  }
 
   const updateLine = (key: string, patch: Partial<Line>) =>
     setLines((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)))
@@ -77,8 +179,16 @@ export function PosPage() {
   const removeLine = (key: string) =>
     setLines((prev) => prev.filter((l) => l.key !== key))
 
+  const productsById = useMemo(() => {
+    const m = new Map<string, Product>()
+    for (const p of products) m.set(p.id, p)
+    return m
+  }, [products])
+
+  const product = (id: string) => productsById.get(id)
+
   const subtotal = lines.reduce((acc, l) => {
-    const p = productsById.get(l.product_id)
+    const p = product(l.product_id)
     return acc + (p ? Number(p.price) * l.quantity : 0)
   }, 0)
 
@@ -142,6 +252,8 @@ export function PosPage() {
           No tienes permiso para registrar ventas.
         </Alert>
       )}
+      {/* rest omitted */}
+
 
       <Card>
         <CardContent className="space-y-5 p-5">
@@ -286,17 +398,11 @@ export function PosPage() {
                     key={l.key}
                     className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2 sm:flex-nowrap"
                   >
-                    <select
+                    <ProductPicker
                       value={l.product_id}
-                      onChange={(e) => updateLine(l.key, { product_id: e.target.value })}
-                      className="h-9 flex-1 rounded-lg border border-slate-300 bg-white px-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    >
-                      {products.map((pr) => (
-                        <option key={pr.id} value={pr.id}>
-                          {pr.name} · {formatCurrency(pr.price)}
-                        </option>
-                      ))}
-                    </select>
+                      products={products}
+                      onSelect={(id) => updateLine(l.key, { product_id: id })}
+                    />
                     <input
                       type="number"
                       min={1}

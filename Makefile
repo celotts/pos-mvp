@@ -7,6 +7,12 @@ else
 	COMPOSE_CMD ?= podman-compose
 endif
 
+# Leer credenciales de BD del .env (usadas por make db-reset y db-reset-demo).
+-include .env
+POSTGRES_DB ?= pos_db
+POSTGRES_USER ?= product
+export POSTGRES_DB POSTGRES_USER
+
 .PHONY: help up down start init clean logs ps shell lint format test test-api seed-demo fix-permissions pull-models
 
 help:
@@ -27,6 +33,8 @@ help:
 	@echo "  make test            - Ejecuta las pruebas con pytest."
 	@echo "  make test-api        - Ejecuta la colección de endpoints (auth, productos y Analítica) contra la BD real."
 	@echo "  make seed-demo       - Siembra datos de demostración idempotentes (tienda, ventas, etc.)."
+	@echo "  make db-reset        - Recrea la BD desde cero SOLO con el seed automático (sin datos demo)."
+	@echo "  make db-reset-demo   - Recrea la BD y carga los datos demo de seed_demo (para probar)."
 	@echo "  make fix-permissions - Corrige permisos de archivos bloqueados por Podman/Docker."
 	@echo "\nUsando comando de compose: $(COMPOSE_CMD)"
 
@@ -96,7 +104,33 @@ test-api:
 
 seed-demo:
 	@echo "Sembrando datos de demostración..."
-	$(COMPOSE_CMD) exec pos-api python -m seed_demo
+	$(COMPOSE_CMD) exec -w /app/backend/app pos-api python -m seed_demo
+
+# Recrea la BD desde cero dejándola con ÚNICAMENTE el seed automático
+# (compañía, roles, permisos y superusuario) que corre la API al arrancar.
+# Útil para que la BD arranque vacía y el usuario la llene con lo que necesite.
+.PHONY: db-reset
+db-reset:
+	@echo "Recreando la BD '$(POSTGRES_DB)' desde cero (solo seed automático)..."
+	$(COMPOSE_CMD) stop pos-api
+	$(COMPOSE_CMD) exec pos-db psql -P pager=off -U "$(POSTGRES_USER)" -d postgres -c \
+		"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='$(POSTGRES_DB)' AND pid <> pg_backend_pid();" || true
+	$(COMPOSE_CMD) exec pos-db psql -P pager=off -U "$(POSTGRES_USER)" -d postgres -c "DROP DATABASE IF EXISTS $(POSTGRES_DB);"
+	$(COMPOSE_CMD) exec pos-db psql -P pager=off -U "$(POSTGRES_USER)" -d postgres -c "CREATE DATABASE $(POSTGRES_DB) OWNER $(POSTGRES_USER);"
+	$(COMPOSE_CMD) start pos-api
+	@sleep 12
+	@echo "Estampando la revisión de Alembic (evita recrear tablas existentes)..."
+	$(COMPOSE_CMD) exec -w /app/backend pos-api python -m alembic stamp head
+	@echo "BD '$(POSTGRES_DB)' recreada con seed automático (sin datos demo)."
+
+# Deja la BD con los datos demo de seed_demo.py además del seed automático.
+.PHONY: db-reset-demo
+db-reset-demo:
+	@$(MAKE) db-reset
+	@sleep 5
+	@echo "Sembrando datos de demostración..."
+	$(COMPOSE_CMD) exec -w /app/backend/app pos-api python -m seed_demo
+	@echo "BD lista con datos demo (tienda, proveedor, productos, clientes y ventas)."
 
 fix-permissions:
 	@echo "Reparando permisos de archivos para VS Code..."

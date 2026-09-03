@@ -5,6 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.crud_pos_terminal import crud_pos_terminal
+from core.i18n import tr
 from models import PosTerminal
 from models import User as UserModel
 from schemas.pos_terminal import PosTerminalCreate, PosTerminalUpdate
@@ -31,7 +32,7 @@ async def create_pos_terminal(
     except IntegrityError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="A terminal with this name already exists.",
+            detail=tr("DUPLICATE.TERMINAL"),
         )
 
 
@@ -40,7 +41,7 @@ async def get_pos_terminal(db: AsyncSession, *, terminal_id: uuid.UUID) -> PosTe
     db_terminal = await crud_pos_terminal.get(db=db, id=terminal_id)
     if not db_terminal:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Terminal not found."
+            status_code=status.HTTP_404_NOT_FOUND, detail=tr("NOT_FOUND.TERMINAL")
         )
     return db_terminal
 

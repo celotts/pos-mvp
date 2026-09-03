@@ -5,13 +5,15 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from core.crud_product import crud_product
+from core.i18n import tr
 from models.product import Product
 from models.sale import Sale
 from models.sale_item import SaleItem
 from models.user import User
 from schemas.sale import SaleCreate, SaleStatus, SaleUpdate
+from service.ai.factory import ai_service
 
-from .ai_service import ai_service
 from .base_service import CRUDService
 
 
@@ -51,12 +53,12 @@ class SaleService(CRUDService[Sale, SaleCreate, SaleUpdate]):
         if not db_sale:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Sale does not exist.",
+                detail=tr("NOT_FOUND.SALE"),
             )
         if db_sale.status == SaleStatus.CANCELLED:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="The sale is already cancelled.",
+                detail=tr("SALE.CANCELLED"),
             )
         db_sale.status = SaleStatus.CANCELLED
         await db.commit()
@@ -81,16 +83,40 @@ class SaleService(CRUDService[Sale, SaleCreate, SaleUpdate]):
         if not sale_in.items:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="A sale must have at least one product.",
+                detail=tr("VALIDATION.EMPTY_SALE"),
             )
 
         # 1. Validar items y calcular totales
+        product_ids = [item_in.product_id for item_in in sale_in.items]
+        result = await db.execute(
+            select(Product).where(Product.id.in_(product_ids))
+        )
+        products = {p.id: p for p in result.scalars().all()}
+
+        stock_levels = await crud_product.get_stock_levels(
+            db, store_id=sale_in.store_id
+        )
+
         for item_in in sale_in.items:
-            product = await db.get(Product, item_in.product_id)
+            product = products.get(item_in.product_id)
             if not product:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Product with id {item_in.product_id} not found.",
+                    detail=tr(
+                        "NOT_FOUND.PRODUCT_ID", product_id=str(item_in.product_id)
+                    ),
+                )
+
+            available = stock_levels.get(item_in.product_id, 0)
+            if item_in.quantity > available:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=tr(
+                        "VALIDATION.STOCK_INSUFFICIENT",
+                        name=product.name,
+                        requested=item_in.quantity,
+                        available=available,
+                    ),
                 )
 
             item_total = product.price * Decimal(item_in.quantity)

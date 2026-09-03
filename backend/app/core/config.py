@@ -70,6 +70,14 @@ class Settings(BaseSettings):
     # la vida del refresh es mayor que la del access para re-autenticar sin pedir creds.
     REFRESH_TOKEN_EXPIRE_SECONDS: int = 604800  # 7 días
 
+    # Cookies HttpOnly (autenticación segura del frontend web)
+    # En producción debe usarse https y SameSite=None; en local sin https.
+    COOKIE_ACCESS_NAME: str = "pos_access"
+    COOKIE_REFRESH_NAME: str = "pos_refresh"
+    COOKIE_SECURE: bool = False
+    COOKIE_SAMESITE: str = "lax"
+    COOKIE_DOMAIN: str | None = None
+
     # Login lockout (bloqueo por intentos fallidos)
     MAX_LOGIN_ATTEMPTS: int = 3
     LOGIN_LOCKOUT_SECONDS: int = 3600

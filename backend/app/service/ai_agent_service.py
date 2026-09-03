@@ -2,7 +2,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from schemas.assistant import ChatRequest, ChatResponse, InsightRecommendation
-from service.ai_service import ai_service
+from service.ai.agent_service import AgentService
+from service.ai.factory import ai_service
 from utils.logger import logger
 
 SYSTEM_PROMPT = (
@@ -16,17 +17,18 @@ SYSTEM_PROMPT = (
 class AIAgentService:
     system_prompt = SYSTEM_PROMPT
 
+    def __init__(self, agent_service: AgentService | None = None):
+        self.agent_service = agent_service or ai_service
+
     async def process_decision_request(
         self, db: AsyncSession, request: ChatRequest
     ) -> ChatResponse:
-        logger.info(
-            "Procesando solicitud de decisión: %s", request.message
-        )
+        logger.info("Procesando solicitud de decisión: %s", request.message)
 
         store_id = request.context_store_id
         try:
             # 1er intento: agente BI con cifras exactas desde las herramientas.
-            response_text = await ai_service.get_analyst_response(
+            response_text = await self.agent_service.get_analyst_response(
                 db=db, query=request.message, store_id=store_id
             )
         except (SQLAlchemyError, RuntimeError, ValueError) as err:
@@ -34,13 +36,11 @@ class AIAgentService:
                 "Error ejecutando agente BI: %s. Degradando a RAG.", err, exc_info=True
             )
             try:
-                response_text = await ai_service.get_rag_response(
+                response_text = await self.agent_service.get_rag_response(
                     db=db, query=request.message, store_id=store_id
                 )
             except (SQLAlchemyError, RuntimeError, ValueError) as rag_err:
-                logger.error(
-                    "Error en RAG: %s", rag_err, exc_info=True
-                )
+                logger.error("Error en RAG: %s", rag_err, exc_info=True)
                 return ChatResponse(
                     answer=f"Error al generar la consulta: {rag_err}",
                     insights=[],

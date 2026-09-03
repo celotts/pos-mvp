@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps_auth import require_permission
 from api.response_factory import ApiResponse, create_api_response
+from core.i18n import tr
 from dependencies import get_current_user, get_db
 from models.user import User as UserModel
 from schemas.supplier import Supplier, SupplierCreate, SupplierUpdate
@@ -65,7 +66,7 @@ async def read_supplier_by_id(
     """
     supplier = await supplier_service.get_by_id(db, id=supplier_id)
     if not supplier:
-        raise HTTPException(status_code=404, detail="Supplier not found")
+        raise HTTPException(status_code=404, detail=tr("NOT_FOUND.SUPPLIER"))
     return create_api_response(data=supplier)
 
 
@@ -82,7 +83,7 @@ supplier_in: SupplierUpdate,
     """
     supplier = await supplier_service.update(db, id=supplier_id, obj_in=supplier_in)
     if not supplier:
-        raise HTTPException(status_code=404, detail="Supplier not found")
+        raise HTTPException(status_code=404, detail=tr("NOT_FOUND.SUPPLIER"))
     return create_api_response(data=supplier, message="Supplier updated successfully.")
 
 
@@ -98,5 +99,5 @@ supplier_id: uuid.UUID,
     """
     supplier = await supplier_service.delete(db, id=supplier_id)
     if not supplier:
-        raise HTTPException(status_code=404, detail="Supplier not found")
+        raise HTTPException(status_code=404, detail=tr("NOT_FOUND.SUPPLIER"))
     return create_api_response(data=supplier, message="Supplier deleted successfully.")
