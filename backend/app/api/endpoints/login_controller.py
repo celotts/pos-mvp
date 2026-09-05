@@ -186,7 +186,9 @@ async def login_refresh(
                 tr("AUTH.REFRESH_REVOKED"),
             ),
         }
-        http_code, message = mapping.get(str(e), (status.HTTP_401_UNAUTHORIZED, tr("AUTH.INVALID_REFRESH")))
+        http_code, message = mapping.get(
+            str(e), (status.HTTP_401_UNAUTHORIZED, tr("AUTH.INVALID_REFRESH"))
+        )
         raise HTTPException(status_code=http_code, detail=message)
 
     user = await crud_user.get(db, id=user_id)
